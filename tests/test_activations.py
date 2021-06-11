@@ -28,23 +28,23 @@ class BaseActivationTestCase:
         Test error when no input is supplied
         """
         with self.assertRaises(AttributeError):
-            self.act_obj.compute()
+            self.act_obj.calculate_activations()
 
         with self.assertRaises(AttributeError):
-            self.act_obj.derivative()
+            self.act_obj.calculate_derivatives()
 
     def test_custom_input(self):
         """
-        Test with explicit input passed to compute() and derivative()
+        Test with explicit input passed to calculate_activations() and calculate_derivatives()
         """
         ip = np.random.randn(5, 1)
 
         activations = self.activations(ip)
         derivatives = self.derivatives(activations)
 
-        np.testing.assert_allclose(self.act_obj.compute(ip), activations)
+        np.testing.assert_allclose(self.act_obj.calculate_activations(ip), activations)
 
-        np.testing.assert_allclose(self.act_obj.derivative(ip), derivatives)
+        np.testing.assert_allclose(self.act_obj.calculate_derivatives(ip), derivatives)
 
     def test_init_input(self):
         """
@@ -57,13 +57,13 @@ class BaseActivationTestCase:
 
         self.act_obj.ip = ip
 
-        np.testing.assert_allclose(self.act_obj.compute(), activations)
+        np.testing.assert_allclose(self.act_obj.calculate_activations(), activations)
 
         np.testing.assert_allclose(self.act_obj.activations, activations)
 
-        np.testing.assert_allclose(self.act_obj.derivative(), derivatives)
+        np.testing.assert_allclose(self.act_obj.calculate_derivatives(), derivatives)
 
-        np.testing.assert_allclose(self.act_obj.slope, derivatives)
+        np.testing.assert_allclose(self.act_obj.derivatives, derivatives)
 
     def test_custom_input_override(self):
         """
@@ -77,13 +77,17 @@ class BaseActivationTestCase:
         init_ip = np.random.randn(5, 1)
         self.act_obj.ip = init_ip
 
-        np.testing.assert_allclose(self.act_obj.compute(custom_ip), activations)
+        np.testing.assert_allclose(
+            self.act_obj.calculate_activations(custom_ip), activations
+        )
 
         self.assertIsNone(self.act_obj.activations)
 
-        np.testing.assert_allclose(self.act_obj.derivative(custom_ip), derivatives)
+        np.testing.assert_allclose(
+            self.act_obj.calculate_derivatives(custom_ip), derivatives
+        )
 
-        self.assertIsNone(self.act_obj.slope)
+        self.assertIsNone(self.act_obj.derivatives)
 
 
 class SigmoidTestCase(BaseActivationTestCase, unittest.TestCase):

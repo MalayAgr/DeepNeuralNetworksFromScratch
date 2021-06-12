@@ -78,7 +78,7 @@ class ReLU(Activation):
 
 
 class LeakyReLU(Activation):
-    def __init__(self, alpha=0.01):
+    def __init__(self, ip=None, alpha=0.01):
         super().__init__()
         self.alpha = alpha
 
@@ -87,3 +87,12 @@ class LeakyReLU(Activation):
 
     def derivative_func(self, ip):
         return np.where(ip > 0, 1.0, self.alpha)
+
+
+def activation_factory(activation, ip=None, alpha=None):
+    return {
+        "sigmoid": Sigmoid(ip),
+        "tanh": Tanh(ip),
+        "relu": ReLU(ip),
+        "lrelu": LeakyReLU(ip, alpha=alpha),
+    }[activation]

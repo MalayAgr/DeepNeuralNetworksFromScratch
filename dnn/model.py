@@ -79,16 +79,19 @@ class Model:
         self.layer_sizes = layer_sizes
         self.activations = activations
 
-    def build_model(self, X):
-        ip = X
+    def build_model(self, X, force_build=False):
+        if force_build or not (
+            hasattr(self, "model") and np.allclose(self.model[0].ip, X)
+        ):
+            ip = X
 
-        model = ()
-        for size, activation in zip(self.layer_sizes, self.activations):
-            layer = Layer(ip=ip, units=size, activation=activation)
-            model += (layer,)
-            ip = layer
+            model = ()
+            for size, activation in zip(self.layer_sizes, self.activations):
+                layer = Layer(ip=ip, units=size, activation=activation)
+                model += (layer,)
+                ip = layer
 
-        self.model = model
+            self.model = model
 
     def forward_propagation(self):
         for layer in self.model:
@@ -101,11 +104,13 @@ class Model:
         if self.ip_shape != X.shape:
             raise ValueError("The input does not have the expected shape")
 
-    def train(self, X, Y):
+    def train(self, X, Y, loss="binary_crossentropy", force_build=False):
         self.validate_input_shape(X)
         if X.shape[-1] != Y.shape[-1]:
             raise ValueError("Y needs to have the same number of samples as X")
 
-    def predict(self, X):
+    def predict(self, X, force_build=False):
         self.validate_input_shape(X)
-
+        self.build_model(X, force_build=force_build)
+        self.forward_propagation()
+        return self.model[-1].activations

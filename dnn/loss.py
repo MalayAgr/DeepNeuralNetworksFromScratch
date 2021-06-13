@@ -32,7 +32,7 @@ class BinaryCrossEntropy(Loss):
     def loss_func(self, preds):
         positive_labels = self.labels * np.log(preds)
         negative_labels = (1 - self.labels) * np.log(1 - preds)
-        loss = np.sum((-(positive_labels + negative_labels))) / self.train_size
+        loss = np.sum(-(positive_labels + negative_labels)) / self.train_size
         return np.squeeze(loss)
 
     def loss_derivative(self, preds):
@@ -41,7 +41,7 @@ class BinaryCrossEntropy(Loss):
         return lhs - rhs
 
 
-def loss_factory(self, loss, Y):
+def loss_factory(loss, Y):
     return {
         "binary_crossentropy": BinaryCrossEntropy(Y),
         "bse": BinaryCrossEntropy(Y),

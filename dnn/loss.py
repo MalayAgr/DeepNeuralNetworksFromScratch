@@ -41,8 +41,19 @@ class BinaryCrossEntropy(Loss):
         return lhs - rhs
 
 
+class MeanSquaredError(Loss):
+    def loss_func(self, preds):
+        loss = np.sum((preds - self.labels) ** 2) / (2 * self.train_size)
+        return np.squeeze(loss)
+
+    def loss_derivative(self, preds):
+        return (preds - self.labels) / self.train_size
+
+
 def loss_factory(loss, Y):
     return {
         "binary_crossentropy": BinaryCrossEntropy(Y),
         "bse": BinaryCrossEntropy(Y),
+        "mean_squared_error": MeanSquaredError(Y),
+        "mse": MeanSquaredError(Y)
     }[loss]

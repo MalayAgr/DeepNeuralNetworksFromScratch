@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dnn.loss import BinaryCrossEntropy
+from dnn.loss import BinaryCrossEntropy, MeanSquaredError
 from dnn.activations import Sigmoid
 
 import numpy as np
@@ -62,3 +62,16 @@ class BSETestCase(LossTestCase, unittest.TestCase):
 
     def loss_derivatives(self):
         return (1 - self.Y) / (1 - self.preds) - self.Y / self.preds
+
+
+class MSETestCase(LossTestCase, unittest.TestCase):
+    loss_cls = MeanSquaredError
+
+    def loss_func(self):
+        train_size = self.Y.shape[-1]
+        loss = np.sum((self.preds - self.Y) ** 2) / (2 * train_size)
+        return np.squeeze(loss)
+
+    def loss_derivatives(self):
+        train_size = self.Y.shape[-1]
+        return (self.preds - self.Y) / train_size

@@ -2,6 +2,8 @@ import numpy as np
 
 from .activations import activation_factory
 
+from .loss import loss_factory
+
 
 class Layer:
     def __init__(self, ip, units, activation):
@@ -12,8 +14,11 @@ class Layer:
         self.activation = self.init_activation(activation)
         self.weights, self.biases = self.init_params()
 
-    def __repr__(self):
+    def __str__(self):
         return f"{self.__class__.__name__}(ip_shape={self.ip_shape}, units={self.units}, activation={self.activation.__class__.__name__})"
+
+    def __repr__(self):
+        return self.__str__()
 
     def get_ip_shape(self, ip):
         if isinstance(ip, self.__class__) and hasattr(ip, "activations"):
@@ -67,6 +72,10 @@ class Layer:
 
         return gradients
 
+    def update_params(self, lr):
+        self.weights -= lr * self.gradients["weights"]
+        self.biases -= lr * self.gradients["biases"]
+
 
 class Model:
     def __init__(self, ip_shape, layer_sizes, activations):
@@ -78,39 +87,85 @@ class Model:
         self.ip_shape = ip_shape
         self.layer_sizes = layer_sizes
         self.activations = activations
+        self.num_layers = len(layer_sizes)
+        self.model = self._build_model()
 
-    def build_model(self, X, force_build=False):
-        if force_build or not (
-            hasattr(self, "model") and np.allclose(self.model[0].ip, X)
-        ):
-            ip = X
+    def __str__(self):
+        layers = ",".join([str(l) for l in self.model])
+        return f"{self.__class__.__name__}(InputLayer{self.ip_shape}, {layers})"
 
-            model = ()
-            for size, activation in zip(self.layer_sizes, self.activations):
-                layer = Layer(ip=ip, units=size, activation=activation)
-                model += (layer,)
-                ip = layer
+    def __repr__(self):
+        return self.__str__()
 
-            self.model = model
+    def _build_model(self):
+        ip = np.random.randn(*self.ip_shape)
 
-    def forward_propagation(self):
-        for layer in self.model:
-            layer.forward_step()
+        model = ()
+        for size, activation in zip(self.layer_sizes, self.activations):
+            layer = Layer(ip=ip, units=size, activation=activation)
+            model += (layer,)
+            ip = layer
 
-    def backpropagation(self):
-        pass
+        return model
 
-    def validate_input_shape(self, X):
+    def _forward_propagation(self, X):
         if self.ip_shape != X.shape:
             raise ValueError("The input does not have the expected shape")
 
-    def train(self, X, Y, loss="binary_crossentropy", force_build=False):
-        self.validate_input_shape(X)
+        self.model[0].ip = X
+
+        for idx in range(self.num_layers):
+            self.model[idx].forward_step()
+
+        return self.model[-1].activations
+
+    def _backpropagation(self, preds):
+        dA = self.loss.compute_derivatives(preds)
+
+        for idx in reversed(range(self.num_layers)):
+            self.model[idx].layer_gradients(dA)
+            dA = self.model[idx]
+
+    def _update_params(self, lr):
+        for idx in range(self.num_layers):
+            self.model[idx].update_params(lr)
+
+    def _validate_labels_shape(self, X, Y):
         if X.shape[-1] != Y.shape[-1]:
             raise ValueError("Y needs to have the same number of samples as X")
 
-    def predict(self, X, force_build=False):
-        self.validate_input_shape(X)
-        self.build_model(X, force_build=force_build)
-        self.forward_propagation()
-        return self.model[-1].activations
+    def train(
+        self,
+        X,
+        Y,
+        iterations=1000,
+        lr=1e-3,
+        loss="bse",
+        show_loss=True,
+        show_loss_freq=100,
+        force_build=True,
+    ):
+
+        if force_build:
+            self.model = self._build_model()
+
+        self._validate_labels_shape(X, Y)
+
+        self.loss = loss_factory(loss=loss, Y=Y)
+
+        history = []
+        for i in range(iterations):
+            preds = self._forward_propagation(X)
+            # print(preds)
+            loss = self.loss.compute_loss(preds)
+            history.append(loss)
+            self._backpropagation(preds)
+            self._update_params(lr=lr)
+
+            if show_loss and (i + 1) % show_loss_freq == 0:
+                print(f"Loss after {(i + 1)} iteration(s): {loss: .9f}")
+
+        return history
+
+    def predict(self, X):
+        return self._forward_propagation(X)

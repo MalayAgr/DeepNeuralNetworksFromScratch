@@ -124,7 +124,7 @@ class OutputLayerGradientTestCase(unittest.TestCase):
             self.op_layer.get_layer_dA(self.dA_params), self.dA_params
         )
 
-    def test_layer_gradients(self):
+    def test_gradients(self):
         self.op_layer.layer_gradients(self.dA_params)
 
         dZ = self.op_layer.activations - self.Y
@@ -139,6 +139,15 @@ class OutputLayerGradientTestCase(unittest.TestCase):
 
         np.testing.assert_allclose(op_dW, dW)
         np.testing.assert_allclose(op_db, db)
+
+        with self.subTest():
+            W = self.op_layer.weights - 0.01 * dW
+            b = self.op_layer.biases - 0.01 * db
+
+            self.op_layer.update_params(0.01)
+
+            np.testing.assert_allclose(self.op_layer.weights, W)
+            np.testing.assert_allclose(self.op_layer.biases, b)
 
 
 class HiddenLayerGradientTest(unittest.TestCase):
@@ -170,7 +179,7 @@ class HiddenLayerGradientTest(unittest.TestCase):
         self.assertEqual(layer_dA.shape, dA.shape)
         np.testing.assert_allclose(layer_dA, dA)
 
-    def test_layer_gradients(self):
+    def test_gradients(self):
         self.layer.layer_gradients(self.op_layer)
 
         dZ = np.matmul(
@@ -188,3 +197,12 @@ class HiddenLayerGradientTest(unittest.TestCase):
 
         np.testing.assert_allclose(layer_dW, dW)
         np.testing.assert_allclose(layer_db, db)
+
+        with self.subTest():
+            W = self.layer.weights - 0.01 * dW
+            b = self.layer.biases - 0.01 * db
+
+            self.layer.update_params(0.01)
+
+            np.testing.assert_allclose(self.layer.weights, W)
+            np.testing.assert_allclose(self.layer.biases, b)

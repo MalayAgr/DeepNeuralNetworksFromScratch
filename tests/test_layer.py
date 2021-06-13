@@ -1,8 +1,8 @@
 import unittest
 
 import numpy as np
-from dnn.activations import Activation, ReLU, activation_factory
-from dnn.layer import Layer
+from dnn.activations import ReLU, activation_factory
+from dnn.model import Layer
 
 
 class LayerWithArrayInputTestCase(unittest.TestCase):
@@ -55,7 +55,7 @@ class LayerWithLayerInputTestCase(unittest.TestCase):
         self.layer = Layer(ip=self.ip_layer, units=self.units, activation=activation)
 
     def test_get_ip_shape(self):
-        x_dim, y_dim = self.ip_layer.units, self.ip_layer.ip_shape[-1]
+        x_dim, y_dim = self.ip_layer.units, self.ip_layer.train_size
         self.assertEqual(self.layer.ip_shape, (x_dim, y_dim))
 
     def test_units(self):

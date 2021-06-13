@@ -19,7 +19,7 @@ class Layer:
         if isinstance(ip, self.__class__) and hasattr(ip, "activations"):
             return ip.activations.shape
         elif isinstance(ip, self.__class__):
-            return ip.weights.shape[0], ip.ip_shape[-1]
+            return ip.units, ip.train_size
         return ip.shape
 
     def get_ip(self):
@@ -66,3 +66,46 @@ class Layer:
         self.gradients = gradients
 
         return gradients
+
+
+class Model:
+    def __init__(self, ip_shape, layer_sizes, activations):
+        if len(activations) != len(layer_sizes):
+            raise AttributeError(
+                "activations and layer_sizes should have the same length"
+            )
+
+        self.ip_shape = ip_shape
+        self.layer_sizes = layer_sizes
+        self.activations = activations
+
+    def build_model(self, X):
+        ip = X
+
+        model = ()
+        for size, activation in zip(self.layer_sizes, self.activations):
+            layer = Layer(ip=ip, units=size, activation=activation)
+            model += (layer,)
+            ip = layer
+
+        self.model = model
+
+    def forward_propagation(self):
+        for layer in self.model:
+            layer.forward_step()
+
+    def backpropagation(self):
+        pass
+
+    def validate_input_shape(self, X):
+        if self.ip_shape != X.shape:
+            raise ValueError("The input does not have the expected shape")
+
+    def train(self, X, Y):
+        self.validate_input_shape(X)
+        if X.shape[-1] != Y.shape[-1]:
+            raise ValueError("Y needs to have the same number of samples as X")
+
+    def predict(self, X):
+        self.validate_input_shape(X)
+

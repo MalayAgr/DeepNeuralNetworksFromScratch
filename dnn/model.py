@@ -156,7 +156,6 @@ class Model:
         history = []
         for i in range(iterations):
             preds = self._forward_propagation(X)
-            # print(preds)
             loss = self.loss.compute_loss(preds)
             history.append(loss)
             self._backpropagation(preds)

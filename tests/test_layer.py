@@ -1,7 +1,8 @@
 import unittest
 
 import numpy as np
-from dnn.activations import ReLU, activation_factory
+from dnn.activations import ReLU
+from dnn.utils import activation_factory
 from dnn.model import Layer
 
 

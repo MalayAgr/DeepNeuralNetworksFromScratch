@@ -73,4 +73,4 @@ class MeanSquaredError(Loss):
         return np.squeeze(loss)
 
     def loss_derivative(self, preds):
-        return (preds - self.labels) / self.train_size
+        return preds - self.labels

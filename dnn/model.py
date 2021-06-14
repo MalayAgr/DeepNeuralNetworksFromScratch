@@ -1,6 +1,6 @@
 import numpy as np
 
-from .activations import activation_factory
+from .utils import activation_factory
 
 from .loss import loss_factory
 

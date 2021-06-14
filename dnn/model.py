@@ -1,8 +1,6 @@
 import numpy as np
 
-from .utils import activation_factory
-
-from .loss import loss_factory
+from .utils import activation_factory, loss_factory
 
 
 class Layer:

@@ -73,5 +73,4 @@ class MSETestCase(LossTestCase, unittest.TestCase):
         return np.squeeze(loss)
 
     def loss_derivatives(self):
-        train_size = self.Y.shape[-1]
-        return (self.preds - self.Y) / train_size
+        return self.preds - self.Y

@@ -1,12 +1,26 @@
+from abc import ABC, abstractmethod
+
 import numpy as np
-from abc import abstractmethod
 
 
-class Activation:
-    def __init__(self, ip=None):
+class Activation(ABC):
+    name = None
+
+    def __init__(self, ip=None, *args, **kwargs):
         self.ip = ip
         self.activations = None
         self.derivatives = None
+
+    @classmethod
+    def _get_activation_classes(cls):
+        result = {}
+
+        for sub_cls in cls.__subclasses__():
+            name = sub_cls.name
+            result.update(sub_cls._get_activation_classes())
+            if name is not None and name not in result:
+                result.update({name: sub_cls})
+        return result
 
     @abstractmethod
     def activation_func(self, ip):
@@ -54,6 +68,8 @@ class Activation:
 
 
 class Sigmoid(Activation):
+    name = "sigmoid"
+
     def activation_func(self, ip):
         return 1 / (1 + np.exp(-ip))
 
@@ -62,6 +78,8 @@ class Sigmoid(Activation):
 
 
 class Tanh(Activation):
+    name = "tanh"
+
     def activation_func(self, ip):
         return np.tanh(ip)
 
@@ -70,6 +88,8 @@ class Tanh(Activation):
 
 
 class ReLU(Activation):
+    name = "relu"
+
     def activation_func(self, ip):
         return np.maximum(0, ip)
 
@@ -78,9 +98,15 @@ class ReLU(Activation):
 
 
 class LeakyReLU(Activation):
-    def __init__(self, ip=None, alpha=0.01):
-        super().__init__()
+    name = "lrelu"
+
+    def __init__(self, ip=None, *args, **kwargs):
+        alpha = kwargs.get("alpha")
+        if alpha is None:
+            alpha = 0.01
         self.alpha = alpha
+
+        super().__init__(ip=ip, *args, **kwargs)
 
     def activation_func(self, ip):
         return np.maximum(self.alpha * ip, ip)
@@ -89,10 +115,9 @@ class LeakyReLU(Activation):
         return np.where(ip > 0, 1.0, self.alpha)
 
 
-def activation_factory(activation, ip=None, alpha=None):
-    return {
-        "sigmoid": Sigmoid(ip),
-        "tanh": Tanh(ip),
-        "relu": ReLU(ip),
-        "lrelu": LeakyReLU(ip, alpha=alpha),
-    }[activation]
+def activation_factory(activation, ip=None, *args, **kwargs):
+    registry = Activation._get_activation_classes()
+    cls = registry.get(activation)
+    if cls is None:
+        raise ValueError("Activation with this name does not exist")
+    return cls(ip=ip, *args, **kwargs)

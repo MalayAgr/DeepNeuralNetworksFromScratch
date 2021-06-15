@@ -6,6 +6,20 @@ from dnn.utils import activation_factory
 from dnn.model import Layer
 
 
+class LayerStrTestCase(unittest.TestCase):
+    def test_str(self):
+        ip, units, activation = np.random.randn(5, 4), 10, "relu"
+        layer = Layer(ip=ip, units=units, activation=activation)
+        string = str(layer)
+        expected = f"Layer(ip_shape={ip.shape}, units={units}, activation=ReLU)"
+
+        self.assertEqual(string, expected)
+
+        with self.subTest():
+            repr_str = repr(layer)
+            self.assertEqual(repr_str, expected)
+
+
 class LayerWithArrayInputTestCase(unittest.TestCase):
     def setUp(self):
         self.ip, self.units, activation = np.random.randn(5, 4), 10, "relu"

@@ -89,7 +89,7 @@ class Model:
         self.model = self._build_model()
 
     def __str__(self):
-        layers = ",".join([str(l) for l in self.model])
+        layers = ", ".join([str(l) for l in self.model])
         return f"{self.__class__.__name__}(InputLayer{self.ip_shape}, {layers})"
 
     def __repr__(self):

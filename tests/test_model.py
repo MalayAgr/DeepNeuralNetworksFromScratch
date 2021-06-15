@@ -77,6 +77,19 @@ class ModelTestCase(unittest.TestCase):
 
         return history
 
+    def test_str(self):
+        string = str(self.model)
+        layers = ", ".join([str(layer) for layer in self.model.model])
+        expected = (
+            f"{self.model.__class__.__name__}(InputLayer{self.X.shape}, {layers})"
+        )
+
+        self.assertEqual(string, expected)
+
+        with self.subTest():
+            repr_str = repr(self.model)
+            self.assertEqual(repr_str, expected)
+
     def test_mismatch_layer_activations(self):
         with self.assertRaises(AttributeError):
             _ = Model(

@@ -123,16 +123,15 @@ class ReLUTestCase(BaseActivationTestCase, unittest.TestCase):
 class LeakyReLUTestCase(BaseActivationTestCase, unittest.TestCase):
     act_cls = LeakyReLU
 
-    def setUp(self):
-        self.alpha = 0.01
-        self.act_obj = self.act_cls(alpha=self.alpha)
+    def test_default_alpha(self):
+        self.assertAlmostEqual(self.act_obj.alpha, 0.01)
+
+    def test_custom_alpha(self):
+        obj_custom_alpha = self.act_cls(alpha=0.02)
+        self.assertAlmostEqual(obj_custom_alpha.alpha, 0.02)
 
     def activations(self, ip):
-        return np.maximum(self.alpha * ip, ip)
+        return np.maximum(0.01 * ip, ip)
 
     def derivatives(self, ip):
-        return np.where(ip > 0, 1.0, self.alpha)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        return np.where(ip > 0, 1.0, 0.01)

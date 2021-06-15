@@ -24,11 +24,37 @@ class Activation(ABC):
 
     @abstractmethod
     def activation_func(self, ip):
-        pass
+        """
+        The formula used to calculate the activations.
+        Subclasses classes must implement this.
+
+        If the activation function is called g with input z,
+        this should return g(z).
+
+        Arguments:
+            ip: Numpy-array, the input, z, for the function.
+
+        Returns:
+            A Numpy-array with the calculated activations, g(z).
+        """
 
     @abstractmethod
     def derivative_func(self, ip):
-        pass
+        """
+        The formula used to calculate the derivatives.
+        Subclasses classes must implement this.
+
+        If the activation function is called g with input z,
+        this should return g'(z).
+
+        Arguments:
+            ip: Numpy-array, the activations, g(z), whose derivative needs to be calculated.
+                Example: For sigmoid, the derivative is sigmoid(z) * (1 - sigmoid(z)).
+                This should be implemented as ip * (1 - ip).
+
+        Returns:
+            A Numpy-array with the calculated derivatives, g'(z).
+        """
 
     def _get_activation_ip(self, ip, message):
         if ip is None and self.ip is None:

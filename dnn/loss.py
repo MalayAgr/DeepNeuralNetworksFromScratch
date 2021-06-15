@@ -35,11 +35,36 @@ class Loss(ABC):
 
     @abstractmethod
     def loss_func(self, preds):
-        pass
+        """
+        The formula used to calculate the loss.
+        Subclasses classes must implement this.
+
+        If the loss is J with inputs preds and Y,
+        this should return J(preds, Y).
+
+        Arguments:
+            preds: Numpy-array, the predictions to be used for calculating the loss.
+
+        Returns:
+            A float representing the loss.
+        """
 
     @abstractmethod
     def loss_derivative(self, preds):
-        pass
+        """
+        The formula used to calculate the derivative of the loss function
+        With respect to preds.
+        Subclasses classes must implement this.
+
+        If the loss is J with inputs preds and Y,
+        this should return J'(preds, Y).
+
+        Arguments:
+            preds: Numpy-array, the predictions to be used for calculating the derivatives.
+
+        Returns:
+            A Numpy-array with the calculated derivatives.
+        """
 
     def compute_loss(self, preds):
         self.validate_input(preds)

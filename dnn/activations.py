@@ -32,7 +32,7 @@ class Activation(ABC):
         this should return g(z).
 
         Arguments:
-            ip: Numpy-array, the input, z, for the function.
+            ip (Numpy-array): The input z for the function.
 
         Returns:
             A Numpy-array with the calculated activations, g(z).
@@ -48,15 +48,21 @@ class Activation(ABC):
         this should return g'(z).
 
         Arguments:
-            ip: Numpy-array, the activations, g(z), whose derivative needs to be calculated.
-                Example: For sigmoid, the derivative is sigmoid(z) * (1 - sigmoid(z)).
-                This should be implemented as ip * (1 - ip).
+            ip (Numpy-array): The input z with respect to which derivatives
+                need to be calculated.
+
+        Example:
+            For sigmoid, the derivative is sigmoid(z) * (1 - sigmoid(z)).
+            This should be implemented as:
+                def derivative_func(self):
+                    sigmoid = self.activation_func(ip)
+                    return sigmoid * (1 - sigmoid)
 
         Returns:
             A Numpy-array with the calculated derivatives, g'(z).
         """
 
-    def _get_activation_ip(self, ip, message):
+    def _get_ip(self, ip, message):
         if ip is None and self.ip is None:
             raise AttributeError(message)
 
@@ -64,16 +70,8 @@ class Activation(ABC):
             return self.ip
         return ip
 
-    def _get_derivative_ip(self, ip, message):
-        if ip is None and self.activations is None:
-            raise AttributeError(message)
-
-        if ip is None:
-            return self.activations
-        return self.activation_func(ip)
-
     def calculate_activations(self, ip=None):
-        z = self._get_activation_ip(
+        z = self._get_ip(
             ip,
             f"{self.__class__.__name__} requires an input to compute activations",
         )
@@ -83,7 +81,7 @@ class Activation(ABC):
         return activations
 
     def calculate_derivatives(self, ip=None):
-        z = self._get_derivative_ip(
+        z = self._get_ip(
             ip,
             f"{self.__class__.__name__} requires an input to compute derivatives",
         )
@@ -100,7 +98,8 @@ class Sigmoid(Activation):
         return 1 / (1 + np.exp(-ip))
 
     def derivative_func(self, ip):
-        return ip * (1 - ip)
+        activations = self.activation_func(ip)
+        return activations * (1 - activations)
 
 
 class Tanh(Activation):
@@ -110,7 +109,7 @@ class Tanh(Activation):
         return np.tanh(ip)
 
     def derivative_func(self, ip):
-        return 1 - ip ** 2
+        return 1 - self.activation_func(ip) ** 2
 
 
 class ReLU(Activation):
@@ -120,7 +119,7 @@ class ReLU(Activation):
         return np.maximum(0, ip)
 
     def derivative_func(self, ip):
-        return np.where(ip > 0, 1, 0)
+        return np.where(ip > 0, 1.0, 0)
 
 
 class LeakyReLU(Activation):

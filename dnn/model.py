@@ -117,8 +117,8 @@ class Model:
 
         return self.model[-1].activations
 
-    def _backpropagation(self, preds):
-        dA = self.loss.compute_derivatives(preds)
+    def _backpropagation(self, loss, preds):
+        dA = loss.compute_derivatives(preds)
 
         for idx in reversed(range(self.num_layers)):
             self.model[idx].layer_gradients(dA)
@@ -132,6 +132,11 @@ class Model:
         if X.shape[-1] != Y.shape[-1]:
             raise ValueError("Y needs to have the same number of samples as X")
 
+        if Y.shape[0] != self.layer_sizes[-1]:
+            raise ValueError(
+                "Y needs to have the same number of rows as the number of units in the output layer"
+            )
+
     def train(
         self,
         X,
@@ -141,7 +146,7 @@ class Model:
         loss="bse",
         show_loss=True,
         show_loss_freq=100,
-        force_build=True,
+        force_build=False,
     ):
 
         if force_build:
@@ -149,14 +154,13 @@ class Model:
 
         self._validate_labels_shape(X, Y)
 
-        self.loss = loss_factory(loss=loss, Y=Y)
+        loss_obj = loss_factory(loss=loss, Y=Y)
 
         history = []
         for i in range(iterations):
             preds = self._forward_propagation(X)
-            loss = self.loss.compute_loss(preds)
-            history.append(loss)
-            self._backpropagation(preds)
+            history.append(loss_obj.compute_loss(preds))
+            self._backpropagation(loss_obj, preds)
             self._update_params(lr=lr)
 
             if show_loss and (i + 1) % show_loss_freq == 0:

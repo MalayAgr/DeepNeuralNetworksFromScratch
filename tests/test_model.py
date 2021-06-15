@@ -77,13 +77,21 @@ class ModelTestCase(unittest.TestCase):
 
         return history
 
+    def test_mismatch_layer_activations(self):
+        with self.assertRaises(AttributeError):
+            _ = Model(
+                ip_shape=(1, 1),
+                layer_sizes=[1, 1],
+                activations=["relu"],
+            )
+
     def test_validate_labels_shape(self):
         with self.assertRaises(ValueError):
             Y = np.random.randn(1, 2)
             self.model._validate_labels_shape(self.X, Y)
 
         with self.assertRaises(ValueError):
-            Y = np.random.randn(2, 2)
+            Y = np.random.randn(2, 10)
             self.model._validate_labels_shape(self.X, Y)
 
     def test_build_model(self):

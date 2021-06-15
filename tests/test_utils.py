@@ -1,6 +1,6 @@
-import unittest
-import string
 import random
+import string
+import unittest
 
 import numpy as np
 from dnn.activations import Activation

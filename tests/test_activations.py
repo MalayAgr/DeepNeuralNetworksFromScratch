@@ -131,7 +131,7 @@ class LeakyReLUTestCase(BaseActivationTestCase, unittest.TestCase):
         self.assertAlmostEqual(obj_custom_alpha.alpha, 0.02)
 
     def activations(self, ip):
-        return np.maximum(0.01 * ip, ip)
+        return np.where(ip > 0, ip, 0.01 * ip)
 
     def derivatives(self, ip):
         return np.where(ip > 0, 1.0, 0.01)

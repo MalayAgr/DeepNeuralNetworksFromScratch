@@ -134,7 +134,7 @@ class LeakyReLU(Activation):
         super().__init__(ip=ip, *args, **kwargs)
 
     def activation_func(self, ip):
-        return np.maximum(self.alpha * ip, ip)
+        return np.where(ip > 0, ip, self.alpha * ip)
 
     def derivative_func(self, ip):
         return np.where(ip > 0, 1.0, self.alpha)

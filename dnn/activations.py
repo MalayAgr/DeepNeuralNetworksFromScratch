@@ -101,7 +101,7 @@ class LeakyReLU(Activation):
     name = "lrelu"
 
     def __init__(self, ip=None, *args, **kwargs):
-        alpha = kwargs.get("alpha")
+        alpha = kwargs.pop("alpha", None)
         if alpha is None:
             alpha = 0.01
         self.alpha = alpha

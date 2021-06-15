@@ -15,4 +15,4 @@ def loss_factory(loss, Y, *args, **kwargs):
     cls = registry.get(loss)
     if cls is None:
         raise ValueError("Loss with this name does not exist")
-    return cls(Y, *args, **kwargs)
+    return cls(Y=Y, *args, **kwargs)

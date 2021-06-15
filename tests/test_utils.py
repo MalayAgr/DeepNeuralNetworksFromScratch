@@ -1,9 +1,15 @@
 import unittest
+import string
+import random
 
 import numpy as np
 from dnn.activations import Activation
 from dnn.loss import Loss
 from dnn.utils import activation_factory, loss_factory
+
+
+def generate_random_name():
+    return "".join(random.choices(string.ascii_lowercase + string.ascii_uppercase))
 
 
 class ActivationFactoryTestCase(unittest.TestCase):
@@ -15,6 +21,10 @@ class ActivationFactoryTestCase(unittest.TestCase):
 
         def derivative_func(self, ip):
             pass
+
+    def test_invalid_name_error(self):
+        with self.assertRaises(ValueError):
+            activation_factory(generate_random_name())
 
     def test_custom_class_in_registry(self):
         registry = Activation._get_activation_classes()
@@ -43,6 +53,10 @@ class LossFactoryTestCase(unittest.TestCase):
 
         def loss_derivative(self, preds):
             pass
+
+    def test_invalid_name_error(self):
+        with self.assertRaises(ValueError):
+            loss_factory(generate_random_name(), Y=np.zeros(shape=(1, 1)))
 
     def test_custom_class_in_registry(self):
         registry = Loss._get_loss_classes()

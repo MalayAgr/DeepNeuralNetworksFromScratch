@@ -1,13 +1,18 @@
 import numpy as np
 
+from .input_layer import Input
 from .utils import activation_factory, loss_factory
 
 
 class Layer:
     def __init__(self, ip, units, activation, initializer="he"):
-        self.ip = ip
+        if not isinstance(ip, (Input, self.__class__)):
+            msg = f"A {self.__class__.__name__} can have only instances of Input or itself as ip"
+            raise AttributeError(msg)
+
+        self.ip_layer = ip
         self.units = units
-        self.ip_shape = self.get_ip_shape(ip)
+        self.ip_shape = self.get_ip_shape()
         self.train_size = self.ip_shape[-1]
         self.activation = self.init_activation(activation)
         self.initializer = initializer
@@ -19,17 +24,21 @@ class Layer:
     def __repr__(self):
         return self.__str__()
 
-    def get_ip_shape(self, ip):
-        if isinstance(ip, self.__class__) and hasattr(ip, "activations"):
-            return ip.activations.shape
-        elif isinstance(ip, self.__class__):
-            return ip.units, ip.train_size
-        return ip.shape
+    def get_ip_shape(self):
+        if isinstance(self.ip_layer, self.__class__):
+            return self.ip_layer.units, self.ip_layer.train_size
+        return self.ip_layer.ip_shape
 
     def get_ip(self):
-        if isinstance(self.ip, self.__class__):
-            return self.ip.activations
-        return self.ip
+        has_activs = hasattr(self.ip_layer, "activations")
+        no_ip = hasattr(self.ip_layer, "ip") and self.ip_layer.ip is None
+
+        if not has_activs and no_ip:
+            raise ValueError("No input found.")
+
+        if isinstance(self.ip_layer, self.__class__):
+            return self.ip_layer.activations
+        return self.ip_layer.ip
 
     def init_activation(self, activation):
         return activation_factory(activation)
@@ -101,26 +110,27 @@ class Model:
             )
 
         self.ip_shape = ip_shape
+        self.ip_layer = Input(ip_shape)
         self.layer_sizes = layer_sizes
         self.num_layers = num_layers
         self.activations = activations
         self.initializers = (
             [None] * num_layers if initializers is None else initializers
         )
-        self.model = self._build_model()
+        self.layers = self._build_model()
 
     def __str__(self):
-        layers = ", ".join([str(l) for l in self.model])
+        layers = ", ".join([str(l) for l in self.layers])
         return f"{self.__class__.__name__}(InputLayer{self.ip_shape}, {layers})"
 
     def __repr__(self):
         return self.__str__()
 
     def _build_model(self):
-        ip = np.random.randn(*self.ip_shape)
+        ip = self.ip_layer
         inits = self.initializers
 
-        model = ()
+        layers = ()
         for size, activation, init in zip(self.layer_sizes, self.activations, inits):
             if init is not None:
                 layer = Layer(
@@ -128,32 +138,27 @@ class Model:
                 )
             else:
                 layer = Layer(ip=ip, units=size, activation=activation)
-            model += (layer,)
+            layers += (layer,)
             ip = layer
 
-        return model
+        return layers
 
-    def _forward_propagation(self, X):
-        if self.ip_shape != X.shape:
-            raise ValueError("The input does not have the expected shape")
-
-        self.model[0].ip = X
-
+    def _forward_propagation(self):
         for idx in range(self.num_layers):
-            self.model[idx].forward_step()
+            self.layers[idx].forward_step()
 
-        return self.model[-1].activations
+        return self.layers[-1].activations
 
     def _backpropagation(self, loss, preds):
         dA = loss.compute_derivatives(preds)
 
         for idx in reversed(range(self.num_layers)):
-            self.model[idx].layer_gradients(dA)
-            dA = self.model[idx]
+            self.layers[idx].layer_gradients(dA)
+            dA = self.layers[idx]
 
     def _update_params(self, lr):
         for idx in range(self.num_layers):
-            self.model[idx].update_params(lr)
+            self.layers[idx].update_params(lr)
 
     def _validate_labels_shape(self, X, Y):
         if X.shape[-1] != Y.shape[-1]:
@@ -175,17 +180,18 @@ class Model:
         show_loss_freq=100,
         force_build=False,
     ):
+        self._validate_labels_shape(X, Y)
 
         if force_build:
-            self.model = self._build_model()
+            self.layers = self._build_model()
 
-        self._validate_labels_shape(X, Y)
+        self.ip_layer.ip = X
 
         loss_obj = loss_factory(loss=loss, Y=Y)
 
         history = []
         for i in range(iterations):
-            preds = self._forward_propagation(X)
+            preds = self._forward_propagation()
             loss_val = loss_obj.compute_loss(preds)
             history.append(loss_val)
             self._backpropagation(loss_obj, preds)
@@ -197,4 +203,5 @@ class Model:
         return history
 
     def predict(self, X):
-        return self._forward_propagation(X)
+        self.ip_layer.ip = X
+        return self._forward_propagation()

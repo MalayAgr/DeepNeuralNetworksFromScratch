@@ -19,7 +19,8 @@ class Layer:
         self.weights, self.biases = self.init_params()
 
     def __str__(self):
-        return f"{self.__class__.__name__}(ip_shape={self.ip_shape}, units={self.units}, activation={self.activation.__class__.__name__})"
+        activation_cls = self.activation.__class__.__name__
+        return f"{self.__class__.__name__}(ip_shape={self.ip_shape}, units={self.units}, activation={activation_cls})"
 
     def __repr__(self):
         return self.__str__()
@@ -121,7 +122,7 @@ class Model:
 
     def __str__(self):
         layers = ", ".join([str(l) for l in self.layers])
-        return f"{self.__class__.__name__}(InputLayer{self.ip_shape}, {layers})"
+        return f"{self.__class__.__name__}({self.ip_layer}, {layers})"
 
     def __repr__(self):
         return self.__str__()

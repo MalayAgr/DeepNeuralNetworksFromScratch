@@ -81,7 +81,7 @@ class ModelTestCase(unittest.TestCase):
         string = str(self.model)
         layers = ", ".join([str(layer) for layer in self.model.layers])
         expected = (
-            f"{self.model.__class__.__name__}(InputLayer{self.X.shape}, {layers})"
+            f"{self.model.__class__.__name__}(Input(ip_shape={self.X.shape}), {layers})"
         )
 
         self.assertEqual(string, expected)

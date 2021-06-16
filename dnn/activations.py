@@ -124,11 +124,12 @@ class ReLU(Activation):
 
 class LeakyReLU(Activation):
     name = "lrelu"
+    default_alpha = 0.01
 
     def __init__(self, ip=None, *args, **kwargs):
         alpha = kwargs.pop("alpha", None)
         if alpha is None:
-            alpha = 0.01
+            alpha = self.default_alpha
         self.alpha = alpha
 
         super().__init__(ip=ip, *args, **kwargs)
@@ -138,3 +139,14 @@ class LeakyReLU(Activation):
 
     def derivative_func(self, ip):
         return np.where(ip > 0, 1.0, self.alpha)
+
+
+class ELU(LeakyReLU):
+    name = "elu"
+    default_alpha = 1.0
+
+    def activation_func(self, ip):
+        return np.where(ip > 0, ip, self.alpha * (np.exp(ip) - 1))
+
+    def derivative_func(self, ip):
+        return np.where(ip > 0, 1.0, self.alpha * np.exp(ip))

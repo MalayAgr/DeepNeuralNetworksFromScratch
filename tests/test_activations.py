@@ -2,7 +2,7 @@ from abc import abstractmethod
 import unittest
 
 import numpy as np
-from dnn.activations import LeakyReLU, ReLU, Sigmoid, Tanh
+from dnn.activations import ELU, LeakyReLU, ReLU, Sigmoid, Tanh
 
 
 class BaseActivationTestCase:
@@ -125,14 +125,24 @@ class LeakyReLUTestCase(BaseActivationTestCase, unittest.TestCase):
     act_cls = LeakyReLU
 
     def test_default_alpha(self):
-        self.assertAlmostEqual(self.act_obj.alpha, 0.01)
+        self.assertAlmostEqual(self.act_obj.alpha, self.act_cls.default_alpha)
 
     def test_custom_alpha(self):
         obj_custom_alpha = self.act_cls(alpha=0.02)
         self.assertAlmostEqual(obj_custom_alpha.alpha, 0.02)
 
     def activations(self, ip):
-        return np.where(ip > 0, ip, 0.01 * ip)
+        return np.where(ip > 0, ip, self.act_cls.default_alpha * ip)
 
     def derivatives(self, ip):
-        return np.where(ip > 0, 1.0, 0.01)
+        return np.where(ip > 0, 1.0, self.act_cls.default_alpha)
+
+
+class ELUTestCase(LeakyReLUTestCase):
+    act_cls = ELU
+
+    def activations(self, ip):
+        return np.where(ip > 0, ip, self.act_cls.default_alpha * (np.exp(ip) - 1))
+
+    def derivatives(self, ip):
+        return np.where(ip > 0, 1.0, self.act_cls.default_alpha * np.exp(ip))

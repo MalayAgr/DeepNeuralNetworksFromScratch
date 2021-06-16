@@ -3,8 +3,8 @@ import string
 import unittest
 
 import numpy as np
-from dnn.activations import Activation
-from dnn.loss import Loss
+from dnn.activations import ELU, Activation, LeakyReLU, ReLU, Sigmoid, Tanh
+from dnn.loss import Loss, BinaryCrossEntropy, MeanSquaredError
 from dnn.utils import activation_factory, loss_factory
 
 
@@ -25,6 +25,14 @@ class ActivationFactoryTestCase(unittest.TestCase):
     def test_invalid_name_error(self):
         with self.assertRaises(ValueError):
             activation_factory(generate_random_name())
+
+    def test_builtin_activations_membership(self):
+        registry = Activation._get_activation_classes()
+        names = (Sigmoid.name, Tanh.name, ReLU.name, LeakyReLU.name, ELU.name)
+
+        for name in names:
+            with self.subTest(name=name):
+                self.assertIn(name, registry)
 
     def test_custom_class_in_registry(self):
         registry = Activation._get_activation_classes()
@@ -57,6 +65,19 @@ class LossFactoryTestCase(unittest.TestCase):
     def test_invalid_name_error(self):
         with self.assertRaises(ValueError):
             loss_factory(generate_random_name(), Y=np.zeros(shape=(1, 1)))
+
+    def test_builtin_activations_membership(self):
+        registry = Loss._get_loss_classes()
+        names = (
+            BinaryCrossEntropy.name[0],
+            BinaryCrossEntropy.name[1],
+            MeanSquaredError.name[0],
+            MeanSquaredError.name[1],
+        )
+
+        for name in names:
+            with self.subTest(name=name):
+                self.assertIn(name, registry)
 
     def test_custom_class_in_registry(self):
         registry = Loss._get_loss_classes()

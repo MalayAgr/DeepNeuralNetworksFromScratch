@@ -6,6 +6,26 @@ from dnn.utils import activation_factory
 from dnn.model import Layer
 
 
+class LayerInitializerTestCase(unittest.TestCase):
+    def setUp(self):
+        self.X = np.random.randn(2, 10)
+
+    def test_get_initializer(self):
+        with self.subTest(init="he"):
+            layer = Layer(ip=self.X, units=1, activation="relu")
+            self.assertAlmostEqual(layer.get_initializer(), 2 / self.X.shape[0])
+
+        with self.subTest(init="xavier"):
+            layer = Layer(ip=self.X, units=1, activation="relu", initializer="xavier")
+            self.assertAlmostEqual(layer.get_initializer(), 1 / self.X.shape[0])
+
+        with self.subTest(init="xavier_uniform"):
+            layer = Layer(
+                ip=self.X, units=1, activation="relu", initializer="xavier_uniform"
+            )
+            self.assertAlmostEqual(layer.get_initializer(), 6 / (self.X.shape[0] + 1))
+
+
 class LayerStrTestCase(unittest.TestCase):
     def test_str(self):
         ip, units, activation = np.random.randn(5, 4), 10, "relu"

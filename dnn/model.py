@@ -4,12 +4,13 @@ from .utils import activation_factory, loss_factory
 
 
 class Layer:
-    def __init__(self, ip, units, activation):
+    def __init__(self, ip, units, activation, initializer="he"):
         self.ip = ip
         self.units = units
         self.ip_shape = self.get_ip_shape(ip)
         self.train_size = self.ip_shape[-1]
         self.activation = self.init_activation(activation)
+        self.initializer = initializer
         self.weights, self.biases = self.init_params()
 
     def __str__(self):
@@ -33,9 +34,18 @@ class Layer:
     def init_activation(self, activation):
         return activation_factory(activation)
 
+    def get_initializer(self):
+        denominator = self.ip_shape[0]
+        return {
+            "he": 2 / denominator,
+            "xavier": 1 / denominator,
+            "xavier_uniform": 6 / (denominator + self.units),
+        }[self.initializer]
+
     def init_params(self):
         x_dim, y_dim = self.units, self.ip_shape[0]
-        weights = np.random.randn(x_dim, y_dim) * 0.01
+        variance = self.get_initializer()
+        weights = np.random.randn(x_dim, y_dim) * np.sqrt(variance)
         biases = np.zeros((x_dim, 1))
         return weights, biases
 
@@ -76,16 +86,27 @@ class Layer:
 
 
 class Model:
-    def __init__(self, ip_shape, layer_sizes, activations):
-        if len(activations) != len(layer_sizes):
+    def __init__(self, ip_shape, layer_sizes, activations, initializers=None):
+
+        num_layers = len(layer_sizes)
+
+        if len(activations) != num_layers:
             raise AttributeError(
                 "activations and layer_sizes should have the same length"
             )
 
+        if initializers is not None and len(initializers) != num_layers:
+            raise AttributeError(
+                "initializers and layer_sizes should have the same length"
+            )
+
         self.ip_shape = ip_shape
         self.layer_sizes = layer_sizes
+        self.num_layers = num_layers
         self.activations = activations
-        self.num_layers = len(layer_sizes)
+        self.initializers = (
+            [None] * num_layers if initializers is None else initializers
+        )
         self.model = self._build_model()
 
     def __str__(self):
@@ -97,10 +118,16 @@ class Model:
 
     def _build_model(self):
         ip = np.random.randn(*self.ip_shape)
+        inits = self.initializers
 
         model = ()
-        for size, activation in zip(self.layer_sizes, self.activations):
-            layer = Layer(ip=ip, units=size, activation=activation)
+        for size, activation, init in zip(self.layer_sizes, self.activations, inits):
+            if init is not None:
+                layer = Layer(
+                    ip=ip, units=size, activation=activation, initializer=init
+                )
+            else:
+                layer = Layer(ip=ip, units=size, activation=activation)
             model += (layer,)
             ip = layer
 
@@ -159,12 +186,13 @@ class Model:
         history = []
         for i in range(iterations):
             preds = self._forward_propagation(X)
-            history.append(loss_obj.compute_loss(preds))
+            loss_val = loss_obj.compute_loss(preds)
+            history.append(loss_val)
             self._backpropagation(loss_obj, preds)
             self._update_params(lr=lr)
 
             if show_loss and (i + 1) % show_loss_freq == 0:
-                print(f"Loss after {(i + 1)} iteration(s): {loss: .9f}")
+                print(f"Loss after {(i + 1)} iteration(s): {loss_val: .9f}")
 
         return history
 

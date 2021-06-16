@@ -18,6 +18,11 @@ class Layer:
         self.initializer = initializer
         self.weights, self.biases = self.init_params()
 
+        self.linear = None
+        self.activations = None
+        self.dZ = None
+        self.gradients = None
+
     def __str__(self):
         activation_cls = self.activation.__class__.__name__
         return f"{self.__class__.__name__}(ip_shape={self.ip_shape}, units={self.units}, activation={activation_cls})"
@@ -31,10 +36,12 @@ class Layer:
         return self.ip_layer.ip_shape
 
     def get_ip(self):
-        has_activs = hasattr(self.ip_layer, "activations")
+        no_activs = (
+            hasattr(self.ip_layer, "activations") and self.ip_layer.activations is None
+        )
         no_ip = hasattr(self.ip_layer, "ip") and self.ip_layer.ip is None
 
-        if not has_activs and no_ip:
+        if no_activs or no_ip:
             raise ValueError("No input found.")
 
         if isinstance(self.ip_layer, self.__class__):

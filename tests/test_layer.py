@@ -129,7 +129,7 @@ class LayerWithLayerTestCase(unittest.TestCase):
         self.assertEqual(self.layer.biases.shape, (self.units, 1))
 
     def test_get_ip_no_fs(self):
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(ValueError):
             self.layer.get_ip()
 
     def test_get_ip_fs(self):

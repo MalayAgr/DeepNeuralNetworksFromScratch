@@ -186,3 +186,23 @@ class ModelTestCase(unittest.TestCase):
         self.forward_propagation()
 
         np.testing.assert_allclose(preds, self.forward["A2"])
+
+
+class ModelLossMonotonicityTestCase(unittest.TestCase):
+    def monotonically_decreasing(self, x):
+        return all(x >= y for x, y in zip(x, x[1:]))
+
+    def test_monotonicity(self):
+        X = np.random.randn(5, 100)
+        Y = np.random.choice((0, 1), size=(1, 100))
+
+        model = Model(
+            ip_shape=X.shape, layer_sizes=(10, 1), activations=["relu", "sigmoid"]
+        )
+
+        lrs = [0.001, 0.003, 0.01, 0.03, 0.1]
+
+        for lr in lrs:
+            with self.subTest(lr=lr):
+                history = model.train(X, Y, iterations=1000, lr=lr, show_loss=False)
+                self.assertTrue(self.monotonically_decreasing(history))

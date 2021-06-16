@@ -2,7 +2,7 @@ from .activations import Activation
 from .loss import Loss
 
 
-def activation_factory(activation, ip=None, *args, **kwargs):
+def activation_factory(activation, *args, ip=None, **kwargs):
     registry = Activation.get_activation_classes()
     cls = registry.get(activation)
     if cls is None:

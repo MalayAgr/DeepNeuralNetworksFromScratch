@@ -6,7 +6,7 @@ import numpy as np
 class Activation(ABC):
     name = None
 
-    def __init__(self, ip=None, *args, **kwargs):
+    def __init__(self, *args, ip=None, **kwargs):
         self.ip = ip
         self.activations = None
         self.derivatives = None
@@ -126,7 +126,7 @@ class LeakyReLU(Activation):
     name = "lrelu"
     default_alpha = 0.01
 
-    def __init__(self, ip=None, *args, **kwargs):
+    def __init__(self, *args, ip=None, **kwargs):
         alpha = kwargs.pop("alpha", None)
         if alpha is None:
             alpha = self.default_alpha

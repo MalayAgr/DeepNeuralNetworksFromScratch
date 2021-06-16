@@ -29,6 +29,12 @@ class Input:
         self.ip_shape = shape
         self._ip = None
 
+    def __str__(self):
+        return f"{self.__class__.__name__}(ip_shape={self.ip_shape})"
+
+    def __repr__(self):
+        return self.__str__()
+
     @property
     def ip(self):
         """

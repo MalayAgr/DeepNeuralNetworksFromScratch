@@ -8,6 +8,13 @@ class InputTestCase(unittest.TestCase):
     def setUp(self):
         self.input_layer = Input(shape=(3, 4))
 
+    def test_str(self):
+        expected = "Input(ip_shape=(3, 4))"
+        self.assertEqual(expected, str(self.input_layer))
+
+        with self.subTest():
+            self.assertEqual(expected, repr(self.input_layer))
+
     def test_shape_mismatch(self):
         X = np.random.randn(5, 3)
         with self.assertRaises(AttributeError):

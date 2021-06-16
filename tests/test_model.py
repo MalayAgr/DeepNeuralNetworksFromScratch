@@ -90,6 +90,31 @@ class ModelTestCase(unittest.TestCase):
             repr_str = repr(self.model)
             self.assertEqual(repr_str, expected)
 
+    def test_initializers_error(self):
+        with self.assertRaises(AttributeError):
+            _ = Model(
+                ip_shape=(2, 10),
+                layer_sizes=[5, 1],
+                activations=["relu", "sigmoid"],
+                initializers=["he"],
+            )
+
+    def test_no_initializers_passed(self):
+        self.assertTrue(all(x is None for x in self.model.initializers))
+
+    def test_initializers_passed(self):
+        model = Model(
+            ip_shape=(2, 10),
+            layer_sizes=[5, 3, 3, 1],
+            activations=["relu", "tanh", "relu", "sigmoid"],
+            initializers=[None, "xavier", None, "xavier"],
+        )
+
+        self.assertEqual(model.model[0].initializer, "he")
+        self.assertEqual(model.model[1].initializer, "xavier")
+        self.assertEqual(model.model[2].initializer, "he")
+        self.assertEqual(model.model[3].initializer, "xavier")
+
     def test_mismatch_layer_activations(self):
         with self.assertRaises(AttributeError):
             _ = Model(

@@ -40,7 +40,7 @@ class BaseActivationTestCase:
         ip = np.random.randn(5, 1)
 
         activations = self.activations(ip)
-        derivatives = self.derivatives(activations)
+        derivatives = self.derivatives(ip)
 
         np.testing.assert_allclose(self.act_obj.calculate_activations(ip), activations)
 
@@ -53,7 +53,7 @@ class BaseActivationTestCase:
         ip = np.random.randn(5, 1)
 
         activations = self.activations(ip)
-        derivatives = self.derivatives(activations)
+        derivatives = self.derivatives(ip)
 
         self.act_obj.ip = ip
 
@@ -72,7 +72,7 @@ class BaseActivationTestCase:
         custom_ip = np.random.randn(5, 1)
 
         activations = self.activations(custom_ip)
-        derivatives = self.derivatives(activations)
+        derivatives = self.derivatives(custom_ip)
 
         init_ip = np.random.randn(5, 1)
         self.act_obj.ip = init_ip
@@ -97,7 +97,8 @@ class SigmoidTestCase(BaseActivationTestCase, unittest.TestCase):
         return 1 / (1 + np.exp(-ip))
 
     def derivatives(self, ip):
-        return ip * (1 - ip)
+        activations = self.activations(ip)
+        return activations * (1 - activations)
 
 
 class TanhTestCase(BaseActivationTestCase, unittest.TestCase):
@@ -107,7 +108,7 @@ class TanhTestCase(BaseActivationTestCase, unittest.TestCase):
         return np.tanh(ip)
 
     def derivatives(self, ip):
-        return 1 - ip ** 2
+        return 1 - self.activations(ip) ** 2
 
 
 class ReLUTestCase(BaseActivationTestCase, unittest.TestCase):

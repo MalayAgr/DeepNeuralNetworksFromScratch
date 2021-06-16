@@ -27,7 +27,7 @@ class ActivationFactoryTestCase(unittest.TestCase):
             activation_factory(generate_random_name())
 
     def test_builtin_activations_membership(self):
-        registry = Activation._get_activation_classes()
+        registry = Activation.get_activation_classes()
         names = (Sigmoid.name, Tanh.name, ReLU.name, LeakyReLU.name, ELU.name)
 
         for name in names:
@@ -35,7 +35,7 @@ class ActivationFactoryTestCase(unittest.TestCase):
                 self.assertIn(name, registry)
 
     def test_custom_class_in_registry(self):
-        registry = Activation._get_activation_classes()
+        registry = Activation.get_activation_classes()
         self.assertIn(self.TestActivation.name, registry)
 
     def test_custom_class_init(self):
@@ -67,7 +67,7 @@ class LossFactoryTestCase(unittest.TestCase):
             loss_factory(generate_random_name(), Y=np.zeros(shape=(1, 1)))
 
     def test_builtin_activations_membership(self):
-        registry = Loss._get_loss_classes()
+        registry = Loss.get_loss_classes()
         names = (
             BinaryCrossEntropy.name[0],
             BinaryCrossEntropy.name[1],
@@ -80,7 +80,7 @@ class LossFactoryTestCase(unittest.TestCase):
                 self.assertIn(name, registry)
 
     def test_custom_class_in_registry(self):
-        registry = Loss._get_loss_classes()
+        registry = Loss.get_loss_classes()
         self.assertIn(self.TestLossSingleName.name, registry)
 
     def test_custom_class_init(self):
@@ -89,7 +89,7 @@ class LossFactoryTestCase(unittest.TestCase):
         self.assertIsInstance(obj, self.TestLossSingleName)
 
     def test_custom_class_in_registry_multi(self):
-        registry = Loss._get_loss_classes()
+        registry = Loss.get_loss_classes()
         self.assertIn(self.TestLossMultiName.name[0], registry)
         self.assertIn(self.TestLossMultiName.name[1], registry)
 

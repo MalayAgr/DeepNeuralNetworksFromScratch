@@ -12,12 +12,12 @@ class Activation(ABC):
         self.derivatives = None
 
     @classmethod
-    def _get_activation_classes(cls):
+    def get_activation_classes(cls):
         result = {}
 
         for sub_cls in cls.__subclasses__():
             name = sub_cls.name
-            result.update(sub_cls._get_activation_classes())
+            result.update(sub_cls.get_activation_classes())
             if name is not None and name not in result:
                 result.update({name: sub_cls})
         return result

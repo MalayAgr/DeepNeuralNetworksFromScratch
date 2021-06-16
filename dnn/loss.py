@@ -18,11 +18,11 @@ class Loss(ABC):
         return {name: sub_cls}
 
     @classmethod
-    def _get_loss_classes(cls):
+    def get_loss_classes(cls):
         result = {}
 
         for sub_cls in cls.__subclasses__():
-            result.update(sub_cls._get_loss_classes())
+            result.update(sub_cls.get_loss_classes())
             if sub_cls.name is not None:
                 result.update(cls._add_sub_cls(sub_cls))
         return result

@@ -3,7 +3,7 @@ from .loss import Loss
 
 
 def activation_factory(activation, ip=None, *args, **kwargs):
-    registry = Activation._get_activation_classes()
+    registry = Activation.get_activation_classes()
     cls = registry.get(activation)
     if cls is None:
         raise ValueError("Activation with this name does not exist")
@@ -11,7 +11,7 @@ def activation_factory(activation, ip=None, *args, **kwargs):
 
 
 def loss_factory(loss, Y, *args, **kwargs):
-    registry = Loss._get_loss_classes()
+    registry = Loss.get_loss_classes()
     cls = registry.get(loss)
     if cls is None:
         raise ValueError("Loss with this name does not exist")

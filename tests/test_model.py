@@ -18,10 +18,10 @@ class ModelTestCase(unittest.TestCase):
         )
 
         params = {
-            "W1": model.model[0].weights,
-            "b1": model.model[0].biases,
-            "W2": model.model[1].weights,
-            "b2": model.model[1].biases,
+            "W1": model.layers[0].weights,
+            "b1": model.layers[0].biases,
+            "W2": model.layers[1].weights,
+            "b2": model.layers[1].biases,
         }
 
         activations = {
@@ -79,7 +79,7 @@ class ModelTestCase(unittest.TestCase):
 
     def test_str(self):
         string = str(self.model)
-        layers = ", ".join([str(layer) for layer in self.model.model])
+        layers = ", ".join([str(layer) for layer in self.model.layers])
         expected = (
             f"{self.model.__class__.__name__}(InputLayer{self.X.shape}, {layers})"
         )
@@ -110,10 +110,10 @@ class ModelTestCase(unittest.TestCase):
             initializers=[None, "xavier", None, "xavier"],
         )
 
-        self.assertEqual(model.model[0].initializer, "he")
-        self.assertEqual(model.model[1].initializer, "xavier")
-        self.assertEqual(model.model[2].initializer, "he")
-        self.assertEqual(model.model[3].initializer, "xavier")
+        self.assertEqual(model.layers[0].initializer, "he")
+        self.assertEqual(model.layers[1].initializer, "xavier")
+        self.assertEqual(model.layers[2].initializer, "he")
+        self.assertEqual(model.layers[3].initializer, "xavier")
 
     def test_mismatch_layer_activations(self):
         with self.assertRaises(AttributeError):
@@ -145,18 +145,13 @@ class ModelTestCase(unittest.TestCase):
                 activation_cls = self.activations[f"A{idx + 1}"].__class__
                 self.assertIsInstance(layer.activation, activation_cls)
 
-    def test_forward_propagation_error(self):
-        X = np.random.randn(3, 4)
-
-        with self.assertRaises(ValueError):
-            self.model._forward_propagation(X)
-
     def test_forward_propagation(self):
-        model_preds = self.model._forward_propagation(self.X)
+        self.model.ip_layer.ip = self.X
+        model_preds = self.model._forward_propagation()
 
         self.forward_propagation()
 
-        for idx, layer in enumerate(self.model.model):
+        for idx, layer in enumerate(self.model.layers):
             with self.subTest(layer=layer):
                 np.testing.assert_allclose(layer.linear, self.forward[f"Z{idx + 1}"])
                 np.testing.assert_allclose(
@@ -166,13 +161,14 @@ class ModelTestCase(unittest.TestCase):
         np.testing.assert_allclose(model_preds, self.forward["A2"])
 
     def test_backprop(self):
-        preds = self.model._forward_propagation(self.X)
+        self.model.ip_layer.ip = self.X
+        preds = self.model._forward_propagation()
         self.model._backpropagation(self.loss, preds)
 
         self.forward_propagation()
         self.backpropagation()
 
-        for idx, layer in enumerate(self.model.model):
+        for idx, layer in enumerate(self.model.layers):
             with self.subTest(layer=layer):
                 dW = layer.gradients["weights"]
                 db = layer.gradients["biases"]
@@ -181,7 +177,8 @@ class ModelTestCase(unittest.TestCase):
                 np.testing.assert_allclose(db, self.gradients[f"db{idx + 1}"])
 
     def test_update_params(self):
-        preds = self.model._forward_propagation(self.X)
+        self.model.ip_layer.ip = self.X
+        preds = self.model._forward_propagation()
         self.model._backpropagation(self.loss, preds)
         self.model._update_params(self.lr)
 
@@ -189,7 +186,7 @@ class ModelTestCase(unittest.TestCase):
         self.backpropagation()
         self.update_params()
 
-        for idx, layer in enumerate(self.model.model):
+        for idx, layer in enumerate(self.model.layers):
             with self.subTest(layer=layer):
                 np.testing.assert_allclose(layer.weights, self.params[f"W{idx + 1}"])
                 np.testing.assert_allclose(layer.biases, self.params[f"b{idx + 1}"])
@@ -198,7 +195,7 @@ class ModelTestCase(unittest.TestCase):
         self.model.train(self.X, self.Y, iterations=10, lr=self.lr, show_loss=False)
         self.train(iterations=10)
 
-        for idx, layer in enumerate(self.model.model):
+        for idx, layer in enumerate(self.model.layers):
             with self.subTest(layer=layer):
                 np.testing.assert_allclose(layer.weights, self.params[f"W{idx + 1}"])
                 np.testing.assert_allclose(layer.biases, self.params[f"b{idx + 1}"])

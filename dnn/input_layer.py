@@ -26,6 +26,8 @@ class Input:
             shape (tuple): Input shape to be used.
             *args, **kwargs: Provided for extensibility.
         """
+        if shape[-1] is not None:
+            raise AttributeError("The last dimension should be set to None")
         self.ip_shape = shape
         self._ip = None
 
@@ -54,6 +56,6 @@ class Input:
             AttributeError when ip_shape and shape of X do not match.
         """
         # Make sure the supplied input matches the expected shape
-        if X.shape != self.ip_shape:
+        if X.shape[0] != self.ip_shape[0]:
             raise AttributeError("The input does not have the expected shape")
         self._ip = X

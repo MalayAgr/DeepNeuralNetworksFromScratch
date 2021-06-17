@@ -8,6 +8,10 @@ class InputTestCase(unittest.TestCase):
     def setUp(self):
         self.input_layer = Input(shape=(3, None))
 
+    def test_last_dimension_error(self):
+        with self.assertRaises(AttributeError):
+            Input(shape=(3, 4))
+
     def test_str(self):
         expected = "Input(ip_shape=(3, None))"
         self.assertEqual(expected, str(self.input_layer))

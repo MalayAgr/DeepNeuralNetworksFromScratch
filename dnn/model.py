@@ -55,7 +55,10 @@ class Model:
     def predict(self, X):
         self.ip_layer.ip = X
 
-        for idx in range(self.num_layers):
-            self.layers[idx].forward_step()
+        for layer in self.layers:
+            layer.forward_step()
 
         return self.layers[-1].activations
+
+    def train(self, X, Y, batch_size, epochs, lr=1e-3, opt="sgd", loss="bse"):
+        pass

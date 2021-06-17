@@ -14,7 +14,7 @@ class ModelTestCase(unittest.TestCase):
         layer_sizes = (5, 1)
 
         model = Model(
-            ip_shape=X.shape, layer_sizes=layer_sizes, activations=["relu", "sigmoid"]
+            ip_shape=(2, None), layer_sizes=layer_sizes, activations=["relu", "sigmoid"]
         )
 
         params = {
@@ -31,9 +31,6 @@ class ModelTestCase(unittest.TestCase):
 
         self.X = X
         self.Y = Y
-        self.train_size = Y.shape[-1]
-        self.lr = 0.1
-        self.loss = loss_factory("bse", Y=Y)
         self.params = params
         self.layer_sizes = layer_sizes
         self.activations = activations
@@ -48,40 +45,11 @@ class ModelTestCase(unittest.TestCase):
 
         self.forward = {"Z1": Z1, "A1": A1, "Z2": Z2, "A2": A2}
 
-    def backpropagation(self):
-        dZ2 = self.forward["A2"] - self.Y
-        dW2 = np.matmul(dZ2, self.forward["A1"].T) / self.train_size
-        db2 = np.sum(dZ2, axis=1, keepdims=True) / self.train_size
-
-        derivatives = self.activations["A1"].calculate_derivatives(self.forward["Z1"])
-        dZ1 = np.matmul(self.params["W2"].T, dZ2) * derivatives
-        dW1 = np.matmul(dZ1, self.X.T) / self.train_size
-        db1 = np.sum(dZ1, axis=1, keepdims=True) / self.train_size
-
-        self.gradients = {"dW1": dW1, "db1": db1, "dW2": dW2, "db2": db2}
-
-    def update_params(self):
-        keys = (("W1", "dW1"), ("W2", "dW2"), ("b1", "db1"), ("b2", "db2"))
-
-        for param, grad in keys:
-            self.params[param] -= self.lr * self.gradients[grad]
-
-    def train(self, iterations=10):
-        history = []
-
-        for _ in range(iterations):
-            self.forward_propagation()
-            history.append(self.loss.compute_loss(self.forward["A2"]))
-            self.backpropagation()
-            self.update_params()
-
-        return history
-
     def test_str(self):
         string = str(self.model)
         layers = ", ".join([str(layer) for layer in self.model.layers])
         expected = (
-            f"{self.model.__class__.__name__}(Input(ip_shape={self.X.shape}), {layers})"
+            f"{self.model.__class__.__name__}(Input(ip_shape=(2, None)), {layers})"
         )
 
         self.assertEqual(string, expected)
@@ -93,7 +61,7 @@ class ModelTestCase(unittest.TestCase):
     def test_initializers_error(self):
         with self.assertRaises(AttributeError):
             _ = Model(
-                ip_shape=(2, 10),
+                ip_shape=(2, None),
                 layer_sizes=[5, 1],
                 activations=["relu", "sigmoid"],
                 initializers=["he"],
@@ -104,7 +72,7 @@ class ModelTestCase(unittest.TestCase):
 
     def test_initializers_passed(self):
         model = Model(
-            ip_shape=(2, 10),
+            ip_shape=(2, None),
             layer_sizes=[5, 3, 3, 1],
             activations=["relu", "tanh", "relu", "sigmoid"],
             initializers=[None, "xavier", None, "xavier"],
@@ -123,15 +91,6 @@ class ModelTestCase(unittest.TestCase):
                 activations=["relu"],
             )
 
-    def test_validate_labels_shape(self):
-        with self.assertRaises(ValueError):
-            Y = np.random.randn(1, 2)
-            self.model._validate_labels_shape(self.X, Y)
-
-        with self.assertRaises(ValueError):
-            Y = np.random.randn(2, 10)
-            self.model._validate_labels_shape(self.X, Y)
-
     def test_build_model(self):
         model = self.model._build_model()
 
@@ -145,10 +104,8 @@ class ModelTestCase(unittest.TestCase):
                 activation_cls = self.activations[f"A{idx + 1}"].__class__
                 self.assertIsInstance(layer.activation, activation_cls)
 
-    def test_forward_propagation(self):
-        self.model.ip_layer.ip = self.X
-        model_preds = self.model._forward_propagation()
-
+    def test_predict(self):
+        model_preds = self.model.predict(self.X)
         self.forward_propagation()
 
         for idx, layer in enumerate(self.model.layers):
@@ -159,52 +116,3 @@ class ModelTestCase(unittest.TestCase):
                 )
 
         np.testing.assert_allclose(model_preds, self.forward["A2"])
-
-    def test_backprop(self):
-        self.model.ip_layer.ip = self.X
-        preds = self.model._forward_propagation()
-        self.model._backpropagation(self.loss, preds)
-
-        self.forward_propagation()
-        self.backpropagation()
-
-        for idx, layer in enumerate(self.model.layers):
-            with self.subTest(layer=layer):
-                dW = layer.gradients["weights"]
-                db = layer.gradients["biases"]
-
-                np.testing.assert_allclose(dW, self.gradients[f"dW{idx + 1}"])
-                np.testing.assert_allclose(db, self.gradients[f"db{idx + 1}"])
-
-    def test_update_params(self):
-        self.model.ip_layer.ip = self.X
-        preds = self.model._forward_propagation()
-        self.model._backpropagation(self.loss, preds)
-        self.model._update_params(self.lr)
-
-        self.forward_propagation()
-        self.backpropagation()
-        self.update_params()
-
-        for idx, layer in enumerate(self.model.layers):
-            with self.subTest(layer=layer):
-                np.testing.assert_allclose(layer.weights, self.params[f"W{idx + 1}"])
-                np.testing.assert_allclose(layer.biases, self.params[f"b{idx + 1}"])
-
-    def test_training(self):
-        self.model.train(self.X, self.Y, iterations=10, lr=self.lr, show_loss=False)
-        self.train(iterations=10)
-
-        for idx, layer in enumerate(self.model.layers):
-            with self.subTest(layer=layer):
-                np.testing.assert_allclose(layer.weights, self.params[f"W{idx + 1}"])
-                np.testing.assert_allclose(layer.biases, self.params[f"b{idx + 1}"])
-
-    def test_predict(self):
-        self.model.train(self.X, self.Y, iterations=10, lr=self.lr, show_loss=False)
-        self.train(iterations=10)
-
-        preds = self.model.predict(self.X)
-        self.forward_propagation()
-
-        np.testing.assert_allclose(preds, self.forward["A2"])

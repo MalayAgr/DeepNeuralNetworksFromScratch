@@ -6,10 +6,10 @@ from dnn.input_layer import Input
 
 class InputTestCase(unittest.TestCase):
     def setUp(self):
-        self.input_layer = Input(shape=(3, 4))
+        self.input_layer = Input(shape=(3, None))
 
     def test_str(self):
-        expected = "Input(ip_shape=(3, 4))"
+        expected = "Input(ip_shape=(3, None))"
         self.assertEqual(expected, str(self.input_layer))
 
         with self.subTest():

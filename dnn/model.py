@@ -1,9 +1,8 @@
-from dnn.optimizers import Optimizer
 import numpy as np
 
-from .input_layer import Input
-from .layer import Layer
-from .utils import activation_factory, loss_factory
+from dnn.input_layer import Input
+from dnn.layer import Layer
+from dnn.optimizers import Optimizer
 
 
 class Model:

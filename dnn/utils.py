@@ -1,6 +1,7 @@
-from .activations import Activation
-from .loss import Loss
 import numpy as np
+
+from dnn.activations import Activation
+from dnn.loss import Loss
 
 
 def activation_factory(activation, *args, ip=None, **kwargs):

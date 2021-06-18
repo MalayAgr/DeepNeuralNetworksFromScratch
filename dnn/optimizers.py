@@ -1,15 +1,18 @@
 from abc import ABC, abstractmethod
+
 import numpy as np
-from .utils import loss_factory, generate_batches
+
 from dnn.layer import Layer
-import time
+
+from .utils import generate_batches, loss_factory
 
 
 class Optimizer(ABC):
     def __init__(self, learning_rate=0.01, *args, **kwargs):
         self.lr = learning_rate
 
-    def get_layer_dA(self, dA_params):
+    @staticmethod
+    def get_layer_dA(dA_params):
         if isinstance(dA_params, Layer):
             next_weights = dA_params.weights
             next_dZ = dA_params.dZ
@@ -54,7 +57,8 @@ class SGD(Optimizer):
         self.momentum = momentum
         super().__init__(learning_rate=learning_rate, *args, **kwargs)
 
-    def init_velocities(self, model):
+    @staticmethod
+    def init_velocities(model):
         for layer in model.layers:
             layer.velocities = {
                 "weights": np.zeros(shape=layer.weights.shape),

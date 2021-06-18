@@ -1,6 +1,7 @@
 import numpy as np
-from .input_layer import Input
-from .utils import activation_factory
+
+from dnn.input_layer import Input
+from dnn.utils import activation_factory
 
 
 class Layer:

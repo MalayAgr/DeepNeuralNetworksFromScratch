@@ -46,7 +46,7 @@ class Optimizer(ABC):
 
 class SGD(Optimizer):
     def __init__(self, learning_rate=0.01, *args, **kwargs):
-        momentum = kwargs.get("momentum", 0)
+        momentum = kwargs.pop("momentum", 0)
 
         if not 0 <= momentum <= 1:
             raise AttributeError("momentum should be between 0 and 1")

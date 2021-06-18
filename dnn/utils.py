@@ -28,7 +28,8 @@ def generate_batches(X, Y, batch_size, shuffle=True):
         X, Y = X[:, perm], Y[:, perm]
 
     if num_batches == 1:
-        return X, Y
+        yield X, Y, num_samples
+        return
 
     start = 0
     for idx in range(num_batches):

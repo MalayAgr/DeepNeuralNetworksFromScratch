@@ -1,3 +1,4 @@
+from dnn.optimizers import Optimizer
 import numpy as np
 
 from .input_layer import Input
@@ -60,5 +61,15 @@ class Model:
 
         return self.layers[-1].activations
 
-    def train(self, X, Y, batch_size, epochs, lr=1e-3, opt="sgd", loss="bse"):
-        pass
+    def train(self, X, Y, batch_size, epochs, opt, loss="bse", shuffle=True):
+        if X.shape[-1] != Y.shape[-1]:
+            raise ValueError("X and Y should have the same number of samples.")
+
+        if Y.shape[0] != self.layers[-1].units:
+            msg = "Y should have the same number of rows as number of units in the final layer."
+            raise ValueError(msg)
+
+        if not isinstance(opt, Optimizer):
+            raise ValueError("opt should be an instance of a subclass of Optimizer.")
+
+        return opt.optimize(self, X, Y, batch_size, epochs, loss=loss, shuffle=shuffle)

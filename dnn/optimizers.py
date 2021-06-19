@@ -152,11 +152,11 @@ class RMSProp(Optimizer):
             self.update_layer_rms(layer)
 
             dW = layer.gradients["weights"]
-            update = dW / np.sqrt(layer.rms["weights"] + self.epsilon)
+            update = dW / (np.sqrt(layer.rms["weights"]) + self.epsilon)
             layer.weights -= self.lr * update
 
             db = layer.gradients["biases"]
-            update = db / np.sqrt(layer.rms["biases"] + self.epsilon)
+            update = db / (np.sqrt(layer.rms["biases"]) + self.epsilon)
             layer.biases -= self.lr * update
 
     def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):

@@ -123,7 +123,7 @@ class RMSProp(Optimizer):
         rho = kwargs.pop("rho", 0.9)
 
         if not 0 <= rho <= 1:
-            raise AttributeError("momentum should be between 0 and 1")
+            raise AttributeError("rho should be between 0 and 1")
 
         self.rho = rho
         self.epsilon = kwargs.pop("epislon", 1e-7)
@@ -147,17 +147,18 @@ class RMSProp(Optimizer):
         layer.rms["weights"] = self.rho * W_rms + (1 - self.rho) * np.square(dW)
         layer.rms["biases"] = self.rho * b_rms + (1 - self.rho) * np.square(db)
 
+    def get_update(self, grad, rms):
+        return self.lr * (grad / (np.sqrt(rms) + self.epsilon))
+
     def update_params(self, model):
         for layer in model.layers:
             self.update_layer_rms(layer)
-
-            dW = layer.gradients["weights"]
-            update = dW / (np.sqrt(layer.rms["weights"]) + self.epsilon)
-            layer.weights -= self.lr * update
-
-            db = layer.gradients["biases"]
-            update = db / (np.sqrt(layer.rms["biases"]) + self.epsilon)
-            layer.biases -= self.lr * update
+            layer.weights -= self.get_update(
+                layer.gradients["weights"], layer.rms["weights"]
+            )
+            layer.biases -= self.get_update(
+                layer.gradients["biases"], layer.rms["biases"]
+            )
 
     def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
         cost, history = 0, []

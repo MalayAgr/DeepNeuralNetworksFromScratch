@@ -43,7 +43,7 @@ class Optimizer(ABC):
             dA = layer
 
     @abstractmethod
-    def optimize(self, model, X, Y, batch_size, epochs, shuffle=True):
+    def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
         pass
 
 
@@ -111,6 +111,72 @@ class SGD(Optimizer):
                 self.backprop(model, loss=loss_func, preds=preds)
                 # Update params
                 update_func(model)
+
+            print(f"Loss at the end of epoch {epoch + 1}: {cost: .9f}")
+            history.append(cost)
+
+        return history
+
+
+class RMSProp(Optimizer):
+    def __init__(self, learning_rate=0.01, *args, **kwargs):
+        rho = kwargs.pop("rho", 0.9)
+
+        if not 0 <= rho <= 1:
+            raise AttributeError("momentum should be between 0 and 1")
+
+        self.rho = rho
+        self.epsilon = kwargs.pop("epislon", 1e-7)
+        super().__init__(learning_rate=learning_rate, *args, **kwargs)
+
+    @staticmethod
+    def init_rms(model):
+        for layer in model.layers:
+            layer.rms = {
+                "weights": np.zeros(shape=layer.weights.shape),
+                "biases": np.zeros(shape=layer.biases.shape),
+            }
+
+    def update_layer_rms(self, layer):
+        dW = layer.gradients["weights"]
+        db = layer.gradients["biases"]
+
+        W_rms = layer.rms["weights"]
+        b_rms = layer.rms["biases"]
+
+        layer.rms["weights"] = self.rho * W_rms + (1 - self.rho) * np.square(dW)
+        layer.rms["biases"] = self.rho * b_rms + (1 - self.rho) * np.square(db)
+
+    def update_params(self, model):
+        for layer in model.layers:
+            self.update_layer_rms(layer)
+
+            dW = layer.gradients["weights"]
+            update = dW / np.sqrt(layer.rms["weights"] + self.epsilon)
+            layer.weights -= self.lr * update
+
+            db = layer.gradients["biases"]
+            update = db / np.sqrt(layer.rms["biases"] + self.epsilon)
+            layer.biases -= self.lr * update
+
+    def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
+        cost, history = 0, []
+
+        self.init_rms(model)
+
+        for epoch in range(epochs):
+            batches = generate_batches(X, Y, batch_size=batch_size, shuffle=shuffle)
+            for batch_X, batch_Y, size in batches:
+                self.train_size = size
+                # Forward pass
+                preds = model.predict(batch_X)
+                # Compute cost
+                loss_func = loss_factory(loss, batch_Y)
+                cost = loss_func.compute_loss(preds)
+                # Backprop
+                self.backprop(model, loss=loss_func, preds=preds)
+                # Update params
+                self.update_params(model)
 
             print(f"Loss at the end of epoch {epoch + 1}: {cost: .9f}")
             history.append(cost)

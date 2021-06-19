@@ -183,3 +183,95 @@ class RMSProp(Optimizer):
             history.append(cost)
 
         return history
+
+
+class Adam(Optimizer):
+    def __init__(self, learning_rate=0.01, *args, **kwargs):
+        momentum = kwargs.pop("alpha", 0.9)
+
+        if not 0 <= momentum <= 1:
+            raise AttributeError("alpha should be between 0 and 1")
+
+        rho = kwargs.pop("beta", 0.999)
+
+        if not 0 <= rho <= 1:
+            raise AttributeError("beta should be between 0 and 1")
+
+        self.momentum = momentum
+        self.rho = rho
+        self.epsilon = kwargs.pop("epsilon", 1e-8)
+        super().__init__(learning_rate=learning_rate, *args, **kwargs)
+
+    @staticmethod
+    def init_moments(model):
+        for layer in model.layers:
+            layer.m1 = {
+                "weights": np.zeros(shape=layer.weights.shape),
+                "biases": np.zeros(shape=layer.biases.shape),
+            }
+            layer.m2 = {
+                "weights": np.zeros(shape=layer.weights.shape),
+                "biases": np.zeros(shape=layer.biases.shape),
+            }
+
+    def update_layer_m1(self, layer):
+        dW = layer.gradients["weights"]
+        db = layer.gradients["biases"]
+
+        W_m1 = layer.m1["weights"]
+        b_m1 = layer.m1["biases"]
+
+        layer.m1["weights"] = self.momentum * W_m1 + (1 - self.momentum) * dW
+        layer.m1["biases"] = self.momentum * b_m1 + (1 - self.momentum) * db
+
+    def update_layer_m2(self, layer):
+        dW = layer.gradients["weights"]
+        db = layer.gradients["biases"]
+
+        W_m2 = layer.m2["weights"]
+        b_m2 = layer.m2["biases"]
+
+        layer.m2["weights"] = self.rho * W_m2 + (1 - self.rho) * np.square(dW)
+        layer.m2["biases"] = self.rho * b_m2 + (1 - self.rho) * np.square(db)
+
+    def get_update(self, m1, m2, t):
+        m1 = np.divide(m1, 1.0 - self.momentum ** t)
+        m2 = np.divide(m2, 1.0 - self.rho ** t)
+
+        return self.lr * (m1 / (np.sqrt(m2) + self.epsilon))
+
+    def update_params(self, model, t):
+        for layer in model.layers:
+            self.update_layer_m1(layer)
+            self.update_layer_m2(layer)
+
+            layer.weights -= self.get_update(
+                layer.m1["weights"], layer.m2["weights"], t
+            )
+            layer.biases -= self.get_update(layer.m1["biases"], layer.m2["biases"], t)
+
+    def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
+        cost, history = 0, []
+
+        self.init_moments(model)
+
+        t = 0
+        for epoch in range(epochs):
+            batches = generate_batches(X, Y, batch_size=batch_size, shuffle=shuffle)
+            for batch_X, batch_Y, size in batches:
+                self.train_size = size
+                # Forward pass
+                preds = model.predict(batch_X)
+                # Compute cost
+                loss_func = loss_factory(loss, batch_Y)
+                cost = loss_func.compute_loss(preds)
+                # Backprop
+                self.backprop(model, loss=loss_func, preds=preds)
+                # Update params
+                t += 1
+                self.update_params(model, t)
+
+            print(f"Loss at the end of epoch {epoch + 1}: {cost: .9f}")
+            history.append(cost)
+
+        return history

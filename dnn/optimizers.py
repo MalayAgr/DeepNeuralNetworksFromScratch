@@ -8,8 +8,9 @@ from .utils import generate_batches, loss_factory
 
 
 class Optimizer(ABC):
-    def __init__(self, learning_rate=0.01, *args, **kwargs):
+    def __init__(self, *args, learning_rate=0.01, **kwargs):
         self.lr = learning_rate
+        self.train_size = None
 
     @staticmethod
     def get_layer_dA(dA_params):
@@ -48,7 +49,7 @@ class Optimizer(ABC):
 
 
 class SGD(Optimizer):
-    def __init__(self, learning_rate=0.01, *args, **kwargs):
+    def __init__(self, *args, learning_rate=0.01, **kwargs):
         momentum = kwargs.pop("momentum", 0)
 
         if not 0 <= momentum <= 1:
@@ -119,7 +120,7 @@ class SGD(Optimizer):
 
 
 class RMSProp(Optimizer):
-    def __init__(self, learning_rate=0.01, *args, **kwargs):
+    def __init__(self, *args, learning_rate=0.01, **kwargs):
         rho = kwargs.pop("rho", 0.9)
 
         if not 0 <= rho <= 1:
@@ -186,7 +187,7 @@ class RMSProp(Optimizer):
 
 
 class Adam(Optimizer):
-    def __init__(self, learning_rate=0.01, *args, **kwargs):
+    def __init__(self, *args, learning_rate=0.01, **kwargs):
         momentum = kwargs.pop("alpha", 0.9)
 
         if not 0 <= momentum <= 1:

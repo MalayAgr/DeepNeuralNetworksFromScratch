@@ -188,12 +188,12 @@ class RMSProp(Optimizer):
 
 class Adam(Optimizer):
     def __init__(self, *args, learning_rate=0.01, **kwargs):
-        momentum = kwargs.pop("alpha", 0.9)
+        momentum = kwargs.pop("beta_1", 0.9)
 
         if not 0 <= momentum <= 1:
             raise AttributeError("alpha should be between 0 and 1")
 
-        rho = kwargs.pop("beta", 0.999)
+        rho = kwargs.pop("beta_2", 0.999)
 
         if not 0 <= rho <= 1:
             raise AttributeError("beta should be between 0 and 1")

@@ -56,7 +56,7 @@ class SGD(Optimizer):
             raise AttributeError("momentum should be between 0 and 1")
 
         self.momentum = momentum
-        super().__init__(learning_rate=learning_rate, *args, **kwargs)
+        super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
     @staticmethod
     def init_velocities(model):
@@ -128,7 +128,7 @@ class RMSProp(Optimizer):
 
         self.rho = rho
         self.epsilon = kwargs.pop("epislon", 1e-7)
-        super().__init__(learning_rate=learning_rate, *args, **kwargs)
+        super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
     @staticmethod
     def init_rms(model):
@@ -201,7 +201,8 @@ class Adam(Optimizer):
         self.momentum = momentum
         self.rho = rho
         self.epsilon = kwargs.pop("epsilon", 1e-8)
-        super().__init__(learning_rate=learning_rate, *args, **kwargs)
+        super().__init__(*args, learning_rate=learning_rate, **kwargs)
+
 
     @staticmethod
     def init_moments(model):

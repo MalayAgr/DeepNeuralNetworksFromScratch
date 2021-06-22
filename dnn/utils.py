@@ -1,3 +1,5 @@
+import functools
+
 import numpy as np
 
 from dnn.activations import Activation
@@ -42,3 +44,15 @@ def generate_batches(X, Y, batch_size, shuffle=True):
             yield X[:, start:end], Y[:, start:end], batch_size
 
         start = end
+
+
+def rgetattr(obj, attr, *args):
+    def _getattr(obj, attr):
+        return getattr(obj, attr, *args)
+
+    return functools.reduce(_getattr, [obj] + attr.split("."))
+
+
+def rsetattr(obj, attr, val):
+    pre, _, post = attr.rpartition(".")
+    return setattr(rgetattr(obj, pre) if pre else obj, post, val)

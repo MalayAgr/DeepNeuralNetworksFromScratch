@@ -51,7 +51,15 @@ class Layer:
         self.initializer = initializer
         self.weights, self.biases = self.init_params()
 
-        self.batch_norm = BatchNorm(self) if batch_norm is True else batch_norm
+        self.param_map = {"weights": "weights", "biases": "biases"}
+
+        if batch_norm is True:
+            self.batch_norm = BatchNorm(self)
+            self.param_map.update(
+                {"gamma": "batch_norm.gamma", "beta": "batch_norm.beta"}
+            )
+        else:
+            self.batch_norm = False
 
         self.linear = None
         self.activations = None

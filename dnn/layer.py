@@ -36,30 +36,6 @@ class BatchNorm:
         self.norm = self.gamma * Z_hat + self.beta
         return self.norm
 
-    def get_layer_dZ(self, layer_dA):
-        activation_grads = self.ip_layer.activation.calculate_derivatives(self.norm)
-
-        d_norm = layer_dA * activation_grads
-
-        self.ip_layer.gradients = {
-            "gamma": np.sum(d_norm * self.std_ip, axis=1, keepdims=True),
-            "beta": np.sum(d_norm, axis=1, keepdims=True),
-        }
-
-        dZ_hat = d_norm * self.gamma
-
-        bs = self.ip_layer.get_ip().shape[-1]
-
-        dZ_hat_sum = np.sum(dZ_hat, axis=1, keepdims=True)
-
-        dZ = (
-            bs * dZ_hat
-            - dZ_hat_sum
-            - self.Z_hat * np.sum(dZ_hat, self.Z_hat, axis=1, keepdims=True)
-        )
-
-        return dZ / (bs * self.std)
-
 
 class Layer:
     def __init__(self, ip, units, activation, initializer="he", batch_norm=False):
@@ -127,11 +103,11 @@ class Layer:
     def forward_step(self):
         linear = np.matmul(self.weights, self.get_ip()) + self.biases
 
+        activation_ip = linear
         if self.batch_norm is not False:
-            norm = self.batch_norm.compute_norm(linear)
-            activations = self.activation.calculate_activations(norm)
-        else:
-            activations = self.activation.calculate_activations(linear)
+            activation_ip = self.batch_norm.compute_norm(linear)
+
+        activations = self.activation.calculate_activations(activation_ip)
 
         self.linear, self.activations = linear, activations
 

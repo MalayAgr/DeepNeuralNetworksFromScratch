@@ -21,14 +21,37 @@ class Optimizer(ABC):
             return np.matmul(next_weights.T, next_dZ)
         return dA_params
 
-    def layer_gradients(self, layer, dA_params):
+    def get_layer_dZ(self, layer, dA_params):
         layer_dA = self.get_layer_dA(dA_params)
 
-        dZ = layer_dA * layer.activation.calculate_derivatives(layer.linear)
+        if layer.batch_norm is not False:
+            bn = layer.batch_norm
+            activation_grads = layer.activation.calculate_derivatives(bn.norm)
+
+            d_norm = layer_dA * activation_grads
+
+            grads = {
+                "gamma": np.sum(d_norm * bn.Z_hat, axis=1, keepdims=True),
+                "beta": np.sum(d_norm, axis=1, keepdims=True),
+            }
+
+            dZ_hat = d_norm * bn.gamma
+
+            dZ_hat_sum = np.sum(dZ_hat, axis=1, keepdims=True)
+            dZ_hat_prod = bn.Z_hat * np.sum(dZ_hat * bn.Z_hat, axis=1, keepdims=True)
+
+            bs = layer.get_ip().shape[-1]
+            return (bs * dZ_hat - dZ_hat_sum - dZ_hat_prod) / (bs * bn.std), grads
+        else:
+            return layer_dA * layer.activation.calculate_derivatives(layer.linear), {}
+
+    def layer_gradients(self, layer, dA_params):
+        dZ, grads = self.get_layer_dZ(layer, dA_params)
 
         gradients = {
             "weights": np.matmul(dZ, layer.get_ip().T) / self.train_size,
             "biases": np.sum(dZ, keepdims=True, axis=1) / self.train_size,
+            **grads,
         }
 
         layer.dZ = dZ
@@ -66,15 +89,19 @@ class SGD(Optimizer):
                 "biases": np.zeros(shape=layer.biases.shape),
             }
 
+            if layer.batch_norm is not False:
+                layer.velocities.update(
+                    {
+                        "gamma": np.zeros(shape=layer.batch_norm.gamma.shape),
+                        "beta": np.zeros(shape=layer.batch_norm.beta.shape),
+                    }
+                )
+
     def update_layer_velocities(self, layer):
-        dW = layer.gradients["weights"]
-        db = layer.gradients["biases"]
-
-        W_vel = layer.velocities["weights"]
-        b_vel = layer.velocities["biases"]
-
-        layer.velocities["weights"] = self.momentum * W_vel + (1 - self.momentum) * dW
-        layer.velocities["biases"] = self.momentum * b_vel + (1 - self.momentum) * db
+        for key, grad in layer.gradients.items():
+            layer.velocities[key] = (
+                self.momentum * layer.velocities[key] + (1 - self.momentum) * grad
+            )
 
     def update_params_momentum(self, model):
         for layer in model.layers:
@@ -82,10 +109,18 @@ class SGD(Optimizer):
             layer.weights -= self.lr * layer.velocities["weights"]
             layer.biases -= self.lr * layer.velocities["biases"]
 
+            if layer.batch_norm is not False:
+                layer.batch_norm.gamma -= self.lr * layer.velocities["gamma"]
+                layer.batch_norm.beta -= self.lr * layer.velocities["beta"]
+
     def update_params_no_momentum(self, model):
         for layer in model.layers:
             layer.weights -= self.lr * layer.gradients["weights"]
             layer.biases -= self.lr * layer.gradients["biases"]
+
+            if layer.batch_norm is not False:
+                layer.batch_norm.gamma -= self.lr * layer.gradients["gamma"]
+                layer.batch_norm.beta -= self.lr * layer.gradients["beta"]
 
     def get_update_function(self, model):
         if self.momentum == 0:
@@ -202,7 +237,6 @@ class Adam(Optimizer):
         self.rho = rho
         self.epsilon = kwargs.pop("epsilon", 1e-8)
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
-
 
     @staticmethod
     def init_moments(model):

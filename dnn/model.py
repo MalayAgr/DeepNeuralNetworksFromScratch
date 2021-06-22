@@ -6,7 +6,9 @@ from dnn.optimizers import Optimizer
 
 
 class Model:
-    def __init__(self, ip_shape, layer_sizes, activations, initializers=None):
+    def __init__(
+        self, ip_shape, layer_sizes, activations, initializers=None, build=True
+    ):
         num_layers = len(layer_sizes)
 
         if len(activations) != num_layers:
@@ -26,7 +28,27 @@ class Model:
         self.initializers = (
             [None] * num_layers if initializers is None else initializers
         )
-        self.layers = self._build_model()
+
+        if build is True:
+            self.layers = self._build_model()
+
+    @classmethod
+    def from_tuple(cls, layers):
+        ip_layer = layers[0].ip_layer
+
+        ip_shape = ip_layer.ip_shape
+
+        layer_sizes, activations, inits = [], [], []
+        for layer in layers:
+            layer_sizes.append(layer.units)
+            activations.append(layer.activation.name)
+            inits.append(layer.initializer)
+
+        obj = cls(ip_shape, layer_sizes, activations, inits, build=False)
+        obj.ip_layer = ip_layer
+        obj.layers = layers
+
+        return obj
 
     def __str__(self):
         layers = ", ".join([str(l) for l in self.layers])

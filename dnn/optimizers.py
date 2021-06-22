@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
+from operator import attrgetter
 
 import numpy as np
 
 from dnn.layer import Layer
 
-from .utils import generate_batches, loss_factory
+from .utils import generate_batches, loss_factory, rgetattr, rsetattr
 
 
 class Optimizer(ABC):
@@ -42,8 +43,7 @@ class Optimizer(ABC):
 
             bs = layer.get_ip().shape[-1]
             return (bs * dZ_hat - dZ_hat_sum - dZ_hat_prod) / (bs * bn.std), grads
-        else:
-            return layer_dA * layer.activation.calculate_derivatives(layer.linear), {}
+        return layer_dA * layer.activation.calculate_derivatives(layer.linear), {}
 
     def layer_gradients(self, layer, dA_params):
         dZ, grads = self.get_layer_dZ(layer, dA_params)
@@ -63,6 +63,8 @@ class Optimizer(ABC):
         dA = loss.compute_derivatives(preds)
 
         for layer in reversed(model.layers):
+            if not hasattr(layer, "param_map"):
+                raise AttributeError("No param_map found.")
             self.layer_gradients(layer, dA)
             dA = layer
 
@@ -85,42 +87,28 @@ class SGD(Optimizer):
     def init_velocities(model):
         for layer in model.layers:
             layer.velocities = {
-                "weights": np.zeros(shape=layer.weights.shape),
-                "biases": np.zeros(shape=layer.biases.shape),
+                key: np.zeros(shape=rgetattr(layer, attr).shape)
+                for key, attr in layer.param_map.items()
             }
-
-            if layer.batch_norm is not False:
-                layer.velocities.update(
-                    {
-                        "gamma": np.zeros(shape=layer.batch_norm.gamma.shape),
-                        "beta": np.zeros(shape=layer.batch_norm.beta.shape),
-                    }
-                )
 
     def update_layer_velocities(self, layer):
         for key, grad in layer.gradients.items():
-            layer.velocities[key] = (
-                self.momentum * layer.velocities[key] + (1 - self.momentum) * grad
-            )
+            lhs = self.momentum * layer.velocities[key]
+            rhs = (1 - self.momentum) * grad
+            layer.velocities[key] = lhs + rhs
 
     def update_params_momentum(self, model):
         for layer in model.layers:
             self.update_layer_velocities(layer)
-            layer.weights -= self.lr * layer.velocities["weights"]
-            layer.biases -= self.lr * layer.velocities["biases"]
-
-            if layer.batch_norm is not False:
-                layer.batch_norm.gamma -= self.lr * layer.velocities["gamma"]
-                layer.batch_norm.beta -= self.lr * layer.velocities["beta"]
+            for key, attr in layer.param_map.items():
+                current_val = rgetattr(layer, attr)
+                rsetattr(layer, attr, current_val - self.lr * layer.velocities[key])
 
     def update_params_no_momentum(self, model):
         for layer in model.layers:
-            layer.weights -= self.lr * layer.gradients["weights"]
-            layer.biases -= self.lr * layer.gradients["biases"]
-
-            if layer.batch_norm is not False:
-                layer.batch_norm.gamma -= self.lr * layer.gradients["gamma"]
-                layer.batch_norm.beta -= self.lr * layer.gradients["beta"]
+            for key, attr in layer.param_map.items():
+                current_val = rgetattr(layer, attr)
+                rsetattr(layer, attr, current_val - self.lr * layer.gradients[key])
 
     def get_update_function(self, model):
         if self.momentum == 0:
@@ -169,19 +157,15 @@ class RMSProp(Optimizer):
     def init_rms(model):
         for layer in model.layers:
             layer.rms = {
-                "weights": np.zeros(shape=layer.weights.shape),
-                "biases": np.zeros(shape=layer.biases.shape),
+                key: np.zeros(shape=rgetattr(layer, attr).shape)
+                for key, attr in layer.param_map.items()
             }
 
     def update_layer_rms(self, layer):
-        dW = layer.gradients["weights"]
-        db = layer.gradients["biases"]
-
-        W_rms = layer.rms["weights"]
-        b_rms = layer.rms["biases"]
-
-        layer.rms["weights"] = self.rho * W_rms + (1 - self.rho) * np.square(dW)
-        layer.rms["biases"] = self.rho * b_rms + (1 - self.rho) * np.square(db)
+        for key, grad in layer.gradients.items():
+            lhs = self.rho * layer.rms[key]
+            rhs = (1 - self.rho) * np.square(grad)
+            layer.rms[key] = lhs + rhs
 
     def get_update(self, grad, rms):
         return self.lr * (grad / (np.sqrt(rms) + self.epsilon))
@@ -189,12 +173,10 @@ class RMSProp(Optimizer):
     def update_params(self, model):
         for layer in model.layers:
             self.update_layer_rms(layer)
-            layer.weights -= self.get_update(
-                layer.gradients["weights"], layer.rms["weights"]
-            )
-            layer.biases -= self.get_update(
-                layer.gradients["biases"], layer.rms["biases"]
-            )
+            for key, attr in layer.param_map.items():
+                current_val = rgetattr(layer, attr)
+                update = self.get_update(layer.gradients[key], layer.rms[key])
+                rsetattr(layer, attr, current_val - update)
 
     def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
         cost, history = 0, []
@@ -242,33 +224,25 @@ class Adam(Optimizer):
     def init_moments(model):
         for layer in model.layers:
             layer.m1 = {
-                "weights": np.zeros(shape=layer.weights.shape),
-                "biases": np.zeros(shape=layer.biases.shape),
+                key: np.zeros(shape=rgetattr(layer, attr).shape)
+                for key, attr in layer.param_map.items()
             }
             layer.m2 = {
-                "weights": np.zeros(shape=layer.weights.shape),
-                "biases": np.zeros(shape=layer.biases.shape),
+                key: np.zeros(shape=rgetattr(layer, attr).shape)
+                for key, attr in layer.param_map.items()
             }
 
     def update_layer_m1(self, layer):
-        dW = layer.gradients["weights"]
-        db = layer.gradients["biases"]
-
-        W_m1 = layer.m1["weights"]
-        b_m1 = layer.m1["biases"]
-
-        layer.m1["weights"] = self.momentum * W_m1 + (1 - self.momentum) * dW
-        layer.m1["biases"] = self.momentum * b_m1 + (1 - self.momentum) * db
+        for key, grad in layer.gradients.items():
+            lhs = self.momentum * layer.m1[key]
+            rhs = (1 - self.momentum) * grad
+            layer.m1[key] = lhs + rhs
 
     def update_layer_m2(self, layer):
-        dW = layer.gradients["weights"]
-        db = layer.gradients["biases"]
-
-        W_m2 = layer.m2["weights"]
-        b_m2 = layer.m2["biases"]
-
-        layer.m2["weights"] = self.rho * W_m2 + (1 - self.rho) * np.square(dW)
-        layer.m2["biases"] = self.rho * b_m2 + (1 - self.rho) * np.square(db)
+        for key, grad in layer.gradients.items():
+            lhs = self.rho * layer.m2[key]
+            rhs = (1 - self.rho) * np.square(grad)
+            layer.m2[key] = lhs + rhs
 
     def get_update(self, m1, m2, t):
         m1 = np.divide(m1, 1.0 - self.momentum ** t)
@@ -281,10 +255,10 @@ class Adam(Optimizer):
             self.update_layer_m1(layer)
             self.update_layer_m2(layer)
 
-            layer.weights -= self.get_update(
-                layer.m1["weights"], layer.m2["weights"], t
-            )
-            layer.biases -= self.get_update(layer.m1["biases"], layer.m2["biases"], t)
+            for key, attr in layer.param_map.items():
+                current_val = rgetattr(layer, attr)
+                update = self.get_update(layer.m1[key], layer.m2[key], t)
+                rsetattr(layer, attr, current_val - update)
 
     def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
         cost, history = 0, []

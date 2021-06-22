@@ -1,3 +1,4 @@
+import functools
 import numpy as np
 
 from dnn.input_layer import Input
@@ -53,13 +54,15 @@ class Layer:
 
         self.param_map = {"weights": "weights", "biases": "biases"}
 
+        self.batch_norm = batch_norm
+
         if batch_norm is True:
             self.batch_norm = BatchNorm(self)
             self.param_map.update(
                 {"gamma": "batch_norm.gamma", "beta": "batch_norm.beta"}
             )
-        else:
-            self.batch_norm = False
+
+        self.trainable_params = self.param_count()
 
         self.linear = None
         self.activations = None
@@ -94,6 +97,15 @@ class Layer:
         weights = np.random.randn(x_dim, y_dim) * np.sqrt(variance)
         biases = np.zeros((x_dim, 1))
         return weights, biases
+
+    def param_count(self):
+        count = self.weights.shape[0] * self.weights.shape[1]
+        count += self.units
+
+        if self.batch_norm is not False:
+            count += 2 * self.units
+
+        return count
 
     def get_ip(self):
         no_activs = (

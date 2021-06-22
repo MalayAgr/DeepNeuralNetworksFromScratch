@@ -31,6 +31,7 @@ class Model:
 
         if build is True:
             self.layers = self._build_model()
+            self.trainable_params = sum(layer.trainable_params for layer in self.layers)
 
     @classmethod
     def from_tuple(cls, layers):
@@ -47,6 +48,7 @@ class Model:
         obj = cls(ip_shape, layer_sizes, activations, inits, build=False)
         obj.ip_layer = ip_layer
         obj.layers = layers
+        obj.trainable_params = sum(layer.trainable_params for layer in layers)
 
         return obj
 

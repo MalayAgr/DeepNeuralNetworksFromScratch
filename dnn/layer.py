@@ -6,7 +6,7 @@ from dnn.utils import activation_factory
 
 
 class BatchNorm:
-    def __init__(self, ip, epsilon=1e-7):
+    def __init__(self, ip, epsilon=1e-7, momentum=0.5):
         if not isinstance(ip, Layer):
             raise AttributeError("ip should be an instance of Layer")
 
@@ -19,19 +19,39 @@ class BatchNorm:
         self.Z_hat = None
         self.norm = None
 
+        self.mean_ewa, self.std_ewa = self.init_ewa()
+        self.momentum = momentum
+
     def init_params(self):
         gamma = np.ones(shape=(self.ip_layer.units, 1))
         beta = np.zeros(shape=(self.ip_layer.units, 1))
         return gamma, beta
 
+    def init_ewa(self):
+        mean = np.zeros(shape=(self.ip_layer.units, 1), dtype=np.float64)
+        std = np.ones(shape=(self.ip_layer.units, 1), dtype=np.float64)
+
+        return mean, std
+
+    def update_ewa(self, mean, std):
+        self.mean_ewa = self.momentum * self.mean_ewa + (1 - self.momentum) * mean
+        self.std_ewa = self.momentum * self.std_ewa + (1 - self.momentum) * std
+
     def compute_norm(self, X):
-        mean = np.mean(X, axis=1, keepdims=True)
+        if self.ip_layer.is_training:
+            mean = np.mean(X, axis=1, keepdims=True)
 
-        var = np.var(X, axis=1, keepdims=True)
-        std = np.sqrt(var + self.epsilon)
-        self.std = std
+            var = np.var(X, axis=1, keepdims=True) + self.epsilon
+            std = np.sqrt(var)
 
-        Z_hat = (X - mean) / std
+            self.update_ewa(mean, std)
+
+            self.std = std
+        else:
+            mean = self.mean_ewa
+            std = self.std_ewa
+
+        Z_hat = np.divide(X - mean, std)
         self.Z_hat = Z_hat
 
         self.norm = self.gamma * Z_hat + self.beta
@@ -63,6 +83,8 @@ class Layer:
             )
 
         self.trainable_params = self.param_count()
+
+        self.is_training = False
 
         self.linear = None
         self.activations = None

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dnn.activations import Softmax
 from operator import attrgetter
 
 import numpy as np
@@ -12,6 +13,9 @@ class Optimizer(ABC):
     def __init__(self, *args, learning_rate=0.01, **kwargs):
         self.lr = learning_rate
         self.train_size = None
+
+    def compute_gradients(self, dZ, ip):
+        return
 
     @staticmethod
     def get_layer_dA(dA_params):
@@ -29,7 +33,11 @@ class Optimizer(ABC):
             bn = layer.batch_norm
             activation_grads = layer.activation.calculate_derivatives(bn.norm)
 
-            d_norm = layer_dA * activation_grads
+            d_norm = (
+                np.sum(layer_dA * activation_grads, axis=1)
+                if isinstance(layer.activation, Softmax)
+                else layer_dA * activation_grads
+            )
 
             grads = {
                 "gamma": np.sum(d_norm * bn.Z_hat, axis=1, keepdims=True),
@@ -42,8 +50,18 @@ class Optimizer(ABC):
             dZ_hat_prod = bn.Z_hat * np.sum(dZ_hat * bn.Z_hat, axis=1, keepdims=True)
 
             bs = layer.get_ip().shape[-1]
+
             return (bs * dZ_hat - dZ_hat_sum - dZ_hat_prod) / (bs * bn.std), grads
-        return layer_dA * layer.activation.calculate_derivatives(layer.linear), {}
+
+        activation_grads = layer.activation.calculate_derivatives(layer.linear)
+
+        dZ = (
+            np.sum(layer_dA * activation_grads, axis=1)
+            if isinstance(layer.activation, Softmax)
+            else layer_dA * activation_grads
+        )
+
+        return dZ, {}
 
     def layer_gradients(self, layer, dA_params):
         dZ, grads = self.get_layer_dZ(layer, dA_params)
@@ -53,7 +71,7 @@ class Optimizer(ABC):
             "biases": np.sum(dZ, keepdims=True, axis=1) / self.train_size,
             **grads,
         }
-
+        
         layer.dZ = dZ
         layer.gradients = gradients
 

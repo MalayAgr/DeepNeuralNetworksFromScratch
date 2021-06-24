@@ -102,6 +102,22 @@ class Sigmoid(Activation):
         return activations * (1 - activations)
 
 
+class Softmax(Activation):
+    name = "softmax"
+
+    def activation_func(self, ip):
+        z = ip - np.max(ip, axis=0, keepdims=True)
+        exp_z = np.exp(z)
+        summation = np.sum(exp_z, axis=0, keepdims=True)
+        return exp_z / summation
+
+    def derivative_func(self, ip):
+        activations = self.activation_func(ip)
+        units = activations.shape[0]
+        grads = (np.eye(units) - activations.T[..., None]) * activations[:, None, :].T
+        return np.moveaxis(grads, 0, -1)
+
+
 class Tanh(Activation):
     name = "tanh"
 

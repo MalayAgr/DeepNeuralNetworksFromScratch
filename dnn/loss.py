@@ -99,3 +99,15 @@ class MeanSquaredError(Loss):
 
     def loss_derivative(self, preds):
         return preds - self.labels
+
+
+class CategoricalCrossEntropy(Loss):
+    name = ["categorial_crossentropy", "cce"]
+
+    def loss_func(self, preds):
+        loss = -np.sum(self.labels * np.log(preds), axis=0, keepdims=True)
+        loss = np.sum(loss)
+        return np.squeeze(loss)
+
+    def loss_derivative(self, preds):
+        return -self.labels / preds

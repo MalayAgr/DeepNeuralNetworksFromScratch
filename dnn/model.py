@@ -88,7 +88,7 @@ class Model:
         for layer in self.layers:
             layer.is_training = not layer.is_training
 
-    def train(self, X, Y, batch_size, epochs, opt, loss="bse", shuffle=True):
+    def train(self, X, Y, batch_size, epochs, opt, loss="bce", shuffle=True):
         if X.shape[-1] != Y.shape[-1]:
             raise ValueError("X and Y should have the same number of samples.")
 
@@ -101,7 +101,9 @@ class Model:
 
         self._flip_training()
 
-        history = opt.optimize(self, X, Y, batch_size, epochs, loss=loss, shuffle=shuffle)
+        history = opt.optimize(
+            self, X, Y, batch_size, epochs, loss=loss, shuffle=shuffle
+        )
 
         self._flip_training()
 

@@ -76,7 +76,7 @@ class Loss(ABC):
 
 
 class BinaryCrossEntropy(Loss):
-    name = ["binary_crossentropy", "bse"]
+    name = ["binary_crossentropy", "bce"]
 
     def loss_func(self, preds):
         positive_labels = self.labels * np.log(preds)

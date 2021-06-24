@@ -1,4 +1,3 @@
-import functools
 import numpy as np
 
 from dnn.input_layer import Input

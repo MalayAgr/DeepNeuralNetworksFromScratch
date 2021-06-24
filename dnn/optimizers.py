@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
-from dnn.activations import Softmax
-from operator import attrgetter
 
 import numpy as np
 
+from dnn.activations import Softmax
 from dnn.layer import Layer
 
 from .utils import generate_batches, loss_factory, rgetattr, rsetattr
@@ -13,9 +12,6 @@ class Optimizer(ABC):
     def __init__(self, *args, learning_rate=0.01, **kwargs):
         self.lr = learning_rate
         self.train_size = None
-
-    def compute_gradients(self, dZ, ip):
-        return
 
     @staticmethod
     def get_layer_dA(dA_params):
@@ -71,7 +67,7 @@ class Optimizer(ABC):
             "biases": np.sum(dZ, keepdims=True, axis=1) / self.train_size,
             **grads,
         }
-        
+
         layer.dZ = dZ
         layer.gradients = gradients
 

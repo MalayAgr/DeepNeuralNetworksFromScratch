@@ -117,7 +117,8 @@ class Layer:
     def __repr__(self):
         return self.__str__()
 
-    def init_activation(self, activation):
+    @staticmethod
+    def init_activation(activation):
         return activation_factory(activation)
 
     def get_y_dim(self):
@@ -179,7 +180,8 @@ class Layer:
             return np.matmul(dA_params.weights.T, dA_params.dZ)
         return dA_params
 
-    def compute_dZ(self, dA, activation_grads):
+    @staticmethod
+    def compute_dZ(dA, activation_grads):
         if len(activation_grads.shape) > 2:
             return np.sum(dA * activation_grads, axis=1)
         return dA * activation_grads

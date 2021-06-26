@@ -46,6 +46,16 @@ def generate_batches(X, Y, batch_size, shuffle=True):
         start = end
 
 
+def backprop(model, loss, preds):
+    dA = loss.compute_derivatives(preds)
+
+    for layer in reversed(model.layers):
+        if not hasattr(layer, "param_map"):
+            raise AttributeError("No param_map found.")
+        layer.backprop_step(dA)
+        dA = layer
+
+
 def rgetattr(obj, attr, *args):
     def _getattr(obj, attr):
         return getattr(obj, attr, *args)

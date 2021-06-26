@@ -5,22 +5,13 @@ import numpy as np
 from dnn.activations import Softmax
 from dnn.layer import Layer
 
-from .utils import generate_batches, loss_factory, rgetattr, rsetattr
+from .utils import generate_batches, loss_factory, rgetattr, rsetattr, backprop
 
 
 class Optimizer(ABC):
     def __init__(self, *args, learning_rate=0.01, **kwargs):
         self.lr = learning_rate
         self.train_size = None
-
-    def backprop(self, model, loss, preds):
-        dA = loss.compute_derivatives(preds)
-
-        for layer in reversed(model.layers):
-            if not hasattr(layer, "param_map"):
-                raise AttributeError("No param_map found.")
-            layer.backprop_step(dA)
-            dA = layer
 
     @abstractmethod
     def optimize(
@@ -30,7 +21,8 @@ class Optimizer(ABC):
 
 
 class BaseMiniBatchGD(Optimizer):
-    def init_zeros_from_param_map(self, layer):
+    @staticmethod
+    def init_zeros_from_param_map(layer):
         return {
             key: np.zeros(shape=rgetattr(layer, attr).shape)
             for key, attr in layer.param_map.items()
@@ -39,13 +31,9 @@ class BaseMiniBatchGD(Optimizer):
     def update_params(self, model, *args, **kwargs):
         for layer in model.layers:
             updates = self.compute_update(layer, *args, **kwargs)
-            print(layer)
             for key, attr in layer.param_map.items():
                 current_val = rgetattr(layer, attr)
-                print("Key:", key)
-                print("Previous value:", current_val)
                 rsetattr(layer, attr, current_val - self.lr * updates[key])
-                print("New value:", rgetattr(layer, attr), "\n\n")
 
     def mini_batch_step(self, model, batch_X, batch_Y, loss, *args, **kwargs):
         preds = model.predict(batch_X)
@@ -53,7 +41,7 @@ class BaseMiniBatchGD(Optimizer):
         loss_func = loss_factory(loss, batch_Y)
         cost = loss_func.compute_loss(preds)
 
-        self.backprop(model, loss=loss_func, preds=preds)
+        backprop(model, loss=loss_func, preds=preds)
         self.update_params(model, *args, **kwargs)
 
         return cost
@@ -73,6 +61,7 @@ class BaseMiniBatchGD(Optimizer):
                     batch_Y=batch_Y,
                     loss=loss,
                     step_count=step_count,
+                    batch_size=size,
                     *args,
                     **kwargs,
                 )

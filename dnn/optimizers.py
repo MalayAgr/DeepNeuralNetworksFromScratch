@@ -2,10 +2,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from dnn.activations import Softmax
-from dnn.layer import Layer
-
-from .utils import generate_batches, loss_factory, rgetattr, rsetattr, backprop
+from .utils import backprop, generate_batches, loss_factory, rgetattr, rsetattr
 
 
 class Optimizer(ABC):

@@ -77,7 +77,9 @@ class BatchNorm:
 
 
 class Layer:
-    def __init__(self, ip, units, activation, initializer="he", batch_norm=False):
+    def __init__(
+        self, ip, units, activation, initializer="he", batch_norm=False, dropout=1.0
+    ):
         if not isinstance(ip, (Input, self.__class__)):
             msg = f"A {self.__class__.__name__} can have only instances of Input or itself as ip"
             raise AttributeError(msg)
@@ -101,11 +103,14 @@ class Layer:
                 {"gamma": "batch_norm.gamma", "beta": "batch_norm.beta"}
             )
 
+        self.dropout = dropout
+
         self.trainable_params = self.param_count()
 
         self.is_training = False
 
         self.linear = None
+        self.dropout_mask = None
         self.activations = None
         self.dZ = None
         self.gradients = {}
@@ -171,6 +176,13 @@ class Layer:
 
         activations = self.activation.calculate_activations(activation_ip)
 
+        if self.dropout < 1.0 and self.is_training:
+            mask = np.random.rand(*activations.shape) < self.dropout
+            activations *= mask
+            activations /= self.dropout
+
+            self.dropout_mask = mask
+
         self.linear, self.activations = linear, activations
 
         return activations
@@ -188,6 +200,10 @@ class Layer:
 
     def backprop_step(self, dA_params):
         dA = self.compute_dA(dA_params)
+
+        if self.dropout < 1.0:
+            dA = dA * self.dropout_mask
+            dA /= self.dropout
 
         ip = self.get_ip()
 

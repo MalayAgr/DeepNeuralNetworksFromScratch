@@ -23,11 +23,71 @@ class Optimizer(ABC):
             dA = layer
 
     @abstractmethod
-    def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
+    def optimize(
+        self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
+    ):
         pass
 
 
-class SGD(Optimizer):
+class BaseMiniBatchGD(Optimizer):
+    def init_zeros_from_param_map(self, layer):
+        return {
+            key: np.zeros(shape=rgetattr(layer, attr).shape)
+            for key, attr in layer.param_map.items()
+        }
+
+    def update_params(self, model, *args, **kwargs):
+        for layer in model.layers:
+            updates = self.compute_update(layer, *args, **kwargs)
+            print(layer)
+            for key, attr in layer.param_map.items():
+                current_val = rgetattr(layer, attr)
+                print("Key:", key)
+                print("Previous value:", current_val)
+                rsetattr(layer, attr, current_val - self.lr * updates[key])
+                print("New value:", rgetattr(layer, attr), "\n\n")
+
+    def mini_batch_step(self, model, batch_X, batch_Y, loss, *args, **kwargs):
+        preds = model.predict(batch_X)
+
+        loss_func = loss_factory(loss, batch_Y)
+        cost = loss_func.compute_loss(preds)
+
+        self.backprop(model, loss=loss_func, preds=preds)
+        self.update_params(model, *args, **kwargs)
+
+        return cost
+
+    def optimize(
+        self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
+    ):
+        history = []
+        step_count = 0
+        for epoch in range(epochs):
+            batches = generate_batches(X, Y, batch_size=batch_size, shuffle=shuffle)
+            for batch_X, batch_Y, size in batches:
+                step_count += 1
+                cost = self.mini_batch_step(
+                    model,
+                    batch_X=batch_X,
+                    batch_Y=batch_Y,
+                    loss=loss,
+                    step_count=step_count,
+                    *args,
+                    **kwargs,
+                )
+
+            print(f"Loss at the end of epoch {epoch + 1}: {cost: .9f}")
+            history.append(cost)
+
+        return history
+
+    @abstractmethod
+    def compute_update(self, layer, *args, **kwargs):
+        pass
+
+
+class SGD(BaseMiniBatchGD):
     def __init__(self, *args, learning_rate=0.01, **kwargs):
         momentum = kwargs.pop("momentum", 0)
 
@@ -37,13 +97,9 @@ class SGD(Optimizer):
         self.momentum = momentum
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
-    @staticmethod
-    def init_velocities(model):
+    def init_velocities(self, model):
         for layer in model.layers:
-            layer.velocities = {
-                key: np.zeros(shape=rgetattr(layer, attr).shape)
-                for key, attr in layer.param_map.items()
-            }
+            layer.velocities = self.init_zeros_from_param_map(layer)
 
     def update_layer_velocities(self, layer):
         for key, grad in layer.gradients.items():
@@ -51,52 +107,26 @@ class SGD(Optimizer):
             rhs = (1 - self.momentum) * grad
             layer.velocities[key] = lhs + rhs
 
-    def update_params_momentum(self, model):
-        for layer in model.layers:
-            self.update_layer_velocities(layer)
-            for key, attr in layer.param_map.items():
-                current_val = rgetattr(layer, attr)
-                rsetattr(layer, attr, current_val - self.lr * layer.velocities[key])
+    def compute_update_momentum(self, layer, *args, **kwargs):
+        self.update_layer_velocities(layer)
+        return layer.velocities
 
-    def update_params_no_momentum(self, model):
-        for layer in model.layers:
-            for key, attr in layer.param_map.items():
-                current_val = rgetattr(layer, attr)
-                rsetattr(layer, attr, current_val - self.lr * layer.gradients[key])
+    def compute_update(self, layer, *args, **kwargs):
+        return layer.gradients
 
-    def get_update_function(self, model):
-        if self.momentum == 0:
-            return self.update_params_no_momentum
+    def optimize(
+        self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
+    ):
+        if self.momentum > 0:
+            self.init_velocities(model)
+            self.compute_update = self.compute_update_momentum
 
-        self.init_velocities(model)
-        return self.update_params_momentum
-
-    def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
-        cost, history = 0, []
-
-        update_func = self.get_update_function(model)
-
-        for epoch in range(epochs):
-            batches = generate_batches(X, Y, batch_size=batch_size, shuffle=shuffle)
-            for batch_X, batch_Y, size in batches:
-                self.train_size = size
-                # Forward pass
-                preds = model.predict(batch_X)
-                # Compute cost
-                loss_func = loss_factory(loss, batch_Y)
-                cost = loss_func.compute_loss(preds)
-                # Backprop
-                self.backprop(model, loss=loss_func, preds=preds)
-                # Update params
-                update_func(model)
-
-            print(f"Loss at the end of epoch {epoch + 1}: {cost: .9f}")
-            history.append(cost)
-
-        return history
+        return super().optimize(
+            model, X, Y, batch_size, epochs, *args, loss=loss, shuffle=shuffle, **kwargs
+        )
 
 
-class RMSProp(Optimizer):
+class RMSProp(BaseMiniBatchGD):
     def __init__(self, *args, learning_rate=0.01, **kwargs):
         rho = kwargs.pop("rho", 0.9)
 
@@ -107,13 +137,9 @@ class RMSProp(Optimizer):
         self.epsilon = kwargs.pop("epislon", 1e-7)
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
-    @staticmethod
-    def init_rms(model):
+    def init_rms(self, model):
         for layer in model.layers:
-            layer.rms = {
-                key: np.zeros(shape=rgetattr(layer, attr).shape)
-                for key, attr in layer.param_map.items()
-            }
+            layer.rms = self.init_zeros_from_param_map(layer)
 
     def update_layer_rms(self, layer):
         for key, grad in layer.gradients.items():
@@ -121,43 +147,25 @@ class RMSProp(Optimizer):
             rhs = (1 - self.rho) * np.square(grad)
             layer.rms[key] = lhs + rhs
 
-    def get_update(self, grad, rms):
-        return self.lr * (grad / (np.sqrt(rms) + self.epsilon))
+    def compute_update(self, layer, *args, **kwargs):
+        self.update_layer_rms(layer)
 
-    def update_params(self, model):
-        for layer in model.layers:
-            self.update_layer_rms(layer)
-            for key, attr in layer.param_map.items():
-                current_val = rgetattr(layer, attr)
-                update = self.get_update(layer.gradients[key], layer.rms[key])
-                rsetattr(layer, attr, current_val - update)
+        return {
+            key: grad / (np.sqrt(layer.rms[key]) + self.epsilon)
+            for key, grad in layer.gradients.items()
+        }
 
-    def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
-        cost, history = 0, []
-
+    def optimize(
+        self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
+    ):
         self.init_rms(model)
 
-        for epoch in range(epochs):
-            batches = generate_batches(X, Y, batch_size=batch_size, shuffle=shuffle)
-            for batch_X, batch_Y, size in batches:
-                self.train_size = size
-                # Forward pass
-                preds = model.predict(batch_X)
-                # Compute cost
-                loss_func = loss_factory(loss, batch_Y)
-                cost = loss_func.compute_loss(preds)
-                # Backprop
-                self.backprop(model, loss=loss_func, preds=preds)
-                # Update params
-                self.update_params(model)
-
-            print(f"Loss at the end of epoch {epoch + 1}: {cost: .9f}")
-            history.append(cost)
-
-        return history
+        return super().optimize(
+            model, X, Y, batch_size, epochs, *args, loss=loss, shuffle=shuffle, **kwargs
+        )
 
 
-class Adam(Optimizer):
+class Adam(BaseMiniBatchGD):
     def __init__(self, *args, learning_rate=0.01, **kwargs):
         momentum = kwargs.pop("beta_1", 0.9)
 
@@ -174,68 +182,43 @@ class Adam(Optimizer):
         self.epsilon = kwargs.pop("epsilon", 1e-8)
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
-    @staticmethod
-    def init_moments(model):
+    def init_moments(self, model):
         for layer in model.layers:
-            layer.m1 = {
-                key: np.zeros(shape=rgetattr(layer, attr).shape)
-                for key, attr in layer.param_map.items()
-            }
-            layer.m2 = {
-                key: np.zeros(shape=rgetattr(layer, attr).shape)
-                for key, attr in layer.param_map.items()
-            }
+            layer.m1 = self.init_zeros_from_param_map(layer)
+            layer.m2 = self.init_zeros_from_param_map(layer)
 
-    def update_layer_m1(self, layer):
+    def update_layer_moments(self, layer):
         for key, grad in layer.gradients.items():
             lhs = self.momentum * layer.m1[key]
             rhs = (1 - self.momentum) * grad
             layer.m1[key] = lhs + rhs
 
-    def update_layer_m2(self, layer):
-        for key, grad in layer.gradients.items():
             lhs = self.rho * layer.m2[key]
             rhs = (1 - self.rho) * np.square(grad)
             layer.m2[key] = lhs + rhs
 
-    def get_update(self, m1, m2, t):
-        m1 = np.divide(m1, 1.0 - self.momentum ** t)
-        m2 = np.divide(m2, 1.0 - self.rho ** t)
+    def compute_update(self, layer, *args, **kwargs):
+        t = kwargs.pop("step_count", None)
 
-        return self.lr * (m1 / (np.sqrt(m2) + self.epsilon))
+        if t is None:
+            raise ValueError("No t found for bias correction")
 
-    def update_params(self, model, t):
-        for layer in model.layers:
-            self.update_layer_m1(layer)
-            self.update_layer_m2(layer)
+        self.update_layer_moments(layer)
 
-            for key, attr in layer.param_map.items():
-                current_val = rgetattr(layer, attr)
-                update = self.get_update(layer.m1[key], layer.m2[key], t)
-                rsetattr(layer, attr, current_val - update)
+        updates = {}
+        for key in layer.gradients:
+            m1 = np.divide(layer.m1[key], 1.0 - self.momentum ** t)
+            m2 = np.divide(layer.m2[key], 1.0 - self.rho ** t)
 
-    def optimize(self, model, X, Y, batch_size, epochs, loss="bse", shuffle=True):
-        cost, history = 0, []
+            updates[key] = m1 / (np.sqrt(m2) + self.epsilon)
 
+        return updates
+
+    def optimize(
+        self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
+    ):
         self.init_moments(model)
 
-        t = 0
-        for epoch in range(epochs):
-            batches = generate_batches(X, Y, batch_size=batch_size, shuffle=shuffle)
-            for batch_X, batch_Y, size in batches:
-                self.train_size = size
-                # Forward pass
-                preds = model.predict(batch_X)
-                # Compute cost
-                loss_func = loss_factory(loss, batch_Y)
-                cost = loss_func.compute_loss(preds)
-                # Backprop
-                self.backprop(model, loss=loss_func, preds=preds)
-                # Update params
-                t += 1
-                self.update_params(model, t)
-
-            print(f"Loss at the end of epoch {epoch + 1}: {cost: .9f}")
-            history.append(cost)
-
-        return history
+        return super().optimize(
+            model, X, Y, batch_size, epochs, *args, loss=loss, shuffle=shuffle, **kwargs
+        )

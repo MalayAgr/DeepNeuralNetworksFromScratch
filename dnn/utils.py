@@ -24,26 +24,30 @@ def loss_factory(loss, Y, *args, **kwargs):
 
 def generate_batches(X, Y, batch_size, shuffle=True):
     num_samples = X.shape[-1]
-    num_batches = int(np.ceil(num_samples / batch_size))
+
+    if batch_size > num_samples:
+        raise ValueError(
+            "The batch size is greater than the number of samples in the dataset"
+        )
+
+    num_full_batches = int(np.floor(num_samples / batch_size))
 
     if shuffle is True:
         perm = np.random.permutation(num_samples)
         X, Y = X[:, perm], Y[:, perm]
 
-    if num_batches == 1:
+    if num_full_batches == 1:
         yield X, Y, num_samples
         return
 
-    start = 0
-    for idx in range(num_batches):
+    for idx in range(num_full_batches):
+        start = idx * batch_size
         end = (idx + 1) * batch_size
+        yield X[:, start:end], Y[:, start:end], batch_size
 
-        if end > num_samples:
-            yield X[:, start:], Y[:, start:], num_samples - start
-        else:
-            yield X[:, start:end], Y[:, start:end], batch_size
-
-        start = end
+    if num_samples % batch_size != 0:
+        start = batch_size * num_full_batches
+        yield X[:, start:], Y[:, start:], num_samples - start
 
 
 def backprop(model, loss, preds):

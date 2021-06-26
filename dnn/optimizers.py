@@ -13,73 +13,13 @@ class Optimizer(ABC):
         self.lr = learning_rate
         self.train_size = None
 
-    @staticmethod
-    def get_layer_dA(dA_params):
-        if isinstance(dA_params, Layer):
-            next_weights = dA_params.weights
-            next_dZ = dA_params.dZ
-
-            return np.matmul(next_weights.T, next_dZ)
-        return dA_params
-
-    def get_layer_dZ(self, layer, dA_params):
-        layer_dA = self.get_layer_dA(dA_params)
-
-        if layer.batch_norm is not False:
-            bn = layer.batch_norm
-            activation_grads = layer.activation.calculate_derivatives(bn.norm)
-
-            d_norm = (
-                np.sum(layer_dA * activation_grads, axis=1)
-                if isinstance(layer.activation, Softmax)
-                else layer_dA * activation_grads
-            )
-
-            grads = {
-                "gamma": np.sum(d_norm * bn.Z_hat, axis=1, keepdims=True),
-                "beta": np.sum(d_norm, axis=1, keepdims=True),
-            }
-
-            dZ_hat = d_norm * bn.gamma
-
-            dZ_hat_sum = np.sum(dZ_hat, axis=1, keepdims=True)
-            dZ_hat_prod = bn.Z_hat * np.sum(dZ_hat * bn.Z_hat, axis=1, keepdims=True)
-
-            bs = layer.get_ip().shape[-1]
-
-            return (bs * dZ_hat - dZ_hat_sum - dZ_hat_prod) / (bs * bn.std), grads
-
-        activation_grads = layer.activation.calculate_derivatives(layer.linear)
-
-        dZ = (
-            np.sum(layer_dA * activation_grads, axis=1)
-            if isinstance(layer.activation, Softmax)
-            else layer_dA * activation_grads
-        )
-
-        return dZ, {}
-
-    def layer_gradients(self, layer, dA_params):
-        dZ, grads = self.get_layer_dZ(layer, dA_params)
-
-        gradients = {
-            "weights": np.matmul(dZ, layer.get_ip().T) / self.train_size,
-            "biases": np.sum(dZ, keepdims=True, axis=1) / self.train_size,
-            **grads,
-        }
-
-        layer.dZ = dZ
-        layer.gradients = gradients
-
-        return gradients
-
     def backprop(self, model, loss, preds):
         dA = loss.compute_derivatives(preds)
 
         for layer in reversed(model.layers):
             if not hasattr(layer, "param_map"):
                 raise AttributeError("No param_map found.")
-            self.layer_gradients(layer, dA)
+            layer.backprop_step(dA)
             dA = layer
 
     @abstractmethod

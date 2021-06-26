@@ -36,7 +36,7 @@ class BatchNorm:
         self.mean_ewa = self.momentum * self.mean_ewa + (1 - self.momentum) * mean
         self.std_ewa = self.momentum * self.std_ewa + (1 - self.momentum) * std
 
-    def compute_norm(self, X):
+    def forward_step(self, X):
         if self.ip_layer.is_training:
             mean = np.mean(X, axis=1, keepdims=True)
 
@@ -55,6 +55,25 @@ class BatchNorm:
 
         self.norm = self.gamma * Z_hat + self.beta
         return self.norm
+
+    def backprop_step(self, dA, bs):
+        activation_grads = self.ip_layer.activation.calculate_derivatives(self.norm)
+
+        d_norm = self.ip_layer.compute_dZ(dA, activation_grads)
+
+        grads = {
+            "gamma": np.sum(d_norm * self.Z_hat, axis=1, keepdims=True),
+            "beta": np.sum(d_norm, axis=1, keepdims=True),
+        }
+
+        self.ip_layer.gradients.update(grads)
+
+        dZ_hat = d_norm * self.gamma
+
+        dZ_hat_sum = np.sum(dZ_hat, axis=1, keepdims=True)
+        dZ_hat_prod = self.Z_hat * np.sum(dZ_hat * self.Z_hat, axis=1, keepdims=True)
+
+        return (bs * dZ_hat - dZ_hat_sum - dZ_hat_prod) / (bs * self.std)
 
 
 class Layer:
@@ -77,6 +96,7 @@ class Layer:
 
         if batch_norm is True:
             self.batch_norm = BatchNorm(self)
+
             self.param_map.update(
                 {"gamma": "batch_norm.gamma", "beta": "batch_norm.beta"}
             )
@@ -88,7 +108,7 @@ class Layer:
         self.linear = None
         self.activations = None
         self.dZ = None
-        self.gradients = None
+        self.gradients = {}
 
     def __str__(self):
         activation_cls = self.activation.__class__.__name__
@@ -146,10 +166,41 @@ class Layer:
 
         activation_ip = linear
         if self.batch_norm is not False:
-            activation_ip = self.batch_norm.compute_norm(linear)
+            activation_ip = self.batch_norm.forward_step(linear)
 
         activations = self.activation.calculate_activations(activation_ip)
 
         self.linear, self.activations = linear, activations
 
         return activations
+
+    def compute_dA(self, dA_params):
+        if isinstance(dA_params, self.__class__):
+            return np.matmul(dA_params.weights.T, dA_params.dZ)
+        return dA_params
+
+    def compute_dZ(self, dA, activation_grads):
+        if len(activation_grads.shape) > 2:
+            return np.sum(dA * activation_grads, axis=1)
+        return dA * activation_grads
+
+    def backprop_step(self, dA_params):
+        dA = self.compute_dA(dA_params)
+
+        ip = self.get_ip()
+
+        if self.batch_norm is not False:
+            dZ = self.batch_norm.backprop_step(dA, ip.shape[-1])
+        else:
+            activation_grads = self.activation.calculate_derivatives(self.linear)
+            dZ = self.compute_dZ(dA, activation_grads)
+
+        gradients = {
+            "weights": np.matmul(dZ, ip.T) / ip.shape[-1],
+            "biases": np.sum(dZ, keepdims=True, axis=1) / ip.shape[-1],
+        }
+
+        self.gradients.update(gradients)
+        self.dZ = dZ
+
+        return gradients

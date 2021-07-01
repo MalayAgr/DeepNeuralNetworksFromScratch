@@ -103,6 +103,9 @@ class Layer:
                 {"gamma": "batch_norm.gamma", "beta": "batch_norm.beta"}
             )
 
+        if dropout < 0:
+            raise AttributeError("dropout cannot be negative.")
+
         self.dropout = dropout
 
         self.trainable_params = self.param_count()
@@ -112,6 +115,7 @@ class Layer:
         self.linear = None
         self.dropout_mask = None
         self.activations = None
+
         self.dZ = None
         self.gradients = {}
 
@@ -198,7 +202,7 @@ class Layer:
             return np.sum(dA * activation_grads, axis=1)
         return dA * activation_grads
 
-    def backprop_step(self, dA_params):
+    def backprop_step(self, dA_params, reg_param=0.0):
         dA = self.compute_dA(dA_params)
 
         if self.dropout < 1.0:
@@ -213,9 +217,17 @@ class Layer:
             activation_grads = self.activation.calculate_derivatives(self.linear)
             dZ = self.compute_dZ(dA, activation_grads)
 
+        m = ip.shape[-1]
+
+        dW = (
+            (np.matmul(dZ, ip.T) + reg_param * self.weights) / m
+            if reg_param > 0
+            else np.matmul(dZ, ip.T) / m
+        )
+
         gradients = {
-            "weights": np.matmul(dZ, ip.T) / ip.shape[-1],
-            "biases": np.sum(dZ, keepdims=True, axis=1) / ip.shape[-1],
+            "weights": dW,
+            "biases": np.sum(dZ, keepdims=True, axis=1) / m,
         }
 
         self.gradients.update(gradients)

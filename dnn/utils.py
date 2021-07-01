@@ -50,14 +50,23 @@ def generate_batches(X, Y, batch_size, shuffle=True):
         yield X[:, start:], Y[:, start:], num_samples - start
 
 
-def backprop(model, loss, labels, preds):
+def backprop(model, loss, labels, preds, reg_param=0.0):
     dA = loss.compute_derivatives(labels, preds)
 
     for layer in reversed(model.layers):
         if not hasattr(layer, "param_map"):
             raise AttributeError("No param_map found.")
-        layer.backprop_step(dA)
+
+        layer.backprop_step(dA, reg_param=reg_param)
         dA = layer
+
+
+def compute_l2_cost(model, reg_param, cost):
+    norm = np.add.reduce([np.linalg.norm(layer.weights) ** 2 for layer in model.layers])
+
+    m = model.ip_layer.ip.shape[-1]
+
+    return cost + (reg_param * norm) / (2 * m)
 
 
 def rgetattr(obj, attr, *args):

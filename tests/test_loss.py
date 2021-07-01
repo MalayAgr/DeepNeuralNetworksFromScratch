@@ -1,8 +1,7 @@
 from abc import abstractmethod
 
 from numpy.core.fromnumeric import size
-from dnn.loss import Loss, BinaryCrossEntropy, MeanSquaredError
-from dnn.activations import ReLU, Sigmoid
+from dnn.loss import CategoricalCrossEntropy, Loss, BinaryCrossEntropy, MeanSquaredError
 
 import numpy as np
 
@@ -22,7 +21,7 @@ class LossTestCase:
 
     def setUp(self):
         Y = np.random.choice((0, 1), size=(1, 5))
-        preds = Sigmoid().calculate_activations(np.random.randn(1, 5))
+        preds = np.random.rand(1, 5)
 
         self.loss = self.loss_cls()
 
@@ -67,6 +66,7 @@ class BCETestCase(LossTestCase, unittest.TestCase):
 
         if 1.0 in preds:
             preds = np.clip(preds, epsilon, 1.0 - epsilon)
+            print(preds)
 
         positive = self.Y * np.log(preds)
         negative = (1 - self.Y) * np.log(1 - preds)
@@ -82,8 +82,8 @@ class BCETestCase(LossTestCase, unittest.TestCase):
         return (1 - self.Y) / (1 - preds) - self.Y / preds
 
     def test_clipping(self):
-        Y = np.random.choice((0, 1), size=(1, 10))
-        preds = np.random.choice((0, 1), size=(1, 10))
+        Y = np.random.choice((0.0, 1.0), size=(1, 10))
+        preds = np.random.choice((0.0, 1.0), size=(1, 10))
 
         self.Y = Y
         self.preds = preds
@@ -109,6 +109,28 @@ class MSETestCase(LossTestCase, unittest.TestCase):
 
     def loss_derivatives(self):
         return self.preds - self.Y
+
+
+class CCETestCase(LossTestCase, unittest.TestCase):
+    loss_cls = CategoricalCrossEntropy
+
+    def loss_func(self):
+        train_size = self.Y.shape[-1]
+
+        loss = -np.sum(self.Y * np.log(self.preds), axis=0, keepdims=True)
+        return np.squeeze(np.sum(loss) / train_size)
+
+    def loss_derivatives(self):
+        return -self.Y / self.preds
+
+    def setUp(self):
+        super().setUp()
+
+        idx = np.random.choice(range(5), size=5)
+        self.Y = np.eye(5)[idx].T
+
+        preds = np.random.rand(5, 5)
+        self.preds = preds / np.sum(preds, axis=1, keepdims=True)
 
 
 class LossRegistryTestCase(unittest.TestCase):

@@ -70,7 +70,8 @@ class BinaryCrossEntropy(Loss):
     epsilon = 1e-15
 
     def loss_func(self, labels, preds):
-        preds = np.clip(preds, 0, 1.0 - self.epsilon)
+        if 1.0 in preds:
+            preds = np.clip(preds, 0, 1.0 - self.epsilon)
 
         positive_labels = labels * np.log(preds)
         negative_labels = (1 - labels) * np.log(1 - preds)
@@ -79,7 +80,8 @@ class BinaryCrossEntropy(Loss):
         return np.squeeze(loss)
 
     def loss_derivative(self, labels, preds):
-        preds = np.clip(preds, 0, 1.0 - self.epsilon)
+        if 1.0 in preds:
+            preds = np.clip(preds, 0, 1.0 - self.epsilon)
 
         lhs = (1 - labels) / (1 - preds)
         rhs = labels / preds

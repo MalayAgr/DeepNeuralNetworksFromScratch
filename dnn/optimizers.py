@@ -2,13 +2,19 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from .utils import backprop, generate_batches, loss_factory, rgetattr, rsetattr
+from .utils import (
+    backprop,
+    generate_batches,
+    loss_factory,
+    rgetattr,
+    rsetattr,
+    compute_l2_cost,
+)
 
 
 class Optimizer(ABC):
     def __init__(self, *args, learning_rate=0.01, **kwargs):
         self.lr = learning_rate
-        self.train_size = None
 
     @abstractmethod
     def optimize(
@@ -37,7 +43,12 @@ class BaseMiniBatchGD(Optimizer):
 
         cost = loss.compute_loss(batch_Y, preds)
 
-        backprop(model, loss=loss, labels=batch_Y, preds=preds)
+        reg_param = kwargs.pop("reg_param", 0.0)
+
+        if reg_param > 0.0:
+            cost = compute_l2_cost(model, reg_param=reg_param, cost=cost)
+
+        backprop(model, loss=loss, labels=batch_Y, preds=preds, reg_param=reg_param)
         self.update_params(model, *args, **kwargs)
 
         return cost
@@ -54,6 +65,7 @@ class BaseMiniBatchGD(Optimizer):
             batches = generate_batches(X, Y, batch_size=batch_size, shuffle=shuffle)
             for batch_X, batch_Y, size in batches:
                 step_count += 1
+
                 cost = self.mini_batch_step(
                     model,
                     batch_X=batch_X,

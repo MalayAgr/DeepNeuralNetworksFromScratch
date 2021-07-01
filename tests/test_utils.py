@@ -44,17 +44,8 @@ class ActivationFactoryTestCase(unittest.TestCase):
 
 
 class LossFactoryTestCase(unittest.TestCase):
-    class TestLossSingleName(Loss):
-        name = "test_class_single"
-
-        def loss_func(self, labels, preds):
-            pass
-
-        def loss_derivative(self, labels, preds):
-            pass
-
-    class TestLossMultiName(Loss):
-        name = ("test_class_multi", "tc")
+    class TestLoss(Loss):
+        name = ("test_class_single", "tc")
 
         def loss_func(self, labels, preds):
             pass
@@ -67,13 +58,7 @@ class LossFactoryTestCase(unittest.TestCase):
             loss_factory(generate_random_name())
 
     def test_custom_class_init(self):
-        Y = np.random.randn(2, 3)
-        obj = loss_factory(self.TestLossSingleName.name)
-        self.assertIsInstance(obj, self.TestLossSingleName)
-
-    def test_custom_class_init_multi(self):
-        Y = np.random.randn(2, 3)
-        obj1 = loss_factory(self.TestLossMultiName.name[0])
-        obj2 = loss_factory(self.TestLossMultiName.name[1])
-        self.assertIsInstance(obj1, self.TestLossMultiName)
-        self.assertIsInstance(obj2, self.TestLossMultiName)
+        obj1 = loss_factory(self.TestLoss.name[0])
+        obj2 = loss_factory(self.TestLoss.name[1])
+        self.assertIsInstance(obj1, self.TestLoss)
+        self.assertIsInstance(obj2, self.TestLoss)

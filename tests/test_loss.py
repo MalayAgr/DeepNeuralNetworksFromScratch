@@ -82,17 +82,8 @@ class MSETestCase(LossTestCase, unittest.TestCase):
 
 
 class LossRegistryTestCase(unittest.TestCase):
-    class TestLossSingleName(Loss):
-        name = "test_class_single"
-
-        def loss_func(self, labels, preds):
-            pass
-
-        def loss_derivative(self, labels, preds):
-            pass
-
-    class TestLossMultiName(Loss):
-        name = ("test_class_multi", "tc")
+    class TestLoss(Loss):
+        name = ("test_class", "tc")
 
         def loss_func(self, labels, preds):
             pass
@@ -102,9 +93,5 @@ class LossRegistryTestCase(unittest.TestCase):
 
     def test_custom_class_in_registry(self):
         registry = Loss.get_loss_classes()
-        self.assertIn(self.TestLossSingleName.name, registry)
-
-    def test_custom_class_in_registry_multi(self):
-        registry = Loss.get_loss_classes()
-        self.assertIn(self.TestLossMultiName.name[0], registry)
-        self.assertIn(self.TestLossMultiName.name[1], registry)
+        self.assertIn(self.TestLoss.name[0], registry)
+        self.assertIn(self.TestLoss.name[1], registry)

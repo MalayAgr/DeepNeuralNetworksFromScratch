@@ -66,7 +66,6 @@ class BCETestCase(LossTestCase, unittest.TestCase):
 
         if 1.0 in preds or (preds < 0).any():
             preds = np.clip(preds, epsilon, 1.0 - epsilon)
-            print(preds)
 
         positive = self.Y * np.log(preds)
         negative = (1 - self.Y) * np.log(1 - preds)

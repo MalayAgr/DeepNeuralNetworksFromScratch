@@ -6,13 +6,6 @@ import numpy as np
 class Loss(ABC):
     name = None
 
-    @staticmethod
-    def _add_sub_cls(sub_cls):
-        name = sub_cls.name
-        if isinstance(name, (list, tuple)):
-            return {n: sub_cls for n in name}
-        return {name: sub_cls}
-
     @classmethod
     def get_loss_classes(cls):
         result = {}
@@ -20,7 +13,7 @@ class Loss(ABC):
         for sub_cls in cls.__subclasses__():
             result.update(sub_cls.get_loss_classes())
             if sub_cls.name is not None:
-                result.update(cls._add_sub_cls(sub_cls))
+                result.update({name: sub_cls for name in sub_cls.name})
         return result
 
     def validate_input(self, labels, preds):

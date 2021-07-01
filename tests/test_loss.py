@@ -64,7 +64,7 @@ class BCETestCase(LossTestCase, unittest.TestCase):
 
         preds, epsilon = self.preds, BinaryCrossEntropy.epsilon
 
-        if 1.0 in preds:
+        if 1.0 in preds or (preds < 0).any():
             preds = np.clip(preds, epsilon, 1.0 - epsilon)
             print(preds)
 
@@ -76,7 +76,7 @@ class BCETestCase(LossTestCase, unittest.TestCase):
     def loss_derivatives(self):
         preds, epsilon = self.preds, BinaryCrossEntropy.epsilon
 
-        if 1.0 in preds:
+        if 1.0 in preds or (preds < 0).any():
             preds = np.clip(preds, epsilon, 1.0 - epsilon)
 
         return (1 - self.Y) / (1 - preds) - self.Y / preds

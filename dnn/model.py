@@ -82,11 +82,13 @@ class Model:
 
         return self.layers[-1].activations
 
-    def _flip_training(self):
+    def set_operation_mode(self, training):
         for layer in self.layers:
-            layer.is_training = not layer.is_training
+            layer.is_training = training
 
-    def train(self, X, Y, batch_size, epochs, opt, loss="bce", shuffle=True):
+    def train(
+        self, X, Y, batch_size, epochs, opt, *args, loss="bce", shuffle=True, **kwargs
+    ):
         if X.shape[-1] != Y.shape[-1]:
             raise ValueError("X and Y should have the same number of samples.")
 
@@ -97,12 +99,12 @@ class Model:
         if not isinstance(opt, Optimizer):
             raise ValueError("opt should be an instance of a subclass of Optimizer.")
 
-        self._flip_training()
+        self.set_operation_mode(training=True)
 
         history = opt.optimize(
-            self, X, Y, batch_size, epochs, loss=loss, shuffle=shuffle
+            self, X, Y, batch_size, epochs, *args, loss=loss, shuffle=shuffle, **kwargs
         )
 
-        self._flip_training()
+        self.set_operation_mode(training=False)
 
         return history

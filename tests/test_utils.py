@@ -47,55 +47,33 @@ class LossFactoryTestCase(unittest.TestCase):
     class TestLossSingleName(Loss):
         name = "test_class_single"
 
-        def loss_func(self, preds):
+        def loss_func(self, labels, preds):
             pass
 
-        def loss_derivative(self, preds):
+        def loss_derivative(self, labels, preds):
             pass
 
     class TestLossMultiName(Loss):
         name = ("test_class_multi", "tc")
 
-        def loss_func(self, preds):
+        def loss_func(self, labels, preds):
             pass
 
-        def loss_derivative(self, preds):
+        def loss_derivative(self, labels, preds):
             pass
 
     def test_invalid_name_error(self):
         with self.assertRaises(ValueError):
-            loss_factory(generate_random_name(), Y=np.zeros(shape=(1, 1)))
-
-    def test_builtin_activations_membership(self):
-        registry = Loss.get_loss_classes()
-        names = (
-            BinaryCrossEntropy.name[0],
-            BinaryCrossEntropy.name[1],
-            MeanSquaredError.name[0],
-            MeanSquaredError.name[1],
-        )
-
-        for name in names:
-            with self.subTest(name=name):
-                self.assertIn(name, registry)
-
-    def test_custom_class_in_registry(self):
-        registry = Loss.get_loss_classes()
-        self.assertIn(self.TestLossSingleName.name, registry)
+            loss_factory(generate_random_name())
 
     def test_custom_class_init(self):
         Y = np.random.randn(2, 3)
-        obj = loss_factory(self.TestLossSingleName.name, Y=Y)
+        obj = loss_factory(self.TestLossSingleName.name)
         self.assertIsInstance(obj, self.TestLossSingleName)
-
-    def test_custom_class_in_registry_multi(self):
-        registry = Loss.get_loss_classes()
-        self.assertIn(self.TestLossMultiName.name[0], registry)
-        self.assertIn(self.TestLossMultiName.name[1], registry)
 
     def test_custom_class_init_multi(self):
         Y = np.random.randn(2, 3)
-        obj1 = loss_factory(self.TestLossMultiName.name[0], Y=Y)
-        obj2 = loss_factory(self.TestLossMultiName.name[1], Y=Y)
+        obj1 = loss_factory(self.TestLossMultiName.name[0])
+        obj2 = loss_factory(self.TestLossMultiName.name[1])
         self.assertIsInstance(obj1, self.TestLossMultiName)
         self.assertIsInstance(obj2, self.TestLossMultiName)

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dnn.loss import BinaryCrossEntropy, MeanSquaredError
+from dnn.loss import Loss, BinaryCrossEntropy, MeanSquaredError
 from dnn.activations import Sigmoid
 
 import numpy as np
@@ -22,7 +22,7 @@ class LossTestCase:
         Y = np.random.choice((0, 1), size=(1, 5))
         preds = Sigmoid().calculate_activations(np.random.randn(1, 5))
 
-        self.loss = self.loss_cls(Y=Y)
+        self.loss = self.loss_cls()
 
         self.Y = Y
         self.preds = preds
@@ -31,23 +31,28 @@ class LossTestCase:
         preds = np.random.randn(1, 6)
 
         with self.assertRaises(AttributeError):
-            self.loss.validate_input(preds)
-
-    def test_init(self):
-        self.assertEqual(self.loss.labels.shape, self.Y.shape)
-        self.assertEqual(self.loss.train_size, self.Y.shape[-1])
+            self.loss.validate_input(self.Y, preds)
 
     def test_compute_loss(self):
         expected_loss = self.loss_func()
-        self.assertAlmostEqual(self.loss.compute_loss(self.preds), expected_loss)
+        computed_loss = self.loss.compute_loss(self.Y, self.preds)
+        self.assertAlmostEqual(computed_loss, expected_loss)
 
     def test_compute_derivatives(self):
         expected_derivatives = self.loss_derivatives()
 
-        derivatives = self.loss.compute_derivatives(self.preds)
+        derivatives = self.loss.compute_derivatives(self.Y, self.preds)
 
         self.assertEqual(derivatives.shape, expected_derivatives.shape)
         np.testing.assert_allclose(derivatives, expected_derivatives)
+
+    def test_registry_membership(self):
+        names = self.loss_cls.name
+        registry = Loss.get_loss_classes()
+
+        for name in names:
+            with self.subTest(name=name):
+                self.assertIn(name, registry)
 
 
 class BSETestCase(LossTestCase, unittest.TestCase):
@@ -74,3 +79,32 @@ class MSETestCase(LossTestCase, unittest.TestCase):
 
     def loss_derivatives(self):
         return self.preds - self.Y
+
+
+class LossRegistryTestCase(unittest.TestCase):
+    class TestLossSingleName(Loss):
+        name = "test_class_single"
+
+        def loss_func(self, labels, preds):
+            pass
+
+        def loss_derivative(self, labels, preds):
+            pass
+
+    class TestLossMultiName(Loss):
+        name = ("test_class_multi", "tc")
+
+        def loss_func(self, labels, preds):
+            pass
+
+        def loss_derivative(self, labels, preds):
+            pass
+
+    def test_custom_class_in_registry(self):
+        registry = Loss.get_loss_classes()
+        self.assertIn(self.TestLossSingleName.name, registry)
+
+    def test_custom_class_in_registry_multi(self):
+        registry = Loss.get_loss_classes()
+        self.assertIn(self.TestLossMultiName.name[0], registry)
+        self.assertIn(self.TestLossMultiName.name[1], registry)

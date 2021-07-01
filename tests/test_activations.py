@@ -2,7 +2,7 @@ from abc import abstractmethod
 import unittest
 
 import numpy as np
-from dnn.activations import ELU, LeakyReLU, ReLU, Sigmoid, Tanh
+from dnn.activations import Activation, ELU, LeakyReLU, ReLU, Sigmoid, Tanh
 
 
 class BaseActivationTestCase:
@@ -89,6 +89,12 @@ class BaseActivationTestCase:
 
         self.assertIsNone(self.act_obj.derivatives)
 
+    def test_registry_membership(self):
+        name = self.act_cls.name
+        registry = Activation.get_activation_classes()
+
+        self.assertIn(name, registry)
+
 
 class SigmoidTestCase(BaseActivationTestCase, unittest.TestCase):
     act_cls = Sigmoid
@@ -146,3 +152,18 @@ class ELUTestCase(LeakyReLUTestCase):
 
     def derivatives(self, ip):
         return np.where(ip > 0, 1.0, self.act_cls.default_alpha * np.exp(ip))
+
+
+class ActivationRegistryTestCase(unittest.TestCase):
+    def test_custom_class_in_registry(self):
+        class TestActivation(Activation):
+            name = "test_class"
+
+            def activation_func(self, ip):
+                pass
+
+            def derivative_func(self, ip):
+                pass
+
+        registry = Activation.get_activation_classes()
+        self.assertIn("test_class", registry)

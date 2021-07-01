@@ -13,52 +13,40 @@ def generate_random_name():
 
 
 class ActivationFactoryTestCase(unittest.TestCase):
-    class TestActivation(Activation):
-        name = "test_class"
-
-        def activation_func(self, ip):
-            pass
-
-        def derivative_func(self, ip):
-            pass
-
     def test_invalid_name_error(self):
         with self.assertRaises(ValueError):
             activation_factory(generate_random_name())
 
-    def test_builtin_activations_membership(self):
-        registry = Activation.get_activation_classes()
-        names = (Sigmoid.name, Tanh.name, ReLU.name, LeakyReLU.name, ELU.name)
-
-        for name in names:
-            with self.subTest(name=name):
-                self.assertIn(name, registry)
-
-    def test_custom_class_in_registry(self):
-        registry = Activation.get_activation_classes()
-        self.assertIn(self.TestActivation.name, registry)
-
     def test_custom_class_init(self):
+        class TestActivation(Activation):
+            name = "test_class"
+
+            def activation_func(self, ip):
+                pass
+
+            def derivative_func(self, ip):
+                pass
+
         obj = activation_factory("test_class")
-        self.assertIsInstance(obj, self.TestActivation)
+        self.assertIsInstance(obj, TestActivation)
 
 
 class LossFactoryTestCase(unittest.TestCase):
-    class TestLoss(Loss):
-        name = ("test_class_single", "tc")
-
-        def loss_func(self, labels, preds):
-            pass
-
-        def loss_derivative(self, labels, preds):
-            pass
-
     def test_invalid_name_error(self):
         with self.assertRaises(ValueError):
             loss_factory(generate_random_name())
 
     def test_custom_class_init(self):
-        obj1 = loss_factory(self.TestLoss.name[0])
-        obj2 = loss_factory(self.TestLoss.name[1])
-        self.assertIsInstance(obj1, self.TestLoss)
-        self.assertIsInstance(obj2, self.TestLoss)
+        class TestLoss(Loss):
+            name = ("test_class", "tc")
+
+            def loss_func(self, labels, preds):
+                pass
+
+            def loss_derivative(self, labels, preds):
+                pass
+
+        obj1 = loss_factory("test_class")
+        obj2 = loss_factory("tc")
+        self.assertIsInstance(obj1, TestLoss)
+        self.assertIsInstance(obj2, TestLoss)

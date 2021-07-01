@@ -67,13 +67,20 @@ class Loss(ABC):
 class BinaryCrossEntropy(Loss):
     name = ["binary_crossentropy", "bce"]
 
+    epsilon = 1e-15
+
     def loss_func(self, labels, preds):
+        preds = np.clip(preds, 0, 1.0 - self.epsilon)
+
         positive_labels = labels * np.log(preds)
         negative_labels = (1 - labels) * np.log(1 - preds)
+
         loss = np.sum(-(positive_labels + negative_labels)) / labels.shape[-1]
         return np.squeeze(loss)
 
     def loss_derivative(self, labels, preds):
+        preds = np.clip(preds, 0, 1.0 - self.epsilon)
+
         lhs = (1 - labels) / (1 - preds)
         rhs = labels / preds
         return lhs - rhs

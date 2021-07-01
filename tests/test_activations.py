@@ -2,7 +2,7 @@ from abc import abstractmethod
 import unittest
 
 import numpy as np
-from dnn.activations import Activation, ELU, LeakyReLU, ReLU, Sigmoid, Tanh
+from dnn.activations import Activation, ELU, LeakyReLU, ReLU, Sigmoid, Softmax, Tanh
 
 
 class BaseActivationTestCase:
@@ -22,6 +22,7 @@ class BaseActivationTestCase:
 
     def setUp(self):
         self.act_obj = self.act_cls()
+        self.m = 1
 
     def test_no_input(self):
         """
@@ -37,7 +38,7 @@ class BaseActivationTestCase:
         """
         Test with explicit input passed to calculate_activations() and calculate_derivatives()
         """
-        ip = np.random.randn(5, 1)
+        ip = np.random.randn(5, self.m)
 
         activations = self.activations(ip)
         derivatives = self.derivatives(ip)
@@ -50,7 +51,7 @@ class BaseActivationTestCase:
         """
         Test input supplied during initialization
         """
-        ip = np.random.randn(5, 1)
+        ip = np.random.randn(5, self.m)
 
         activations = self.activations(ip)
         derivatives = self.derivatives(ip)
@@ -69,12 +70,12 @@ class BaseActivationTestCase:
         """
         Test explicit input overriding the input supplied during init
         """
-        custom_ip = np.random.randn(5, 1)
+        custom_ip = np.random.randn(5, self.m)
 
         activations = self.activations(custom_ip)
         derivatives = self.derivatives(custom_ip)
 
-        init_ip = np.random.randn(5, 1)
+        init_ip = np.random.randn(5, self.m)
         self.act_obj.ip = init_ip
 
         np.testing.assert_allclose(
@@ -152,6 +153,34 @@ class ELUTestCase(LeakyReLUTestCase):
 
     def derivatives(self, ip):
         return np.where(ip > 0, 1.0, self.act_cls.default_alpha * np.exp(ip))
+
+
+class SoftmaxTestCase(BaseActivationTestCase, unittest.TestCase):
+    act_cls = Softmax
+
+    def activations(self, ip):
+        z = ip - np.max(ip, axis=0, keepdims=True)
+        return np.exp(z) / np.sum(np.exp(z), axis=0, keepdims=True)
+
+    def derivatives(self, ip):
+        activations = self.activations(ip)
+
+        labels = activations.shape[0]
+        m = activations.shape[-1]
+
+        diagonal = np.zeros(shape=(m, labels, labels), dtype=activations.dtype)
+        diagonal[:, range(labels), range(labels)] = activations.T
+
+        columns = np.zeros(shape=(m, labels, 1), dtype=activations.dtype)
+        columns[:, range(labels), 0] = activations.T
+
+        grad = diagonal - np.matmul(columns, columns.transpose(0, 2, 1))
+
+        return grad.transpose(1, 2, 0)
+
+    def setUp(self):
+        super().setUp()
+        self.m = 10
 
 
 class ActivationRegistryTestCase(unittest.TestCase):

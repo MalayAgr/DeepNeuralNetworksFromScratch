@@ -6,10 +6,6 @@ import numpy as np
 class Loss(ABC):
     name = None
 
-    def __init__(self, Y, *args, **kwargs):
-        self.labels = Y
-        self.train_size = Y.shape[-1]
-
     @staticmethod
     def _add_sub_cls(sub_cls):
         name = sub_cls.name
@@ -27,14 +23,14 @@ class Loss(ABC):
                 result.update(cls._add_sub_cls(sub_cls))
         return result
 
-    def validate_input(self, preds):
-        if self.labels.shape != preds.shape:
+    def validate_input(self, labels, preds):
+        if labels.shape != preds.shape:
             raise AttributeError(
                 "The labels and the predictions should have the same shape"
             )
 
     @abstractmethod
-    def loss_func(self, preds):
+    def loss_func(self, labels, preds):
         """
         The formula used to calculate the loss.
         Subclasses classes must implement this.
@@ -50,7 +46,7 @@ class Loss(ABC):
         """
 
     @abstractmethod
-    def loss_derivative(self, preds):
+    def loss_derivative(self, labels, preds):
         """
         The formula used to calculate the derivative of the loss function
         With respect to preds.
@@ -66,48 +62,48 @@ class Loss(ABC):
             A Numpy-array with the calculated derivatives.
         """
 
-    def compute_loss(self, preds):
-        self.validate_input(preds)
-        return self.loss_func(preds)
+    def compute_loss(self, labels, preds):
+        self.validate_input(labels, preds)
+        return self.loss_func(labels, preds)
 
-    def compute_derivatives(self, preds):
-        self.validate_input(preds)
-        return self.loss_derivative(preds)
+    def compute_derivatives(self, labels, preds):
+        self.validate_input(labels, preds)
+        return self.loss_derivative(labels, preds)
 
 
 class BinaryCrossEntropy(Loss):
     name = ["binary_crossentropy", "bce"]
 
-    def loss_func(self, preds):
-        positive_labels = self.labels * np.log(preds)
-        negative_labels = (1 - self.labels) * np.log(1 - preds)
-        loss = np.sum(-(positive_labels + negative_labels)) / self.train_size
+    def loss_func(self, labels, preds):
+        positive_labels = labels * np.log(preds)
+        negative_labels = (1 - labels) * np.log(1 - preds)
+        loss = np.sum(-(positive_labels + negative_labels)) / labels.shape[-1]
         return np.squeeze(loss)
 
-    def loss_derivative(self, preds):
-        lhs = (1 - self.labels) / (1 - preds)
-        rhs = self.labels / preds
+    def loss_derivative(self, labels, preds):
+        lhs = (1 - labels) / (1 - preds)
+        rhs = labels / preds
         return lhs - rhs
 
 
 class MeanSquaredError(Loss):
     name = ["mean_squared_error", "mse"]
 
-    def loss_func(self, preds):
-        loss = np.sum((preds - self.labels) ** 2) / (2 * self.train_size)
+    def loss_func(self, labels, preds):
+        loss = np.sum((preds - labels) ** 2) / (2 * labels.shape[-1])
         return np.squeeze(loss)
 
-    def loss_derivative(self, preds):
-        return preds - self.labels
+    def loss_derivative(self, labels, preds):
+        return preds - labels
 
 
 class CategoricalCrossEntropy(Loss):
     name = ["categorial_crossentropy", "cce"]
 
-    def loss_func(self, preds):
-        loss = -np.sum(self.labels * np.log(preds), axis=0, keepdims=True)
+    def loss_func(self, labels, preds):
+        loss = -np.sum(labels * np.log(preds), axis=0, keepdims=True)
         loss = np.sum(loss)
         return np.squeeze(loss)
 
-    def loss_derivative(self, preds):
-        return -self.labels / preds
+    def loss_derivative(self, labels, preds):
+        return -labels / preds

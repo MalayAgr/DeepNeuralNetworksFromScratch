@@ -14,12 +14,12 @@ def activation_factory(activation, *args, ip=None, **kwargs):
     return cls(ip=ip, *args, **kwargs)
 
 
-def loss_factory(loss, Y, *args, **kwargs):
+def loss_factory(loss):
     registry = Loss.get_loss_classes()
     cls = registry.get(loss)
     if cls is None:
         raise ValueError("Loss with this name does not exist")
-    return cls(Y=Y, *args, **kwargs)
+    return cls()
 
 
 def generate_batches(X, Y, batch_size, shuffle=True):
@@ -50,8 +50,8 @@ def generate_batches(X, Y, batch_size, shuffle=True):
         yield X[:, start:], Y[:, start:], num_samples - start
 
 
-def backprop(model, loss, preds):
-    dA = loss.compute_derivatives(preds)
+def backprop(model, loss, labels, preds):
+    dA = loss.compute_derivatives(labels, preds)
 
     for layer in reversed(model.layers):
         if not hasattr(layer, "param_map"):

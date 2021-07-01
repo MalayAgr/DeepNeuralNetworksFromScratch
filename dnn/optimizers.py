@@ -35,10 +35,9 @@ class BaseMiniBatchGD(Optimizer):
     def mini_batch_step(self, model, batch_X, batch_Y, loss, *args, **kwargs):
         preds = model.predict(batch_X)
 
-        loss_func = loss_factory(loss, batch_Y)
-        cost = loss_func.compute_loss(preds)
+        cost = loss.compute_loss(batch_Y, preds)
 
-        backprop(model, loss=loss_func, preds=preds)
+        backprop(model, loss=loss, labels=batch_Y, preds=preds)
         self.update_params(model, *args, **kwargs)
 
         return cost
@@ -48,6 +47,9 @@ class BaseMiniBatchGD(Optimizer):
     ):
         history = []
         step_count = 0
+
+        loss_func = loss_factory(loss)
+
         for epoch in range(epochs):
             batches = generate_batches(X, Y, batch_size=batch_size, shuffle=shuffle)
             for batch_X, batch_Y, size in batches:
@@ -56,7 +58,7 @@ class BaseMiniBatchGD(Optimizer):
                     model,
                     batch_X=batch_X,
                     batch_Y=batch_Y,
-                    loss=loss,
+                    loss=loss_func,
                     step_count=step_count,
                     batch_size=size,
                     *args,

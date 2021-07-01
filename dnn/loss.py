@@ -104,7 +104,7 @@ class CategoricalCrossEntropy(Loss):
 
     def loss_func(self, labels, preds):
         loss = -np.sum(labels * np.log(preds), axis=0, keepdims=True)
-        loss = np.sum(loss)
+        loss = np.sum(loss) / labels.shape[-1]
         return np.squeeze(loss)
 
     def loss_derivative(self, labels, preds):

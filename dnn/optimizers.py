@@ -56,14 +56,16 @@ class BaseMiniBatchGD(Optimizer):
     def optimize(
         self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
     ):
-        history = []
-        step_count = 0
+        history, step_count = [], 0
 
         loss_func = loss_factory(loss)
 
         for epoch in range(epochs):
             batches = generate_batches(X, Y, batch_size=batch_size, shuffle=shuffle)
-            for batch_X, batch_Y, size in batches:
+
+            print(f"Epoch {epoch + 1}/{epochs}:")
+
+            for step, (batch_X, batch_Y, size) in enumerate(batches):
                 step_count += 1
 
                 cost = self.mini_batch_step(
@@ -77,7 +79,10 @@ class BaseMiniBatchGD(Optimizer):
                     **kwargs,
                 )
 
-            print(f"Loss at the end of epoch {epoch + 1}: {cost: .9f}")
+                log_msg = f"  Step {step + 1}: Train loss = {cost: .5f}"
+                print(log_msg, end="\r", flush=True)
+
+            print("\n")
             history.append(cost)
 
         return history

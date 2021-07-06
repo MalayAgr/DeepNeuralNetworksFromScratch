@@ -6,7 +6,7 @@ import numpy as np
 from dnn.base_layer import BaseLayer
 
 
-class Activation(ABC, BaseLayer):
+class Activation(BaseLayer):
     name = None
 
     def __init__(self, *args, ip=None, **kwargs):
@@ -78,6 +78,9 @@ class Activation(ABC, BaseLayer):
     @cached_property
     def fans(self):
         return self.ip_layer.fans
+
+    def build(self):
+        return
 
     def count_params(self):
         return 0

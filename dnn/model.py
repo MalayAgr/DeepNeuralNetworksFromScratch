@@ -1,54 +1,28 @@
-from dnn.input_layer import Input
-from dnn.layer import Layer
 from dnn.optimizers import Optimizer
 
 
 class Model:
-    def __init__(
-        self, ip_shape, layer_sizes, activations, initializers=None, build=True
-    ):
-        num_layers = len(layer_sizes)
+    def __init__(self, ip_layer, op_layer):
+        self.ip_layer = ip_layer
+        self.op_layer = op_layer
 
-        if len(activations) != num_layers:
-            raise AttributeError(
-                "activations and layer_sizes should have the same length"
-            )
+        self.layers = self._deconstruct(ip_layer, op_layer)
 
-        if initializers is not None and len(initializers) != num_layers:
-            raise AttributeError(
-                "initializers and layer_sizes should have the same length"
-            )
+        self.trainable_layers = [layer for layer in self.layers if layer.trainable]
 
-        self.ip_layer = Input(ip_shape)
-        self.layer_sizes = layer_sizes
-        self.num_layers = num_layers
-        self.activations = activations
-        self.initializers = (
-            [None] * num_layers if initializers is None else initializers
-        )
+        self.opt = None
 
-        if build is True:
-            self.layers = self._build_model()
-            self.trainable_params = sum(layer.trainable_params for layer in self.layers)
+    @staticmethod
+    def _deconstruct(ip_layer, op_layer):
+        layers = []
 
-    @classmethod
-    def from_tuple(cls, layers):
-        ip_layer = layers[0].ip_layer
+        layer = op_layer
 
-        ip_shape = ip_layer.ip_shape
+        while layer is not ip_layer:
+            layers.append(layer)
+            layer = layer.ip_layer
 
-        layer_sizes, activations, inits = [], [], []
-        for layer in layers:
-            layer_sizes.append(layer.units)
-            activations.append(layer.activation.name)
-            inits.append(layer.initializer)
-
-        obj = cls(ip_shape, layer_sizes, activations, inits, build=False)
-        obj.ip_layer = ip_layer
-        obj.layers = layers
-        obj.trainable_params = sum(layer.trainable_params for layer in layers)
-
-        return obj
+        return layers[::-1]
 
     def __str__(self):
         layers = ", ".join([str(l) for l in self.layers])
@@ -56,23 +30,6 @@ class Model:
 
     def __repr__(self):
         return self.__str__()
-
-    def _build_model(self):
-        ip = self.ip_layer
-        inits = self.initializers
-
-        layers = ()
-        for size, activation, init in zip(self.layer_sizes, self.activations, inits):
-            if init is not None:
-                layer = Layer(
-                    ip=ip, units=size, activation=activation, initializer=init
-                )
-            else:
-                layer = Layer(ip=ip, units=size, activation=activation)
-            layers += (layer,)
-            ip = layer
-
-        return layers
 
     def predict(self, X):
         self.ip_layer.ip = X
@@ -82,12 +39,21 @@ class Model:
 
         return self.layers[-1].activations
 
+    def compile(self, opt):
+        if not isinstance(opt, Optimizer):
+            raise ValueError("opt should be an instance of a subclass of Optimizer.")
+
+        for layer in self.layers:
+            layer.build()
+
+        self.opt = opt
+
     def set_operation_mode(self, training):
         for layer in self.layers:
             layer.is_training = training
 
     def train(
-        self, X, Y, batch_size, epochs, opt, *args, loss="bce", shuffle=True, **kwargs
+        self, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
     ):
         if X.shape[-1] != Y.shape[-1]:
             raise ValueError("X and Y should have the same number of samples.")
@@ -96,12 +62,9 @@ class Model:
             msg = "Y should have the same number of rows as number of units in the final layer."
             raise ValueError(msg)
 
-        if not isinstance(opt, Optimizer):
-            raise ValueError("opt should be an instance of a subclass of Optimizer.")
-
         self.set_operation_mode(training=True)
 
-        history = opt.optimize(
+        history = self.opt.optimize(
             self, X, Y, batch_size, epochs, *args, loss=loss, shuffle=shuffle, **kwargs
         )
 

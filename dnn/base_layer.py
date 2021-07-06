@@ -1,8 +1,9 @@
+from abc import ABC, abstractmethod
 from functools import cached_property
 from dnn.input_layer import Input
 
 
-class BaseLayer:
+class BaseLayer(ABC):
     def __init__(self, ip, *args, trainable=True, params=None, **kwargs):
         if ip is not None:
             if not isinstance(ip, (Input, BaseLayer)):
@@ -42,8 +43,11 @@ class BaseLayer:
         self._dX = value
 
     @cached_property
+    @abstractmethod
     def fans(self):
-        ...
+        """
+        Method to obtain the number of input and output units
+        """
 
     def _initializer_variance(self, initializer):
         fan_in, fan_out = self.fans
@@ -54,14 +58,17 @@ class BaseLayer:
             "xavier_uniform": 6 / (fan_in + fan_out),
         }[initializer]
 
-    def init_params(self):
-        ...
-
+    @abstractmethod
     def count_params(self):
-        ...
+        """
+        Method to count the number of trainable parameters in the layer
+        """
 
+    @abstractmethod
     def build(self):
-        ...
+        """
+        Method to build the layer, usually by initializing the parameters
+        """
 
     def input(self):
         if self.ip_layer is None:
@@ -83,14 +90,26 @@ class BaseLayer:
             return self.ip_layer.ip_shape
         return self.ip_layer.output_shape()
 
+    @abstractmethod
     def output(self):
-        ...
+        """
+        Method to obtain the output of the layer
+        """
 
+    @abstractmethod
     def output_shape(self):
-        ...
+        """
+        Method to determine the shape of the output of the layer
+        """
 
+    @abstractmethod
     def forward_step(self, *args, **kwargs):
-        ...
+        """
+        One step of forward propagation
+        """
 
+    @abstractmethod
     def backprop_step(self, dA, *args, **kwargs):
-        ...
+        """
+        One step of backpropagation
+        """

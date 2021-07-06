@@ -100,7 +100,7 @@ class Dense(BaseLayer):
             return
 
         if isinstance(activation, Activation):
-            return activation()
+            return activation
 
         return activation_factory(activation)
 

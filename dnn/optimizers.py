@@ -117,8 +117,6 @@ class SGD(BaseMiniBatchGD):
         return layer.velocities
 
     def compute_update(self, layer, *args, **kwargs):
-        print(layer)
-        print(layer.gradients)
         return layer.gradients
 
     def optimize(

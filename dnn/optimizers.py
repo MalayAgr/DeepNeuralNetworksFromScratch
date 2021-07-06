@@ -32,7 +32,7 @@ class BaseMiniBatchGD(Optimizer):
         }
 
     def update_params(self, model, *args, **kwargs):
-        for layer in model.layers:
+        for layer in model.trainable_layers:
             updates = self.compute_update(layer, *args, **kwargs)
             for key, attr in layer.param_map.items():
                 current_val = rgetattr(layer, attr)
@@ -82,7 +82,7 @@ class BaseMiniBatchGD(Optimizer):
                 log_msg = f"  Step {step + 1}: Train loss = {cost: .5f}"
                 print(log_msg, end="\r", flush=True)
 
-            print("\n")
+            print()
             history.append(cost)
 
         return history
@@ -103,7 +103,7 @@ class SGD(BaseMiniBatchGD):
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
     def init_velocities(self, model):
-        for layer in model.layers:
+        for layer in model.trainable_layers:
             layer.velocities = self.init_zeros_from_param_map(layer)
 
     def update_layer_velocities(self, layer):
@@ -117,6 +117,8 @@ class SGD(BaseMiniBatchGD):
         return layer.velocities
 
     def compute_update(self, layer, *args, **kwargs):
+        print(layer)
+        print(layer.gradients)
         return layer.gradients
 
     def optimize(
@@ -143,7 +145,7 @@ class RMSProp(BaseMiniBatchGD):
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
     def init_rms(self, model):
-        for layer in model.layers:
+        for layer in model.trainable_layers:
             layer.rms = self.init_zeros_from_param_map(layer)
 
     def update_layer_rms(self, layer):
@@ -188,7 +190,7 @@ class Adam(BaseMiniBatchGD):
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
     def init_moments(self, model):
-        for layer in model.layers:
+        for layer in model.trainable_layers:
             layer.m1 = self.init_zeros_from_param_map(layer)
             layer.m2 = self.init_zeros_from_param_map(layer)
 

@@ -54,11 +54,7 @@ def backprop(model, loss, labels, preds, reg_param=0.0):
     dA = loss.compute_derivatives(labels, preds)
 
     for layer in reversed(model.layers):
-        if not hasattr(layer, "param_map"):
-            raise AttributeError("No param_map found.")
-
-        layer.backprop_step(dA, reg_param=reg_param)
-        dA = layer
+        dA = layer.backprop_step(dA, reg_param=reg_param)
 
 
 def compute_l2_cost(model, reg_param, cost):

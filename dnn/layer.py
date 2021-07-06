@@ -95,7 +95,8 @@ class Dense(BaseLayer):
 
         super().__init__(ip=ip, params=params, linear=None, activations=None)
 
-    def _add_activation(self, activation):
+    @staticmethod
+    def _add_activation(activation):
         if activation is None:
             return
 

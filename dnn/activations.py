@@ -2,14 +2,14 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+from dnn.base_layer import BaseLayer
 
-class Activation(ABC):
+
+class Activation(ABC, BaseLayer):
     name = None
 
     def __init__(self, *args, ip=None, **kwargs):
-        self.ip = ip
-        self.activations = None
-        self.derivatives = None
+        super().__init__(ip=ip, trainable=False, activations=None, derivatives=None)
 
     @classmethod
     def get_activation_classes(cls):
@@ -62,33 +62,42 @@ class Activation(ABC):
             A Numpy-array with the calculated derivatives, g'(z).
         """
 
-    def _get_ip(self, ip, message):
-        if ip is None and self.ip is None:
-            raise AttributeError(message)
-
-        if ip is None:
-            return self.ip
-        return ip
-
     def calculate_activations(self, ip=None):
-        z = self._get_ip(
-            ip,
-            f"{self.__class__.__name__} requires an input to compute activations",
-        )
-        activations = self.activation_func(z)
         if ip is None:
-            self.activations = activations
-        return activations
+            ip = self.input()
+
+        return self.activation_func(ip)
 
     def calculate_derivatives(self, ip=None):
-        z = self._get_ip(
-            ip,
-            f"{self.__class__.__name__} requires an input to compute derivatives",
-        )
-        derivatives = self.derivative_func(z)
         if ip is None:
-            self.derivatives = derivatives
-        return derivatives
+            ip = self.input()
+
+        return self.derivative_func(ip)
+
+    def count_params(self):
+        return 0
+
+    def output(self):
+        return self.activations
+
+    def output_shape(self):
+        return self.input_shape()
+
+    def forward_step(self, *args, **kwargs):
+        ip = kwargs.pop("ip", None)
+
+        self.activations = self.calculate_activations(ip)
+
+        return self.activations
+
+    def backprop_step(self, dA, *args, **kwargs):
+        ip = kwargs.pop("ip", None)
+
+        dZdA = self.calculate_derivatives(ip)
+
+        self.dX = dA * dZdA
+
+        return self.dX
 
 
 class Sigmoid(Activation):
@@ -116,6 +125,13 @@ class Softmax(Activation):
         units = activations.shape[0]
         grads = (np.eye(units) - activations.T[..., None]) * activations[:, None, :].T
         return np.moveaxis(grads, 0, -1)
+
+    def backprop_step(self, dA, *args, **kwargs):
+        super().backprop_step(dA, *args, **kwargs)
+
+        self.dX = np.sum(self.dX, axis=1)
+
+        return self.dX
 
 
 class Tanh(Activation):

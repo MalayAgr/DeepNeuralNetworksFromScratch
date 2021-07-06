@@ -140,7 +140,7 @@ class Dense(BaseLayer):
 
         return self.units, None
 
-    def forward_step(self):
+    def forward_step(self, *args, **kwargs):
         linear = np.matmul(self.weights, self.input())
 
         if self.use_bias:

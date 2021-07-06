@@ -43,7 +43,7 @@ class BaseLayer:
 
     @cached_property
     def fans(self):
-        pass
+        ...
 
     def _initializer_variance(self, initializer):
         fan_in, fan_out = self.fans
@@ -55,13 +55,13 @@ class BaseLayer:
         }[initializer]
 
     def init_params(self):
-        pass
+        ...
 
     def count_params(self):
-        pass
+        ...
 
     def build(self):
-        pass
+        ...
 
     def input(self):
         if self.ip_layer is None:
@@ -84,13 +84,13 @@ class BaseLayer:
         return self.ip_layer.output_shape()
 
     def output(self):
-        pass
+        ...
 
     def output_shape(self):
-        pass
+        ...
 
     def forward_step(self, *args, **kwargs):
-        pass
+        ...
 
     def backprop_step(self, dA, *args, **kwargs):
-        pass
+        ...

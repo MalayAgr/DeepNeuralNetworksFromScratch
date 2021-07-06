@@ -37,7 +37,7 @@ class Model:
         for layer in self.layers:
             layer.forward_step()
 
-        return self.layers[-1].activations
+        return self.op_layer.output()
 
     def compile(self, opt):
         if not isinstance(opt, Optimizer):

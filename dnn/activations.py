@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from functools import cached_property
 
 import numpy as np
 
@@ -73,6 +74,10 @@ class Activation(ABC, BaseLayer):
             ip = self.input()
 
         return self.derivative_func(ip)
+
+    @cached_property
+    def fans(self):
+        return self.ip_layer.fans
 
     def count_params(self):
         return 0

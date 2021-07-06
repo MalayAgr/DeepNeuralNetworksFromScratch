@@ -1,5 +1,9 @@
+from functools import cached_property
+
 import numpy as np
 
+from dnn.activations import Activation
+from dnn.base_layer import BaseLayer
 from dnn.input_layer import Input
 from dnn.utils import activation_factory
 
@@ -76,161 +80,106 @@ class BatchNorm:
         return (bs * dZ_hat - dZ_hat_sum - dZ_hat_prod) / (bs * self.std)
 
 
-class Layer:
-    def __init__(
-        self, ip, units, activation, initializer="he", batch_norm=False, dropout=1.0
-    ):
-        if not isinstance(ip, (Input, self.__class__)):
-            msg = f"A {self.__class__.__name__} can have only instances of Input or itself as ip"
-            raise AttributeError(msg)
-
-        self.ip_layer = ip
-
+class Dense(BaseLayer):
+    def __init__(self, ip, units, activation=None, initializer="he", use_bias=True):
         self.units = units
-        self.activation = self.init_activation(activation)
-
+        self.activation = self._add_activation(activation)
         self.initializer = initializer
-        self.weights, self.biases = self.init_params()
 
-        self.param_map = {"weights": "weights", "biases": "biases"}
+        params = ["weights"]
 
-        self.batch_norm = batch_norm
+        self.use_bias = use_bias
 
-        if batch_norm is True:
-            self.batch_norm = BatchNorm(self)
+        if use_bias is True:
+            params.append("biases")
 
-            self.param_map.update(
-                {"gamma": "batch_norm.gamma", "beta": "batch_norm.beta"}
-            )
+        super().__init__(ip=ip, params=params, linear=None, activations=None)
 
-        if dropout < 0:
-            raise AttributeError("dropout cannot be negative.")
+    def _add_activation(self, activation):
+        if activation is None:
+            return
 
-        self.dropout = dropout
+        if isinstance(activation, Activation):
+            return activation()
 
-        self.trainable_params = self.param_count()
-
-        self.is_training = False
-
-        self.linear = None
-        self.dropout_mask = None
-        self.activations = None
-
-        self.dZ = None
-        self.gradients = {}
-
-    def __str__(self):
-        activation_cls = self.activation.__class__.__name__
-        return f"{self.__class__.__name__}(units={self.units}, activation={activation_cls})"
-
-    def __repr__(self):
-        return self.__str__()
-
-    @staticmethod
-    def init_activation(activation):
         return activation_factory(activation)
 
-    def get_y_dim(self):
-        if isinstance(self.ip_layer, self.__class__):
-            return self.ip_layer.units
-        return self.ip_layer.ip_shape[0]
-
-    def get_initializer(self, denom):
-        return {
-            "he": 2 / denom,
-            "xavier": 1 / denom,
-            "xavier_uniform": 6 / (denom + self.units),
-        }[self.initializer]
+    @cached_property
+    def fans(self):
+        fan_in = self.input_shape()[0]
+        return fan_in, self.units
 
     def init_params(self):
-        x_dim, y_dim = self.units, self.get_y_dim()
-        variance = self.get_initializer(y_dim)
-        weights = np.random.randn(x_dim, y_dim) * np.sqrt(variance)
-        biases = np.zeros((x_dim, 1))
-        return weights, biases
+        y_dim, _ = self.fans
 
-    def param_count(self):
-        count = self.weights.shape[0] * self.weights.shape[1]
-        count += self.units
+        variance = self._initializer_variance(self.initializer)
 
-        if self.batch_norm is not False:
-            count += 2 * self.units
+        self.weights = np.random.randn(self.units, y_dim) * np.sqrt(variance)
 
-        return count
+        if self.use_bias:
+            self.biases = np.zeros(shape=(self.units, 1))
 
-    def get_ip(self):
-        no_activs = (
-            hasattr(self.ip_layer, "activations") and self.ip_layer.activations is None
-        )
-        no_ip = hasattr(self.ip_layer, "ip") and self.ip_layer.ip is None
+    def count_params(self):
+        total = self.weights.shape[0] * self.weights.shape[-1]
 
-        if no_activs or no_ip:
-            raise ValueError("No input found.")
+        if self.use_bias:
+            return total + self.units
 
-        if isinstance(self.ip_layer, self.__class__):
-            return self.ip_layer.activations
-        return self.ip_layer.ip
+        return total
+
+    def build(self):
+        self.init_params()
+
+    def output(self):
+        return self.activations
+
+    def output_shape(self):
+        if self.activations is not None:
+            return self.activations.shape
+
+        return self.units, None
 
     def forward_step(self):
-        linear = np.matmul(self.weights, self.get_ip()) + self.biases
+        linear = np.matmul(self.weights, self.input())
 
-        activation_ip = linear
-        if self.batch_norm is not False:
-            activation_ip = self.batch_norm.forward_step(linear)
+        if self.use_bias:
+            linear += self.biases
 
-        activations = self.activation.calculate_activations(activation_ip)
-
-        if self.dropout < 1.0 and self.is_training:
-            mask = np.random.rand(*activations.shape) < self.dropout
-            activations *= mask
-            activations /= self.dropout
-
-            self.dropout_mask = mask
+        activations = (
+            self.activation.forward_step(ip=linear)
+            if self.activation is not None
+            else linear
+        )
 
         self.linear, self.activations = linear, activations
 
-        return activations
+        return self.activations
 
-    def compute_dA(self, dA_params):
-        if isinstance(dA_params, self.__class__):
-            return np.matmul(dA_params.weights.T, dA_params.dZ)
-        return dA_params
-
-    @staticmethod
-    def compute_dZ(dA, activation_grads):
-        if len(activation_grads.shape) > 2:
-            return np.sum(dA * activation_grads, axis=1)
-        return dA * activation_grads
-
-    def backprop_step(self, dA_params, reg_param=0.0):
-        dA = self.compute_dA(dA_params)
-
-        if self.dropout < 1.0:
-            dA = dA * self.dropout_mask
-            dA /= self.dropout
-
-        ip = self.get_ip()
-
-        if self.batch_norm is not False:
-            dZ = self.batch_norm.backprop_step(dA, ip.shape[-1])
-        else:
-            activation_grads = self.activation.calculate_derivatives(self.linear)
-            dZ = self.compute_dZ(dA, activation_grads)
-
+    def backprop_step(self, dA, *args, **kwargs):
+        ip = self.input()
         m = ip.shape[-1]
 
-        dW = (
+        dZ = (
+            self.activation.backprop_step(dA, ip=self.linear)
+            if self.activation is not None
+            else dA
+        )
+
+        reg_param = kwargs.pop("reg_param", 0.0)
+
+        gradients = {}
+
+        gradients["weights"] = (
             (np.matmul(dZ, ip.T) + reg_param * self.weights) / m
             if reg_param > 0
             else np.matmul(dZ, ip.T) / m
         )
 
-        gradients = {
-            "weights": dW,
-            "biases": np.sum(dZ, keepdims=True, axis=1) / m,
-        }
+        if self.use_bias:
+            gradients["biases"] = np.sum(dZ, keepdims=True, axis=1) / m
 
         self.gradients.update(gradients)
-        self.dZ = dZ
 
-        return gradients
+        self.dX = np.matmul(self.weights.T, dZ)
+
+        return self.dX

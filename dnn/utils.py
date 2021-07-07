@@ -22,6 +22,16 @@ def loss_factory(loss):
     return cls()
 
 
+def add_activation(activation):
+    if activation is None:
+        return
+
+    if isinstance(activation, Activation):
+        return activation
+
+    return activation_factory(activation)
+
+
 def generate_batches(X, Y, batch_size, shuffle=True):
     num_samples = X.shape[-1]
 

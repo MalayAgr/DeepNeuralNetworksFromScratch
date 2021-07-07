@@ -56,6 +56,6 @@ class Input:
             AttributeError when ip_shape and shape of X do not match.
         """
         # Make sure the supplied input matches the expected shape
-        if X.shape[0] != self.ip_shape[0]:
+        if X.shape[:-1] != self.ip_shape[:-1]:
             raise AttributeError("The input does not have the expected shape")
         self._ip = X

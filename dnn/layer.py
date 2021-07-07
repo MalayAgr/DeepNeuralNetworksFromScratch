@@ -2,10 +2,8 @@ from functools import cached_property
 
 import numpy as np
 
-from dnn.activations import Activation
 from dnn.base_layer import BaseLayer
-from dnn.input_layer import Input
-from dnn.utils import activation_factory
+from dnn.utils import add_activation
 
 
 class BatchNorm:
@@ -83,7 +81,7 @@ class BatchNorm:
 class Dense(BaseLayer):
     def __init__(self, ip, units, activation=None, initializer="he", use_bias=True):
         self.units = units
-        self.activation = self._add_activation(activation)
+        self.activation = add_activation(activation)
         self.initializer = initializer
 
         params = ["weights"]
@@ -94,16 +92,6 @@ class Dense(BaseLayer):
             params.append("biases")
 
         super().__init__(ip=ip, params=params, linear=None, activations=None)
-
-    @staticmethod
-    def _add_activation(activation):
-        if activation is None:
-            return
-
-        if isinstance(activation, Activation):
-            return activation
-
-        return activation_factory(activation)
 
     @cached_property
     def fans(self):
@@ -184,3 +172,155 @@ class Dense(BaseLayer):
         self.dX = np.matmul(self.weights.T, dZ)
 
         return self.dX
+
+
+class Conv2D(BaseLayer):
+    def __init__(
+        self,
+        ip,
+        filters,
+        kernel_size,
+        stride=(1, 1),
+        activation=None,
+        padding="valid",
+        initializer="he",
+        use_bias=True,
+    ):
+        self.filters = filters
+
+        self.kernel_size = kernel_size
+        self.kernel_H, self.kernel_W = kernel_size
+
+        self.stride = stride
+        self.stride_H, self.stride_W = stride
+
+        self.padding = padding
+        self.p_H, self.p_W = self._get_padding(*kernel_size)
+
+        self.initializer = initializer
+
+        self.activation = add_activation(activation)
+
+        params = ["kernels"]
+
+        self.use_bias = use_bias
+        if use_bias:
+            params.append("biases")
+
+        super().__init__(ip=ip, params=params, convolutions=None, activations=None)
+
+        self.ip_C, self.ip_H, self.ip_W = self.input_shape()[:-1]
+
+        self.out_H = self._get_output_dim(
+            self.ip_H, self.kernel_H, self.p_H, self.stride_H
+        )
+        self.out_W = self._get_output_dim(
+            self.ip_W, self.kernel_W, self.p_W, self.stride_W
+        )
+
+    def _get_padding(self, kH, kW):
+        if self.padding == "same":
+            p_H = int(np.ceil((kH - 1) / 2))
+            p_W = int(np.ceil((kW - 1) / 2))
+
+            return p_H, p_W
+
+        return 0, 0
+
+    def _get_output_dim(self, n, f, p, s):
+        return int((n - f + 2 * p) / s + 1)
+
+    @cached_property
+    def fans(self):
+        receptive_field_size = np.prod(self.kernel_size)
+        fan_in = self.ip_C * receptive_field_size
+        return fan_in, receptive_field_size * self.filters
+
+    def init_params(self):
+        variance = self._initializer_variance(self.initializer)
+
+        shape = (self.ip_C, *self.kernel_size, self.filters)
+
+        self.kernels = np.random.randn(*shape) * np.sqrt(variance)
+
+        if self.use_bias:
+            self.biases = np.zeros(shape=(self.filters, 1, 1, 1))
+
+    def count_params(self):
+        total = np.prod(self.kernels.shape)
+
+        if self.use_bias:
+            return total + self.filters
+
+        return total
+
+    def build(self):
+        self.init_params()
+
+    def output(self):
+        return self.activations
+
+    def output_shape(self):
+        if self.activations is not None:
+            return self.activations.shape
+
+        return self.filters, self.out_H, self.out_W, None
+
+    def _pad(self, X):
+        return np.pad(X, ((0, 0), (self.p_H, self.p_H), (self.p_W, self.p_W), (0, 0)))
+
+    def _vectorize_ip(self, X):
+        indices = np.array(
+            [
+                (i * self.stride_H, j * self.stride_W)
+                for i in range(self.out_H)
+                for j in range(self.out_W)
+            ]
+        )
+
+        shape = (-1, X.shape[-1])
+
+        vec = np.array(
+            [
+                X[:, i : i + self.kernel_H, j : j + self.kernel_W].reshape(shape)
+                for i, j in indices
+            ]
+        )
+
+        return vec.transpose(2, 0, 1)
+
+    def _vectorize_kernels(self):
+        return self.kernels.reshape(-1, self.filters)
+
+    def _convolve(self, X):
+        X = self._pad(X)
+        X = self._vectorize_ip(X)
+
+        weights = self._vectorize_kernels()
+
+        convolution = np.matmul(X, weights[None, ...])
+
+        shape = (self.filters, self.out_H, self.out_W, -1)
+
+        return convolution.transpose(2, 1, 0).reshape(shape)
+
+    def forward_step(self, *args, **kwargs):
+        convolutions = self._convolve(self.input())
+
+        if self.use_bias:
+            convolutions += self.biases
+
+        activations = (
+            self.activation.forward_step(ip=convolutions)
+            if self.activation is not None
+            else convolutions
+        )
+
+        print(activations.shape)
+
+        self.convolutions, self.activations = convolutions, activations
+
+        return self.activations
+
+    def backprop_step(self, dA, *args, **kwargs):
+        pass

@@ -7,7 +7,10 @@ class BaseLayer(ABC):
     def __init__(self, ip, *args, trainable=True, params=None, **kwargs):
         if ip is not None:
             if not isinstance(ip, (Input, BaseLayer)):
-                msg = f"A {self.__class__.__name__} can have only instances of Input or other layers as ip"
+                msg = (
+                    f"A {self.__class__.__name__} can have only instances "
+                    "of Input or a subclass of BaseLayer as ip"
+                )
                 raise AttributeError(msg)
 
         self.ip_layer = ip

@@ -4,11 +4,11 @@ import numpy as np
 
 from .utils import (
     backprop,
+    compute_l2_cost,
     generate_batches,
     loss_factory,
     rgetattr,
     rsetattr,
-    compute_l2_cost,
 )
 
 

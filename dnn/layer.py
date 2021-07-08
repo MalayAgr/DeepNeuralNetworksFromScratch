@@ -91,7 +91,10 @@ class Dense(BaseLayer):
         if use_bias is True:
             params.append("biases")
 
-        super().__init__(ip=ip, params=params, linear=None, activations=None)
+        self.linear = None
+        self.activations = None
+
+        super().__init__(ip=ip, params=params)
 
     @cached_property
     def fans(self):
@@ -156,18 +159,14 @@ class Dense(BaseLayer):
 
         reg_param = kwargs.pop("reg_param", 0.0)
 
-        gradients = {}
-
-        gradients["weights"] = (
+        self.gradients["weights"] = (
             (np.matmul(dZ, ip.T) + reg_param * self.weights) / m
             if reg_param > 0
             else np.matmul(dZ, ip.T) / m
         )
 
         if self.use_bias:
-            gradients["biases"] = np.sum(dZ, keepdims=True, axis=1) / m
-
-        self.gradients.update(gradients)
+            self.gradients["biases"] = np.sum(dZ, keepdims=True, axis=1) / m
 
         self.dX = np.matmul(self.weights.T, dZ)
 
@@ -207,7 +206,7 @@ class Conv2D(BaseLayer):
         if use_bias:
             params.append("biases")
 
-        super().__init__(ip=ip, params=params, convolutions=None, activations=None)
+        super().__init__(ip=ip, params=params)
 
         self.ip_C, self.ip_H, self.ip_W = self.input_shape()[:-1]
 
@@ -217,6 +216,14 @@ class Conv2D(BaseLayer):
         self.out_W = self._get_output_dim(
             self.ip_W, self.kernel_W, self.p_W, self.stride_W
         )
+
+        self.convolutions = None
+        self.activations = None
+
+        self._vectorized_ip = None
+        self._vectorized_kernel = None
+        self._slice_idx = None
+        self._padded_shape = None
 
     def _get_padding(self, kH, kW):
         if self.padding == "same":
@@ -267,10 +274,14 @@ class Conv2D(BaseLayer):
         return self.filters, self.out_H, self.out_W, None
 
     def _pad(self, X):
-        return np.pad(X, ((0, 0), (self.p_H, self.p_H), (self.p_W, self.p_W), (0, 0)))
+        padded = np.pad(X, ((0, 0), (self.p_H, self.p_H), (self.p_W, self.p_W), (0, 0)))
+
+        self._padded_shape = padded.shape[1], padded.shape[2]
+
+        return padded
 
     def _vectorize_ip(self, X):
-        indices = np.array(
+        self._slice_idx = np.array(
             [
                 (i * self.stride_H, j * self.stride_W)
                 for i in range(self.out_H)
@@ -280,17 +291,18 @@ class Conv2D(BaseLayer):
 
         shape = (-1, X.shape[-1])
 
-        vec = np.array(
+        self._vectorized_ip = np.array(
             [
                 X[:, i : i + self.kernel_H, j : j + self.kernel_W].reshape(shape)
-                for i, j in indices
+                for i, j in self._slice_idx
             ]
-        )
+        ).transpose(2, 0, 1)
 
-        return vec.transpose(2, 0, 1)
+        return self._vectorized_ip
 
     def _vectorize_kernels(self):
-        return self.kernels.reshape(-1, self.filters)
+        self._vectorized_kernel = self.kernels.reshape(-1, self.filters)
+        return self._vectorized_kernel
 
     def _convolve(self, X):
         X = self._pad(X)
@@ -302,7 +314,7 @@ class Conv2D(BaseLayer):
 
         shape = (self.filters, self.out_H, self.out_W, -1)
 
-        return convolution.transpose(2, 1, 0).reshape(shape)
+        return np.swapaxes(convolution, 0, 2).reshape(shape)
 
     def forward_step(self, *args, **kwargs):
         convolutions = self._convolve(self.input())
@@ -316,11 +328,55 @@ class Conv2D(BaseLayer):
             else convolutions
         )
 
-        print(activations.shape)
-
         self.convolutions, self.activations = convolutions, activations
 
         return self.activations
 
+    def _compute_dW(self, dZ):
+        ip = self._vectorized_ip
+
+        dW = np.matmul(ip[..., None], dZ[..., None, :]).sum(axis=(0, 1))
+
+        return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters) / ip.shape[0]
+
+    def _compute_dX(self, dZ):
+        kernels = self._vectorized_kernel
+
+        dVec_ip = np.matmul(dZ, kernels.T)
+
+        dX = np.zeros(shape=(dZ.shape[0], self.ip_C, *self._padded_shape))
+
+        shape = (-1, self.ip_C, self.kernel_H, self.kernel_W)
+
+        for idx, (start_r, start_c) in enumerate(self._slice_idx):
+            end_r, end_c = start_r + self.kernel_H, start_c + self.kernel_W
+            dX[:, :, start_r:end_r, start_c:end_c] += dVec_ip[:, idx, :].reshape(*shape)
+
+        if self.padding != "valid":
+            dX = dX[:, :, self.p_H : -self.p_H, self.p_W : -self.p_W]
+
+        return np.moveaxis(dX, 0, -1)
+
     def backprop_step(self, dA, *args, **kwargs):
-        pass
+        reg_param = kwargs.pop("reg_param", 0.0)
+
+        dZ = (
+            self.activation.backprop_step(dA, ip=self.convolutions)
+            if self.activation is not None
+            else dA
+        )
+
+        dZ_flat = np.swapaxes(dZ, 0, 3).reshape(dZ.shape[-1], -1, self.filters)
+
+        dW = self._compute_dW(dZ_flat)
+
+        self.gradients["kernels"] = (
+            dW + (reg_param / dZ.shape[-1]) * self.kernels if reg_param > 0 else dW
+        )
+
+        if self.use_bias:
+            self.gradients["biases"] = dZ_flat.sum(axis=(0, 1)) / dZ.shape[-1]
+
+        self.dX = self._compute_dX(dZ_flat)
+
+        return self.dX

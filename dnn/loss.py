@@ -16,7 +16,8 @@ class Loss(ABC):
                 result.update({name: sub_cls for name in sub_cls.name})
         return result
 
-    def validate_input(self, labels, preds):
+    @staticmethod
+    def validate_input(labels, preds):
         if labels.shape != preds.shape:
             raise AttributeError(
                 "The labels and the predictions should have the same shape"

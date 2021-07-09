@@ -380,3 +380,45 @@ class Conv2D(BaseLayer):
         self.dX = self._compute_dX(dZ_flat)
 
         return self.dX
+
+
+class Flatten(BaseLayer):
+    def __init__(self, ip):
+        super().__init__(ip=ip, trainable=False)
+
+        self.ip_dims = self.input_shape()[:-1]
+
+        self.units = np.prod(self.ip_dims)
+
+        self.flat = None
+
+    @cached_property
+    def fans(self):
+        _, ip_fan_out = self.ip_layer.fans
+
+        return ip_fan_out, self.units
+
+    def count_params(self):
+        return 0
+
+    def build(self):
+        return
+
+    def output(self):
+        return self.flat
+
+    def output_shape(self):
+        if self.flat is not None:
+            return self.flat.shape
+
+        return self.units, None
+
+    def forward_step(self, *args, **kwargs):
+        self.flat = self.input().reshape(self.units, -1)
+
+        return self.flat
+
+    def backprop_step(self, dA, *args, **kwargs):
+        self.dX = dA.reshape(*self.ip_dims, -1)
+
+        return self.dX

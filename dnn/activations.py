@@ -77,7 +77,8 @@ class Activation(BaseLayer):
 
     @cached_property
     def fans(self):
-        return self.ip_layer.fans
+        ip_layer_fans = self.ip_layer.fans
+        return ip_layer_fans[-1], ip_layer_fans[-1]
 
     def build(self):
         return

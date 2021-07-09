@@ -1,4 +1,5 @@
 import functools
+from math import ceil
 
 import numpy as np
 
@@ -85,3 +86,40 @@ def rgetattr(obj, attr, *args):
 def rsetattr(obj, attr, val):
     pre, _, post = attr.rpartition(".")
     return setattr(rgetattr(obj, pre) if pre else obj, post, val)
+
+
+def compute_conv_padding(kernel_size, mode="valid"):
+    if mode == "same":
+        kH, kW = kernel_size
+        return ceil((kH - 1) / 2), ceil((kW - 1) / 2)
+    return 0, 0
+
+
+def compute_conv_output_dim(n, f, p, s):
+    return int((n - f + 2 * p) / s + 1)
+
+
+def pad(X, pad_H, pad_W):
+    padded = np.pad(X, ((0, 0), (pad_H, pad_H), (pad_W, pad_W), (0, 0)))
+
+    new_size = padded.shape[1], padded.shape[2]
+
+    return padded, new_size
+
+
+def vectorize_for_conv(X, kernel_size, stride, output_size):
+    stride_H, stride_W = stride
+    kernel_H, kernel_W = kernel_size
+    out_H, out_W = output_size
+
+    indices = np.array(
+        [(i * stride_H, j * stride_W) for i in range(out_H) for j in range(out_W)]
+    )
+
+    shape = (-1, X.shape[-1])
+
+    vectorized_ip = np.array(
+        [X[:, i : i + kernel_H, j : j + kernel_W].reshape(shape) for i, j in indices]
+    ).transpose(2, 0, 1)
+
+    return vectorized_ip, indices

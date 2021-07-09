@@ -3,7 +3,13 @@ from functools import cached_property
 import numpy as np
 
 from dnn.base_layer import BaseLayer
-from dnn.utils import add_activation
+from dnn.utils import (
+    add_activation,
+    compute_conv_output_dim,
+    compute_conv_padding,
+    pad,
+    vectorize_for_conv,
+)
 
 
 class BatchNorm:
@@ -194,7 +200,7 @@ class Conv2D(BaseLayer):
         self.stride_H, self.stride_W = stride
 
         self.padding = padding
-        self.p_H, self.p_W = self._get_padding(*kernel_size)
+        self.p_H, self.p_W = compute_conv_padding(kernel_size, mode=padding)
 
         self.initializer = initializer
 
@@ -210,10 +216,10 @@ class Conv2D(BaseLayer):
 
         self.ip_C, self.ip_H, self.ip_W = self.input_shape()[:-1]
 
-        self.out_H = self._get_output_dim(
+        self.out_H = compute_conv_output_dim(
             self.ip_H, self.kernel_H, self.p_H, self.stride_H
         )
-        self.out_W = self._get_output_dim(
+        self.out_W = compute_conv_output_dim(
             self.ip_W, self.kernel_W, self.p_W, self.stride_W
         )
 
@@ -224,18 +230,6 @@ class Conv2D(BaseLayer):
         self._vectorized_kernel = None
         self._slice_idx = None
         self._padded_shape = None
-
-    def _get_padding(self, kH, kW):
-        if self.padding == "same":
-            p_H = int(np.ceil((kH - 1) / 2))
-            p_W = int(np.ceil((kW - 1) / 2))
-
-            return p_H, p_W
-
-        return 0, 0
-
-    def _get_output_dim(self, n, f, p, s):
-        return int((n - f + 2 * p) / s + 1)
 
     @cached_property
     def fans(self):
@@ -273,44 +267,20 @@ class Conv2D(BaseLayer):
 
         return self.filters, self.out_H, self.out_W, None
 
-    def _pad(self, X):
-        padded = np.pad(X, ((0, 0), (self.p_H, self.p_H), (self.p_W, self.p_W), (0, 0)))
-
-        self._padded_shape = padded.shape[1], padded.shape[2]
-
-        return padded
-
-    def _vectorize_ip(self, X):
-        self._slice_idx = np.array(
-            [
-                (i * self.stride_H, j * self.stride_W)
-                for i in range(self.out_H)
-                for j in range(self.out_W)
-            ]
-        )
-
-        shape = (-1, X.shape[-1])
-
-        self._vectorized_ip = np.array(
-            [
-                X[:, i : i + self.kernel_H, j : j + self.kernel_W].reshape(shape)
-                for i, j in self._slice_idx
-            ]
-        ).transpose(2, 0, 1)
-
-        return self._vectorized_ip
-
     def _vectorize_kernels(self):
         self._vectorized_kernel = self.kernels.reshape(-1, self.filters)
         return self._vectorized_kernel
 
     def _convolve(self, X):
-        X = self._pad(X)
-        X = self._vectorize_ip(X)
+        X, self._padded_shape = pad(X, self.p_H, self.p_W)
+
+        self._vectorized_ip, self._slice_idx = vectorize_for_conv(
+            X, self.kernel_size, self.stride, (self.out_H, self.out_W)
+        )
 
         weights = self._vectorize_kernels()
 
-        convolution = np.matmul(X, weights[None, ...])
+        convolution = np.matmul(self._vectorized_ip, weights[None, ...])
 
         shape = (self.filters, self.out_H, self.out_W, -1)
 

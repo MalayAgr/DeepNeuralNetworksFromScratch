@@ -124,3 +124,22 @@ def vectorize_for_conv(X, kernel_size, stride, output_size, reshape=None):
     )
 
     return vectorized_ip, indices
+
+
+def accumulate_dX_conv(
+    dX, dIp, slice_idx, kernel_size, shape, padding=(0, 0), moveaxis=True
+):
+    kH, kW = kernel_size
+
+    for idx, (start_r, start_c) in enumerate(slice_idx):
+        end_r, end_c = start_r + kH, start_c + kW
+        dX[..., start_r:end_r, start_c:end_c] += dIp[:, idx, ...].reshape(*shape)
+
+    if padding != (0, 0):
+        pH, pW = padding
+        dX = dX[..., pH:-pH, pW:-pW]
+
+    if moveaxis is False:
+        return dX
+
+    return np.moveaxis(dX, 0, -1)

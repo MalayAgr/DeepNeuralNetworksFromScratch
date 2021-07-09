@@ -107,7 +107,7 @@ def pad(X, pad_H, pad_W):
     return padded, new_size
 
 
-def vectorize_for_conv(X, kernel_size, stride, output_size):
+def vectorize_for_conv(X, kernel_size, stride, output_size, reshape=None):
     stride_H, stride_W = stride
     kernel_H, kernel_W = kernel_size
     out_H, out_W = output_size
@@ -116,10 +116,11 @@ def vectorize_for_conv(X, kernel_size, stride, output_size):
         [(i * stride_H, j * stride_W) for i in range(out_H) for j in range(out_W)]
     )
 
-    shape = (-1, X.shape[-1])
+    if reshape is None:
+        reshape = (-1, X.shape[-1])
 
     vectorized_ip = np.array(
-        [X[:, i : i + kernel_H, j : j + kernel_W].reshape(shape) for i, j in indices]
-    ).transpose(2, 0, 1)
+        [X[:, i : i + kernel_H, j : j + kernel_W].reshape(*reshape) for i, j in indices]
+    )
 
     return vectorized_ip, indices

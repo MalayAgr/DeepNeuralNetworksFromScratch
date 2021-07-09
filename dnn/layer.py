@@ -9,6 +9,7 @@ from dnn.utils import (
     compute_conv_padding,
     pad,
     vectorize_for_conv,
+    accumulate_dX_conv,
 )
 
 
@@ -312,9 +313,7 @@ class Conv2D(BaseLayer):
         return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters) / ip.shape[0]
 
     def _compute_dX(self, dZ):
-        kernels = self._vectorized_kernel
-
-        dVec_ip = np.matmul(dZ, kernels.T)
+        dVec_ip = np.matmul(dZ, self._vectorized_kernel.T)
 
         dX = np.zeros(
             shape=(dZ.shape[0], self.ip_C, *self._padded_shape), dtype=np.float32
@@ -322,14 +321,14 @@ class Conv2D(BaseLayer):
 
         shape = (-1, self.ip_C, self.kernel_H, self.kernel_W)
 
-        for idx, (start_r, start_c) in enumerate(self._slice_idx):
-            end_r, end_c = start_r + self.kernel_H, start_c + self.kernel_W
-            dX[:, :, start_r:end_r, start_c:end_c] += dVec_ip[:, idx, :].reshape(*shape)
-
-        if self.padding != "valid":
-            dX = dX[:, :, self.p_H : -self.p_H, self.p_W : -self.p_W]
-
-        return np.moveaxis(dX, 0, -1)
+        return accumulate_dX_conv(
+            dX=dX,
+            dIp=dVec_ip,
+            slice_idx=self._slice_idx,
+            kernel_size=self.kernel_size,
+            shape=shape,
+            padding=(self.p_H, self.p_W),
+        )
 
     def backprop_step(self, dA, *args, **kwargs):
         reg_param = kwargs.pop("reg_param", 0.0)
@@ -382,7 +381,7 @@ class MaxPooling2D(BaseLayer):
 
         self._slice_idx = None
         self._padded_shape = None
-        self._mask = None
+        self._dX_share = None
 
     @cached_property
     def fans(self):
@@ -397,7 +396,7 @@ class MaxPooling2D(BaseLayer):
 
         return self.windows, self.out_H, self.out_W, None
 
-    def _get_maximums(self, ip):
+    def _get_pool_outputs(self, ip):
         ip_shape = ip.shape
 
         flat = np.prod(ip_shape[:-1])
@@ -418,7 +417,7 @@ class MaxPooling2D(BaseLayer):
 
         return maximums.transpose(2, 1, -1, 0).reshape(*shape), mask
 
-    def _maxpool(self, X):
+    def _pool(self, X):
         X, self._padded_shape = pad(X, self.p_H, self.p_W)
 
         X, self._slice_idx = vectorize_for_conv(
@@ -431,42 +430,35 @@ class MaxPooling2D(BaseLayer):
 
         X = np.moveaxis(X, -1, 0)
 
-        maximums, self._mask = self._get_maximums(ip=X)
+        pooled, self._dX_share = self._get_pool_outputs(ip=X)
 
-        return maximums
+        return pooled
 
     def forward_step(self, *args, **kwargs):
-        self.pooled = self._maxpool(self.input())
-
+        self.pooled = self._pool(self.input())
         return self.pooled
 
     def _compute_dX(self, dZ):
-        mask = self._mask
+        dVec_ip = self._dX_share * dZ[..., None]
 
-        indices = self._slice_idx
-
-        dVec_ip = mask * dZ[..., None]
-
-        dX = np.zeros(shape=(dZ.shape[0], self.windows, *self._padded_shape))
+        dX = np.zeros(
+            shape=(dZ.shape[0], self.windows, *self._padded_shape), dtype=np.float32
+        )
 
         shape = (-1, self.windows, self.pool_H, self.pool_W)
 
-        for idx, (start_r, start_c) in enumerate(indices):
-            end_r, end_c = start_r + self.pool_H, start_c + self.pool_W
-            dX[:, :, start_r:end_r, start_c:end_c] += dVec_ip[:, idx, ...].reshape(
-                *shape
-            )
-
-        if self.padding != "valid":
-            dX = dX[:, :, self.p_H : -self.p_H, self.p_W : -self.p_W]
-
-        return np.moveaxis(dX, 0, -1)
+        return accumulate_dX_conv(
+            dX=dX,
+            dIp=dVec_ip,
+            slice_idx=self._slice_idx,
+            kernel_size=self.pool_size,
+            shape=shape,
+            padding=(self.p_H, self.p_W),
+        )
 
     def backprop_step(self, dA, *args, **kwargs):
         dA_flat = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
-
         self.dX = self._compute_dX(dA_flat)
-
         return self.dX
 
 
@@ -476,7 +468,7 @@ class Flatten(BaseLayer):
 
         self._ip_dims = self.input_shape()[:-1]
 
-        self._units = np.prod(self.ip_dims)
+        self._units = np.prod(self._ip_dims)
 
         self.flat = None
 

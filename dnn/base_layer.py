@@ -62,17 +62,24 @@ class BaseLayer(ABC):
             "xavier_uniform": 6 / (fan_in + fan_out),
         }[initializer]
 
-    @abstractmethod
     def count_params(self):
         """
         Method to count the number of trainable parameters in the layer
         """
+        if not hasattr(self, "param_map"):
+            return 0
+        raise NotImplementedError(
+            f"{self.__class__.__name__} instances need to implement count_params"
+        )
 
-    @abstractmethod
     def build(self):
         """
         Method to build the layer, usually by initializing the parameters
         """
+        if hasattr(self, "param_map"):
+            raise NotImplementedError(
+                f"{self.__class__.__name__} instances need to implement build"
+            )
 
     def input(self):
         if self.ip_layer is None:

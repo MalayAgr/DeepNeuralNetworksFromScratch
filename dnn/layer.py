@@ -274,9 +274,11 @@ class Conv2D(BaseLayer):
     def _convolve(self, X):
         X, self._padded_shape = pad(X, self.p_H, self.p_W)
 
-        self._vectorized_ip, self._slice_idx = vectorize_for_conv(
+        X, self._slice_idx = vectorize_for_conv(
             X, self.kernel_size, self.stride, (self.out_H, self.out_W)
         )
+
+        self._vectorized_ip = np.moveaxis(X, -1, 0)
 
         weights = self._vectorize_kernels()
 
@@ -314,7 +316,9 @@ class Conv2D(BaseLayer):
 
         dVec_ip = np.matmul(dZ, kernels.T)
 
-        dX = np.zeros(shape=(dZ.shape[0], self.ip_C, *self._padded_shape))
+        dX = np.zeros(
+            shape=(dZ.shape[0], self.ip_C, *self._padded_shape), dtype=np.float32
+        )
 
         shape = (-1, self.ip_C, self.kernel_H, self.kernel_W)
 
@@ -336,7 +340,7 @@ class Conv2D(BaseLayer):
             else dA
         )
 
-        dZ_flat = np.swapaxes(dZ, 0, 3).reshape(dZ.shape[-1], -1, self.filters)
+        dZ_flat = np.swapaxes(dZ, 0, -1).reshape(dZ.shape[-1], -1, self.filters)
 
         dW = self._compute_dW(dZ_flat)
 
@@ -348,6 +352,120 @@ class Conv2D(BaseLayer):
             self.gradients["biases"] = dZ_flat.sum(axis=(0, 1)) / dZ.shape[-1]
 
         self.dX = self._compute_dX(dZ_flat)
+
+        return self.dX
+
+
+class MaxPooling2D(BaseLayer):
+    def __init__(self, ip, pool_size, stride=(2, 2), padding="valid"):
+        self.pool_size = pool_size
+        self.pool_H, self.pool_W = pool_size
+
+        self.stride = stride
+        self.stride_H, self.stride_W = stride
+
+        self.padding = padding
+        self.p_H, self.p_W = compute_conv_padding(pool_size, mode=padding)
+
+        super().__init__(ip, trainable=False)
+
+        self.windows, self.ip_H, self.ip_W = self.input_shape()[:-1]
+
+        self.out_H = compute_conv_output_dim(
+            self.ip_H, self.pool_H, self.p_H, self.stride_H
+        )
+        self.out_W = compute_conv_output_dim(
+            self.ip_W, self.pool_W, self.p_W, self.stride_W
+        )
+
+        self.pooled = None
+
+        self._slice_idx = None
+        self._padded_shape = None
+        self._mask = None
+
+    @cached_property
+    def fans(self):
+        return self.ip_C, self.ip_C
+
+    def output(self):
+        return self.pooled
+
+    def output_shape(self):
+        if self.pooled is not None:
+            return self.pooled.shape
+
+        return self.windows, self.out_H, self.out_W, None
+
+    def _get_maximums(self, ip):
+        ip_shape = ip.shape
+
+        flat = np.prod(ip_shape[:-1])
+        p_area = ip_shape[-1]
+
+        ip_idx = np.arange(flat)
+
+        max_idx = ip.argmax(axis=-1).ravel()
+
+        maximums = ip.reshape(-1, p_area)[ip_idx, max_idx]
+        maximums = maximums.reshape(*ip_shape[:-1], 1)
+
+        mask = np.zeros(shape=(flat, p_area), dtype=bool)
+        mask[ip_idx, max_idx] = True
+        mask = mask.reshape(*ip_shape)
+
+        shape = (self.windows, self.out_H, self.out_W, -1)
+
+        return maximums.transpose(2, 1, -1, 0).reshape(*shape), mask
+
+    def _maxpool(self, X):
+        X, self._padded_shape = pad(X, self.p_H, self.p_W)
+
+        X, self._slice_idx = vectorize_for_conv(
+            X=X,
+            kernel_size=self.pool_size,
+            stride=self.stride,
+            output_size=(self.out_H, self.out_W),
+            reshape=(self.windows, self.pool_H * self.pool_W, X.shape[-1]),
+        )
+
+        X = np.moveaxis(X, -1, 0)
+
+        maximums, self._mask = self._get_maximums(ip=X)
+
+        return maximums
+
+    def forward_step(self, *args, **kwargs):
+        self.pooled = self._maxpool(self.input())
+
+        return self.pooled
+
+    def _compute_dX(self, dZ):
+        mask = self._mask
+
+        indices = self._slice_idx
+
+        dVec_ip = mask * dZ[..., None]
+
+        dX = np.zeros(shape=(dZ.shape[0], self.windows, *self._padded_shape))
+
+        shape = (-1, self.windows, self.pool_H, self.pool_W)
+
+        for idx, (start_r, start_c) in enumerate(indices):
+            end_r, end_c = start_r + self.pool_H, start_c + self.pool_W
+            dX[:, :, start_r:end_r, start_c:end_c] += dVec_ip[:, idx, ...].reshape(
+                *shape
+            )
+
+        if self.padding != "valid":
+            dX = dX[:, :, self.p_H : -self.p_H, self.p_W : -self.p_W]
+
+        return np.moveaxis(dX, 0, -1)
+
+    def backprop_step(self, dA, *args, **kwargs):
+        dA_flat = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
+
+        self.dX = self._compute_dX(dA_flat)
 
         return self.dX
 

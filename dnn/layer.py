@@ -407,15 +407,16 @@ class MaxPooling2D(BaseLayer):
         max_idx = ip.argmax(axis=-1).ravel()
 
         maximums = ip.reshape(-1, p_area)[ip_idx, max_idx]
-        maximums = maximums.reshape(*ip_shape[:-1], 1)
 
         mask = np.zeros(shape=(flat, p_area), dtype=bool)
         mask[ip_idx, max_idx] = True
+
+        maximums = maximums.reshape(*ip_shape[:-1])
         mask = mask.reshape(*ip_shape)
 
         shape = (self.windows, self.out_H, self.out_W, -1)
 
-        return maximums.transpose(2, 1, -1, 0).reshape(*shape), mask
+        return np.swapaxes(maximums, 0, -1).reshape(*shape), mask
 
     def _pool(self, X):
         X, self._padded_shape = pad(X, self.p_H, self.p_W)
@@ -460,6 +461,19 @@ class MaxPooling2D(BaseLayer):
         dA_flat = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
         self.dX = self._compute_dX(dA_flat)
         return self.dX
+
+
+class AveragePooling2D(MaxPooling2D):
+    def _get_pool_outputs(self, ip):
+        ip_shape = ip.shape
+
+        averages = ip.mean(axis=-1)
+
+        distributed = np.ones_like(ip) / ip_shape[-1]
+
+        shape = (self.windows, self.out_H, self.out_W, -1)
+
+        return np.swapaxes(averages, 0, -1).reshape(*shape), distributed
 
 
 class Flatten(BaseLayer):

@@ -10,7 +10,9 @@ class Activation(BaseLayer):
     name = None
 
     def __init__(self, *args, ip=None, **kwargs):
-        super().__init__(ip=ip, trainable=False, activations=None, derivatives=None)
+        super().__init__(ip=ip, trainable=False)
+
+        self.activations = None
 
     @classmethod
     def get_activation_classes(cls):

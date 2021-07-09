@@ -6,8 +6,7 @@ from dnn.input_layer import Input
 
 class BaseLayer(ABC):
     def __init__(self, ip, *args, trainable=True, params=None, **kwargs):
-        if ip is not None:
-            if not isinstance(ip, (Input, BaseLayer)):
+        if ip is not None and not isinstance(ip, (Input, BaseLayer)):
                 msg = (
                     f"A {self.__class__.__name__} can have only instances "
                     "of Input or a subclass of BaseLayer as ip"

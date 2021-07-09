@@ -510,3 +510,42 @@ class Flatten(BaseLayer):
         self.dX = dA.reshape(*self._ip_dims, -1)
 
         return self.dX
+
+
+class Dropout(BaseLayer):
+    def __init__(self, ip, keep_prob=0.5):
+        if 0 < keep_prob <= 1:
+            raise AttributeError("keep_prob should be in the interval (0, 1]")
+
+        self.keep_prob = keep_prob
+
+        super().__init__(ip=ip, trainable=False)
+
+        self.dropped = None
+        self.dropout_mask = None
+
+    @cached_property
+    def fans(self):
+        _, ip_fan_out = self.ip_layer.fans
+
+        return ip_fan_out, ip_fan_out
+
+    def output(self):
+        return self.dropped
+
+    def output_shape(self):
+        return self.sinput_shape()
+
+    def forward_step(self, *args, **kwargs):
+        ip = self.input()
+
+        self.dropout_mask = np.random.rand(*ip.shape) < self.keep_prob
+
+        self.dropped = (ip * self.dropout_mask) / self.keep_prob
+
+        return self.dropped
+
+    def backprop_step(self, dA, *args, **kwargs):
+        self.dX = (dA * self.dropout_mask) / self.keep_prob
+
+        return self.dX

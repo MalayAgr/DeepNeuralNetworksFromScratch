@@ -2,7 +2,6 @@
 
 [![Open in Visual Studio Code](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/MalayAgr/DeepNeuralNetwork-Scratch)
 
-
 This is an implementation of deep neural networks using nothing but Python and NumPy. I've taken up this project to complement the [Deep Learning Specialization](https://www.coursera.org/specializations/deep-learning), offered by Coursera and taught by Andrew Ng.
 
 Currently, the following things are supported:

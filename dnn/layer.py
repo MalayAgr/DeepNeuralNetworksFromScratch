@@ -386,9 +386,9 @@ class Flatten(BaseLayer):
     def __init__(self, ip):
         super().__init__(ip=ip, trainable=False)
 
-        self.ip_dims = self.input_shape()[:-1]
+        self._ip_dims = self.input_shape()[:-1]
 
-        self.units = np.prod(self.ip_dims)
+        self._units = np.prod(self.ip_dims)
 
         self.flat = None
 
@@ -397,12 +397,6 @@ class Flatten(BaseLayer):
         _, ip_fan_out = self.ip_layer.fans
 
         return ip_fan_out, self.units
-
-    def count_params(self):
-        return 0
-
-    def build(self):
-        return
 
     def output(self):
         return self.flat
@@ -414,11 +408,11 @@ class Flatten(BaseLayer):
         return self.units, None
 
     def forward_step(self, *args, **kwargs):
-        self.flat = self.input().reshape(self.units, -1)
+        self.flat = self.input().reshape(self._units, -1)
 
         return self.flat
 
     def backprop_step(self, dA, *args, **kwargs):
-        self.dX = dA.reshape(*self.ip_dims, -1)
+        self.dX = dA.reshape(*self._ip_dims, -1)
 
         return self.dX

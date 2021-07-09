@@ -80,12 +80,6 @@ class Activation(BaseLayer):
         ip_layer_fans = self.ip_layer.fans
         return ip_layer_fans[-1], ip_layer_fans[-1]
 
-    def build(self):
-        return
-
-    def count_params(self):
-        return 0
-
     def output(self):
         return self.activations
 

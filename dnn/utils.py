@@ -113,7 +113,8 @@ def vectorize_for_conv(X, kernel_size, stride, output_size, reshape=None):
     out_H, out_W = output_size
 
     indices = np.array(
-        [(i * stride_H, j * stride_W) for i in range(out_H) for j in range(out_W)]
+        [(i * stride_H, j * stride_W) for i in range(out_H) for j in range(out_W)],
+        dtype=np.int16,
     )
 
     if reshape is None:

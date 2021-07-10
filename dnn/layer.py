@@ -43,16 +43,16 @@ class BatchNorm(BaseLayer):
     def init_params(self):
         rem_dims = (1,) * len(self.axes)
 
-        self.gamma = np.ones(shape=(self.x_dim, *rem_dims))
+        self.gamma = np.ones(shape=(self.x_dim, *rem_dims), dtype=np.float32)
 
-        self.beta = np.zeros(shape=(self.x_dim, *rem_dims))
+        self.beta = np.zeros(shape=(self.x_dim, *rem_dims), dtype=np.float32)
 
     def _init_mva(self):
         rem_dims = (1,) * len(self.axes)
 
-        self.mean_mva = np.zeros(shape=(self.x_dim, *rem_dims), dtype=np.float64)
+        self.mean_mva = np.zeros(shape=(self.x_dim, *rem_dims), dtype=np.float32)
 
-        self.std_mva = np.ones(shape=(self.x_dim, *rem_dims), dtype=np.float64)
+        self.std_mva = np.ones(shape=(self.x_dim, *rem_dims), dtype=np.float32)
 
     def count_params(self):
         return 2 * self.x_dim
@@ -136,9 +136,10 @@ class Dense(BaseLayer):
         variance = self._initializer_variance(self.initializer)
 
         self.weights = np.random.randn(self.units, y_dim) * np.sqrt(variance)
+        self.weights = self.weights.astype(np.float32)
 
         if self.use_bias:
-            self.biases = np.zeros(shape=(self.units, 1))
+            self.biases = np.zeros(shape=(self.units, 1), dtype=np.float32)
 
     def count_params(self):
         total = self.weights.shape[0] * self.weights.shape[-1]
@@ -161,7 +162,7 @@ class Dense(BaseLayer):
         return self.units, None
 
     def forward_step(self, *args, **kwargs):
-        linear = np.matmul(self.weights, self.input())
+        linear = np.matmul(self.weights, self.input(), dtype=np.float32)
 
         if self.use_bias:
             linear += self.biases
@@ -188,16 +189,16 @@ class Dense(BaseLayer):
 
         reg_param = kwargs.pop("reg_param", 0.0)
 
+        dW = np.matmul(dZ, ip.T, dtype=np.float32) / m
+
         self.gradients["weights"] = (
-            (np.matmul(dZ, ip.T) + reg_param * self.weights) / m
-            if reg_param > 0
-            else np.matmul(dZ, ip.T) / m
+            dW + (reg_param / m) * self.weights if reg_param > 0 else dW
         )
 
         if self.use_bias:
             self.gradients["biases"] = np.sum(dZ, keepdims=True, axis=1) / m
 
-        self.dX = np.matmul(self.weights.T, dZ)
+        self.dX = np.matmul(self.weights.T, dZ, dtype=np.float32)
 
         return self.dX
 
@@ -266,9 +267,10 @@ class Conv2D(BaseLayer):
         shape = (self.ip_C, *self.kernel_size, self.filters)
 
         self.kernels = np.random.randn(*shape) * np.sqrt(variance)
+        self.kernels = self.kernels.astype(np.float32)
 
         if self.use_bias:
-            self.biases = np.zeros(shape=(self.filters, 1, 1, 1))
+            self.biases = np.zeros(shape=(self.filters, 1, 1, 1), dtype=np.float32)
 
     def count_params(self):
         total = np.prod(self.kernels.shape)
@@ -305,7 +307,9 @@ class Conv2D(BaseLayer):
 
         weights = self._vectorize_kernels()
 
-        convolution = np.matmul(self._vectorized_ip, weights[None, ...])
+        convolution = np.matmul(
+            self._vectorized_ip, weights[None, ...], dtype=np.float32
+        )
 
         shape = (self.filters, self.out_H, self.out_W, -1)
 
@@ -330,12 +334,14 @@ class Conv2D(BaseLayer):
     def _compute_dW(self, dZ):
         ip = self._vectorized_ip
 
-        dW = np.matmul(ip[..., None], dZ[..., None, :]).sum(axis=(0, 1))
+        dW = np.matmul(ip[..., None], dZ[..., None, :], dtype=np.float32).sum(
+            axis=(0, 1)
+        )
 
         return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters) / ip.shape[0]
 
     def _compute_dX(self, dZ):
-        dVec_ip = np.matmul(dZ, self._vectorized_kernel.T)
+        dVec_ip = np.matmul(dZ, self._vectorized_kernel.T, dtype=np.float32)
 
         dX = np.zeros(
             shape=(dZ.shape[0], self.ip_C, *self._padded_shape), dtype=np.float32

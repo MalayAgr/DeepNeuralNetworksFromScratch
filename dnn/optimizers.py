@@ -27,7 +27,7 @@ class BaseMiniBatchGD(Optimizer):
     @staticmethod
     def init_zeros_from_param_map(layer):
         return {
-            key: np.zeros(shape=rgetattr(layer, attr).shape)
+            key: np.zeros(shape=rgetattr(layer, attr).shape, dtype=np.float32)
             for key, attr in layer.param_map.items()
         }
 

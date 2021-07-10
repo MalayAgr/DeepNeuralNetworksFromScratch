@@ -392,7 +392,9 @@ class Conv2D(BaseLayer):
         )
 
         if self.use_bias:
-            self.gradients["biases"] = dZ_flat.sum(axis=(0, 1)) / dZ.shape[-1]
+            self.gradients["biases"] = (
+                dZ_flat.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / dZ.shape[-1]
+            )
 
         dX = self._compute_dX(dZ_flat)
 
@@ -553,7 +555,7 @@ class Flatten(BaseLayer):
         if self.flat is not None:
             return self.flat.shape
 
-        return self.units, None
+        return self._units, None
 
     def forward_step(self, *args, **kwargs):
         self.flat = self.input().reshape(self._units, -1)

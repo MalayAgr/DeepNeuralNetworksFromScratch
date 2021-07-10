@@ -35,8 +35,10 @@ class BaseMiniBatchGD(Optimizer):
         for layer in model.trainable_layers:
             updates = self.compute_update(layer, *args, **kwargs)
             for key, attr in layer.param_map.items():
-                current_val = rgetattr(layer, attr)
-                rsetattr(layer, attr, current_val - self.lr * updates[key])
+                val = rgetattr(layer, attr)
+                val -= self.lr * updates[key]
+
+                rsetattr(layer, attr, val)
 
             layer.gradients = {}
 
@@ -111,9 +113,8 @@ class SGD(BaseMiniBatchGD):
 
     def update_layer_velocities(self, layer):
         for key, grad in layer.gradients.items():
-            lhs = self.momentum * layer.velocities[key]
-            rhs = (1 - self.momentum) * grad
-            layer.velocities[key] = lhs + rhs
+            layer.velocities[key] *= self.momentum
+            layer.velocities[key] += (1 - self.momentum) * grad
 
     def compute_update_momentum(self, layer, *args, **kwargs):
         self.update_layer_velocities(layer)
@@ -151,9 +152,8 @@ class RMSProp(BaseMiniBatchGD):
 
     def update_layer_rms(self, layer):
         for key, grad in layer.gradients.items():
-            lhs = self.rho * layer.rms[key]
-            rhs = (1 - self.rho) * np.square(grad)
-            layer.rms[key] = lhs + rhs
+            layer.rms[key] *= self.rho
+            layer.rms[key] += (1 - self.rho) * np.square(grad)
 
     def compute_update(self, layer, *args, **kwargs):
         self.update_layer_rms(layer)
@@ -197,13 +197,11 @@ class Adam(BaseMiniBatchGD):
 
     def update_layer_moments(self, layer):
         for key, grad in layer.gradients.items():
-            lhs = self.momentum * layer.m1[key]
-            rhs = (1 - self.momentum) * grad
-            layer.m1[key] = lhs + rhs
+            layer.m1[key] *= self.momentum
+            layer.m1[key] += (1 - self.momentum) * grad
 
-            lhs = self.rho * layer.m2[key]
-            rhs = (1 - self.rho) * np.square(grad)
-            layer.m2[key] = lhs + rhs
+            layer.m2[key] *= self.rho
+            layer.m2[key] += (1 - self.rho) * np.square(grad)
 
     def compute_update(self, layer, *args, **kwargs):
         t = kwargs.pop("step_count", None)
@@ -216,9 +214,12 @@ class Adam(BaseMiniBatchGD):
         updates = {}
         for key in layer.gradients:
             m1 = np.divide(layer.m1[key], 1.0 - self.momentum ** t)
+
+            updates[key] = m1
+
             m2 = np.divide(layer.m2[key], 1.0 - self.rho ** t)
 
-            updates[key] = m1 / (np.sqrt(m2) + self.epsilon)
+            updates[key] /= (np.sqrt(m2) + self.epsilon)
 
         return updates
 

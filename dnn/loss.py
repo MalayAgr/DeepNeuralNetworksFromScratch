@@ -58,11 +58,11 @@ class Loss(ABC):
 
     def compute_loss(self, labels, preds):
         self.validate_input(labels, preds)
-        return self.loss_func(labels, preds)
+        return self.loss_func(labels, preds).astype(np.float32)
 
     def compute_derivatives(self, labels, preds):
         self.validate_input(labels, preds)
-        return self.loss_derivative(labels, preds)
+        return self.loss_derivative(labels, preds).astype(np.float32)
 
 
 class BinaryCrossEntropy(Loss):
@@ -74,26 +74,31 @@ class BinaryCrossEntropy(Loss):
         if 1.0 in preds or (preds <= 0).any():
             preds = np.clip(preds, self.epsilon, 1.0 - self.epsilon)
 
-        positive_labels = labels * np.log(preds)
-        negative_labels = (1 - labels) * np.log(1 - preds)
+        loss = labels * np.log(preds)
+        loss += (1 - labels) * np.log(1 - preds)
+        loss = np.sum(-loss)
 
-        loss = np.sum(-(positive_labels + negative_labels)) / labels.shape[-1]
-        return np.squeeze(loss)
+        loss = np.squeeze(loss) / labels.shape[-1]
+
+        return loss
 
     def loss_derivative(self, labels, preds):
         if 1.0 in preds or (preds <= 0).any():
             preds = np.clip(preds, self.epsilon, 1.0 - self.epsilon)
 
-        lhs = (1 - labels) / (1 - preds)
-        rhs = labels / preds
-        return lhs - rhs
+        grad = (1 - labels) / (1 - preds)
+        grad -= labels / preds
+        return grad
 
 
 class MeanSquaredError(Loss):
     name = ["mean_squared_error", "mse"]
 
     def loss_func(self, labels, preds):
-        loss = np.sum((preds - labels) ** 2) / (2 * labels.shape[-1])
+        loss = preds - labels
+        loss **= 2
+        loss = np.sum(loss / (2 * labels.shape[-1]))
+
         return np.squeeze(loss)
 
     def loss_derivative(self, labels, preds):
@@ -109,4 +114,6 @@ class CategoricalCrossEntropy(Loss):
         return np.squeeze(loss)
 
     def loss_derivative(self, labels, preds):
-        return -labels / preds
+        grad = -labels
+        grad /= preds
+        return grad

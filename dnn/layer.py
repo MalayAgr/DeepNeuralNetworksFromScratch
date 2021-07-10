@@ -13,76 +13,98 @@ from dnn.utils import (
 )
 
 
-class BatchNorm:
-    def __init__(self, ip, epsilon=1e-7, momentum=0.5):
-        if not isinstance(ip, Layer):
-            raise AttributeError("ip should be an instance of Layer")
-
-        self.ip_layer = ip
+class BatchNorm(BaseLayer):
+    def __init__(self, ip, axis=0, momentum=0.5, epsilon=1e-7):
+        self.axis = axis
+        self.momentum = momentum
         self.epsilon = epsilon
 
-        self.gamma, self.beta = self.init_params()
+        params = ["gamma", "beta"]
+
+        super().__init__(ip=ip, params=params)
+
+        ip_shape = self.input_shape()
+        self.x_dim = ip_shape[axis]
+        self.axes = tuple(ax for ax, _ in enumerate(ip_shape) if ax != axis)
 
         self.std = None
-        self.Z_hat = None
         self.norm = None
+        self.scaled_norm = None
 
-        self.mean_ewa, self.std_ewa = self.init_ewa()
-        self.momentum = momentum
+        self.mean_mva = None
+        self.std_mva = None
+
+    @cached_property
+    def fans(self):
+        _, ip_fan_out = self.ip_layer.fans
+
+        return ip_fan_out, ip_fan_out
 
     def init_params(self):
-        gamma = np.ones(shape=(self.ip_layer.units, 1))
-        beta = np.zeros(shape=(self.ip_layer.units, 1))
-        return gamma, beta
+        rem_dims = (1,) * len(self.axes)
 
-    def init_ewa(self):
-        mean = np.zeros(shape=(self.ip_layer.units, 1), dtype=np.float64)
-        std = np.ones(shape=(self.ip_layer.units, 1), dtype=np.float64)
+        self.gamma = np.ones(shape=(self.x_dim, *rem_dims))
 
-        return mean, std
+        self.beta = np.zeros(shape=(self.x_dim, *rem_dims))
 
-    def update_ewa(self, mean, std):
-        self.mean_ewa = self.momentum * self.mean_ewa + (1 - self.momentum) * mean
-        self.std_ewa = self.momentum * self.std_ewa + (1 - self.momentum) * std
+    def _init_mva(self):
+        rem_dims = (1,) * len(self.axes)
 
-    def forward_step(self, X):
-        if self.ip_layer.is_training:
-            mean = np.mean(X, axis=1, keepdims=True)
+        self.mean_mva = np.zeros(shape=(self.x_dim, *rem_dims), dtype=np.float64)
 
-            var = np.var(X, axis=1, keepdims=True) + self.epsilon
-            std = np.sqrt(var)
+        self.std_mva = np.ones(shape=(self.x_dim, *rem_dims), dtype=np.float64)
 
-            self.update_ewa(mean, std)
+    def count_params(self):
+        return 2 * self.x_dim
+
+    def build(self):
+        self.init_params()
+        self._init_mva()
+
+    def output(self):
+        return self.scaled_norm
+
+    def output_shape(self):
+        return self.input_shape()
+
+    def _update_mva(self, mean, std):
+        self.mean_mva = self.momentum * self.mean_mva + (1 - self.momentum) * mean
+        self.std_mva = self.momentum * self.std_mva + (1 - self.momentum) * std
+
+    def forward_step(self, *args, **kwargs):
+        ip = self.input()
+
+        if self.is_training:
+            mean = ip.mean(axis=self.axes, keepdims=True)
+            std = np.sqrt(ip.var(axis=self.axes, keepdims=True) + self.epsilon)
+
+            self._update_mva(mean, std)
 
             self.std = std
         else:
-            mean = self.mean_ewa
-            std = self.std_ewa
+            mean, std = self.mean_mva, self.std_mva
 
-        Z_hat = np.divide(X - mean, std)
-        self.Z_hat = Z_hat
+        self.norm = np.divide(ip - mean, std)
+        self.scaled_norm = self.gamma * self.norm + self.beta
 
-        self.norm = self.gamma * Z_hat + self.beta
-        return self.norm
+        return self.scaled_norm
 
-    def backprop_step(self, dA, bs):
-        activation_grads = self.ip_layer.activation.calculate_derivatives(self.norm)
-
-        d_norm = self.ip_layer.compute_dZ(dA, activation_grads)
-
-        grads = {
-            "gamma": np.sum(d_norm * self.Z_hat, axis=1, keepdims=True),
-            "beta": np.sum(d_norm, axis=1, keepdims=True),
+    def backprop_step(self, dA, *args, **kwargs):
+        self.gradients = {
+            "gamma": np.sum(dA * self.norm, axis=self.axes, keepdims=True),
+            "beta": np.sum(dA, axis=self.axes, keepdims=True),
         }
 
-        self.ip_layer.gradients.update(grads)
+        dNorm = dA * self.gamma
 
-        dZ_hat = d_norm * self.gamma
+        mean_share = dNorm.sum(axis=self.axes, keepdims=True)
+        var_share = self.norm * np.sum(dNorm * self.norm, axis=self.axes, keepdims=True)
 
-        dZ_hat_sum = np.sum(dZ_hat, axis=1, keepdims=True)
-        dZ_hat_prod = self.Z_hat * np.sum(dZ_hat * self.Z_hat, axis=1, keepdims=True)
+        scale = dNorm.size / self.x_dim
 
-        return (bs * dZ_hat - dZ_hat_sum - dZ_hat_prod) / (bs * self.std)
+        self.dX = (scale * dNorm - mean_share - var_share) / (scale * self.std)
+
+        return self.dX
 
 
 class Dense(BaseLayer):
@@ -514,7 +536,7 @@ class Flatten(BaseLayer):
 
 class Dropout(BaseLayer):
     def __init__(self, ip, keep_prob=0.5):
-        if 0 < keep_prob <= 1:
+        if not 0 < keep_prob <= 1:
             raise AttributeError("keep_prob should be in the interval (0, 1]")
 
         self.keep_prob = keep_prob
@@ -534,7 +556,7 @@ class Dropout(BaseLayer):
         return self.dropped
 
     def output_shape(self):
-        return self.sinput_shape()
+        return self.input_shape()
 
     def forward_step(self, *args, **kwargs):
         ip = self.input()

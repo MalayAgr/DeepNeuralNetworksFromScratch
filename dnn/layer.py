@@ -104,9 +104,11 @@ class BatchNorm(BaseLayer):
 
         scale = dNorm.size / self.x_dim
 
-        self.dX = (scale * dNorm - mean_share - var_share) / (scale * self.std)
+        dX = (scale * dNorm - mean_share - var_share) / (scale * self.std)
 
-        return self.dX
+        self.reset_attrs()
+
+        return dX
 
 
 class Dense(BaseLayer):
@@ -202,9 +204,11 @@ class Dense(BaseLayer):
         if self.use_bias:
             self.gradients["biases"] = np.sum(dZ, keepdims=True, axis=1) / m
 
-        self.dX = np.matmul(self.weights.T, dZ, dtype=np.float32)
+        dX = np.matmul(self.weights.T, dZ, dtype=np.float32)
 
-        return self.dX
+        self.reset_attrs()
+
+        return dX
 
 
 class Conv2D(BaseLayer):
@@ -390,9 +394,11 @@ class Conv2D(BaseLayer):
         if self.use_bias:
             self.gradients["biases"] = dZ_flat.sum(axis=(0, 1)) / dZ.shape[-1]
 
-        self.dX = self._compute_dX(dZ_flat)
+        dX = self._compute_dX(dZ_flat)
 
-        return self.dX
+        self.reset_attrs()
+
+        return dX
 
 
 class MaxPooling2D(BaseLayer):
@@ -501,8 +507,12 @@ class MaxPooling2D(BaseLayer):
 
     def backprop_step(self, dA, *args, **kwargs):
         dA_flat = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
-        self.dX = self._compute_dX(dA_flat)
-        return self.dX
+
+        dX = self._compute_dX(dA_flat)
+
+        self.reset_attrs()
+
+        return dX
 
 
 class AveragePooling2D(MaxPooling2D):
@@ -551,9 +561,7 @@ class Flatten(BaseLayer):
         return self.flat
 
     def backprop_step(self, dA, *args, **kwargs):
-        self.dX = dA.reshape(*self._ip_dims, -1)
-
-        return self.dX
+        return dA.reshape(*self._ip_dims, -1)
 
 
 class Dropout(BaseLayer):
@@ -592,6 +600,8 @@ class Dropout(BaseLayer):
         return self.dropped
 
     def backprop_step(self, dA, *args, **kwargs):
-        self.dX = (dA * self.dropout_mask) / self.keep_prob
+        dX = (dA * self.dropout_mask) / self.keep_prob
 
-        return self.dX
+        self.reset_attrs()
+
+        return dX

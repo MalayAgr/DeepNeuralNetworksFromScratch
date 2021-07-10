@@ -39,14 +39,6 @@ class BaseLayer(ABC):
         for attr, value in attrs.items():
             self.__setattr__(attr, value)
 
-    @property
-    def dX(self):
-        return self._dX
-
-    @dX.setter
-    def dX(self, value):
-        self._dX = value
-
     @cached_property
     @abstractmethod
     def fans(self):
@@ -127,12 +119,7 @@ class BaseLayer(ABC):
         """
 
     def reset_attrs(self):
-        attrs = ("dX",)
-
-        if self.reset is not None:
-            attrs += self.reset
-
-        for attr in attrs:
+        for attr in self.reset:
             if isinstance(attr, tuple):
                 setattr(self, attr[0], attr[-1])
                 continue

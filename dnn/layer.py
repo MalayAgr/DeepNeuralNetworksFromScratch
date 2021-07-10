@@ -70,8 +70,13 @@ class BatchNorm(BaseLayer):
         return self.input_shape()
 
     def _update_mva(self, mean, std):
-        self.mean_mva = self.momentum * self.mean_mva + (1 - self.momentum) * mean
-        self.std_mva = self.momentum * self.std_mva + (1 - self.momentum) * std
+        mom, one_minus_mom = self.momentum, 1 - self.momentum
+
+        self.mean_mva *= mom
+        self.mean_mva += one_minus_mom * mean
+
+        self.std_mva *= mom
+        self.std_mva += one_minus_mom * mean
 
     def forward_step(self, *args, **kwargs):
         ip = self.input()
@@ -86,7 +91,9 @@ class BatchNorm(BaseLayer):
         else:
             mean, std = self.mean_mva, self.std_mva
 
-        self.norm = np.divide(ip - mean, std)
+        self.norm = ip - mean
+        self.norm /= std
+
         self.scaled_norm = self.gamma * self.norm + self.beta
 
         return self.scaled_norm
@@ -97,14 +104,14 @@ class BatchNorm(BaseLayer):
             "beta": np.sum(dA, axis=self.axes, keepdims=True),
         }
 
-        dNorm = dA * self.gamma
+        dA *= self.gamma
 
-        mean_share = dNorm.sum(axis=self.axes, keepdims=True)
-        var_share = self.norm * np.sum(dNorm * self.norm, axis=self.axes, keepdims=True)
+        mean_share = dA.sum(axis=self.axes, keepdims=True)
+        var_share = self.norm * np.sum(dA * self.norm, axis=self.axes, keepdims=True)
 
-        scale = dNorm.size / self.x_dim
+        scale = dA.size / self.x_dim
 
-        dX = (scale * dNorm - mean_share - var_share) / (scale * self.std)
+        dX = (scale * dA - mean_share - var_share) / (scale * self.std)
 
         self.reset_attrs()
 
@@ -197,9 +204,10 @@ class Dense(BaseLayer):
 
         dW = np.matmul(dZ, ip.T, dtype=np.float32) / m
 
-        self.gradients["weights"] = (
-            dW + (reg_param / m) * self.weights if reg_param > 0 else dW
-        )
+        if reg_param > 0:
+            dW += (reg_param / m) * self.weights
+
+        self.gradients["weights"] = dW
 
         if self.use_bias:
             self.gradients["biases"] = np.sum(dZ, keepdims=True, axis=1) / m
@@ -387,13 +395,15 @@ class Conv2D(BaseLayer):
 
         dW = self._compute_dW(dZ_flat)
 
-        self.gradients["kernels"] = (
-            dW + (reg_param / dZ.shape[-1]) * self.kernels if reg_param > 0 else dW
-        )
+        if reg_param > 0:
+            dW += (reg_param / dZ.shape[-1]) * self.kernels
+
+        self.gradients["kernels"] = dW
 
         if self.use_bias:
             self.gradients["biases"] = (
-                dZ_flat.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / dZ.shape[-1]
+                dZ_flat.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:])
+                / dZ.shape[-1]
             )
 
         dX = self._compute_dX(dZ_flat)
@@ -523,7 +533,9 @@ class AveragePooling2D(MaxPooling2D):
 
         averages = ip.mean(axis=-1)
 
-        distributed = np.ones_like(ip) / ip_shape[-1]
+        distributed = (
+            np.ones(shape=(1, 1, 1, ip_shape[-1]), dtype=np.float32) / ip_shape[-1]
+        )
 
         shape = (self.windows, self.out_H, self.out_W, -1)
 
@@ -595,15 +607,18 @@ class Dropout(BaseLayer):
     def forward_step(self, *args, **kwargs):
         ip = self.input()
 
-        self.dropout_mask = np.random.rand(*ip.shape) < self.keep_prob
+        self.dropout_mask = (
+            np.random.rand(*ip.shape).astype(np.float32) < self.keep_prob
+        )
 
         self.dropped = (ip * self.dropout_mask) / self.keep_prob
 
         return self.dropped
 
     def backprop_step(self, dA, *args, **kwargs):
-        dX = (dA * self.dropout_mask) / self.keep_prob
+        dA *= self.dropout_mask
+        dA /= self.keep_prob
 
         self.reset_attrs()
 
-        return dX
+        return dA

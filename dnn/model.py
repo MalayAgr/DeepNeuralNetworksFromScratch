@@ -6,23 +6,25 @@ class Model:
         self.ip_layer = ip_layer
         self.op_layer = op_layer
 
-        self.layers = self._deconstruct(ip_layer, op_layer)
-
-        self.trainable_layers = [layer for layer in self.layers if layer.trainable]
+        self.layers, self.trainable_layers = self._deconstruct(ip_layer, op_layer)
 
         self.opt = None
 
     @staticmethod
     def _deconstruct(ip_layer, op_layer):
-        layers = []
+        layers, trainable_layers = [], []
 
         layer = op_layer
 
         while layer is not ip_layer:
             layers.append(layer)
+
+            if layer.trainable is True:
+                trainable_layers.append(layer)
+
             layer = layer.ip_layer
 
-        return layers[::-1]
+        return layers[::-1], trainable_layers[::-1]
 
     def __str__(self):
         layers = ", ".join([str(l) for l in self.layers])

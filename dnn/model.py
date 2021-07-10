@@ -37,8 +37,6 @@ class Model:
         for layer in self.layers:
             layer.forward_step()
 
-        self.ip_layer.ip = None
-
         return self.op_layer.output()
 
     def compile(self, opt):

@@ -14,6 +14,8 @@ from dnn.utils import (
 
 
 class BatchNorm(BaseLayer):
+    reset = ("std", "norm", "scaled_norm")
+
     def __init__(self, ip, axis=0, momentum=0.5, epsilon=1e-7):
         self.axis = axis
         self.momentum = momentum
@@ -108,6 +110,8 @@ class BatchNorm(BaseLayer):
 
 
 class Dense(BaseLayer):
+    reset = ("linear", "activations")
+
     def __init__(self, ip, units, activation=None, initializer="he", use_bias=True):
         self.units = units
         self.activation = add_activation(activation)
@@ -204,6 +208,14 @@ class Dense(BaseLayer):
 
 
 class Conv2D(BaseLayer):
+    reset = (
+        "convolutions",
+        "activations",
+        "_vectorized_ip",
+        "_vectorized_kernel",
+        "_slice_idx",
+    )
+
     def __init__(
         self,
         ip,
@@ -384,6 +396,8 @@ class Conv2D(BaseLayer):
 
 
 class MaxPooling2D(BaseLayer):
+    reset = ("pooled", "_slice_idx", "_dX_share")
+
     def __init__(self, ip, pool_size, stride=(2, 2), padding="valid"):
         self.pool_size = pool_size
         self.pool_H, self.pool_W = pool_size
@@ -505,6 +519,8 @@ class AveragePooling2D(MaxPooling2D):
 
 
 class Flatten(BaseLayer):
+    reset = ("flat",)
+
     def __init__(self, ip):
         super().__init__(ip=ip, trainable=False)
 
@@ -541,6 +557,8 @@ class Flatten(BaseLayer):
 
 
 class Dropout(BaseLayer):
+    reset = ("dropped", "dropout_mask")
+
     def __init__(self, ip, keep_prob=0.5):
         if not 0 < keep_prob <= 1:
             raise AttributeError("keep_prob should be in the interval (0, 1]")

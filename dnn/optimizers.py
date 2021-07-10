@@ -16,6 +16,10 @@ class Optimizer(ABC):
     def __init__(self, *args, learning_rate=0.01, **kwargs):
         self.lr = learning_rate
 
+    def _clean_up(self, model):
+        for layer in model.layers:
+            layer.reset_attrs()
+
     @abstractmethod
     def optimize(
         self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
@@ -50,6 +54,8 @@ class BaseMiniBatchGD(Optimizer):
 
         backprop(model, loss=loss, labels=batch_Y, preds=preds, reg_param=reg_param)
         self.update_params(model, *args, **kwargs)
+
+        self._clean_up()
 
         return cost
 

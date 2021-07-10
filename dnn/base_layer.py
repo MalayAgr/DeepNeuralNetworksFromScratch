@@ -5,13 +5,15 @@ from dnn.input_layer import Input
 
 
 class BaseLayer(ABC):
+    reset = None
+
     def __init__(self, ip, *args, trainable=True, params=None, **kwargs):
         if ip is not None and not isinstance(ip, (Input, BaseLayer)):
-                msg = (
-                    f"A {self.__class__.__name__} can have only instances "
-                    "of Input or a subclass of BaseLayer as ip"
-                )
-                raise AttributeError(msg)
+            msg = (
+                f"A {self.__class__.__name__} can have only instances "
+                "of Input or a subclass of BaseLayer as ip"
+            )
+            raise AttributeError(msg)
 
         self.ip_layer = ip
 
@@ -123,3 +125,15 @@ class BaseLayer(ABC):
         """
         One step of backpropagation
         """
+
+    def reset_attrs(self):
+        attrs = (("gradients", {}), "dX")
+
+        if self.reset is not None:
+            attrs += self.reset
+
+        for attr in attrs:
+            if isinstance(attr, tuple):
+                setattr(self, attr[0], attr[-1])
+                continue
+            setattr(self, attr, None)

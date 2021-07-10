@@ -45,7 +45,7 @@ def generate_batches(X, Y, batch_size, shuffle=True):
 
     if shuffle is True:
         perm = np.random.permutation(num_samples)
-        X, Y = X[:, perm], Y[:, perm]
+        X, Y = X[..., perm], Y[..., perm]
 
     if num_full_batches == 1:
         yield X, Y, num_samples
@@ -54,11 +54,11 @@ def generate_batches(X, Y, batch_size, shuffle=True):
     for idx in range(num_full_batches):
         start = idx * batch_size
         end = (idx + 1) * batch_size
-        yield X[:, start:end], Y[:, start:end], batch_size
+        yield X[..., start:end], Y[..., start:end], batch_size
 
     if num_samples % batch_size != 0:
         start = batch_size * num_full_batches
-        yield X[:, start:], Y[:, start:], num_samples - start
+        yield X[..., start:], Y[..., start:], num_samples - start
 
 
 def backprop(model, loss, labels, preds, reg_param=0.0):

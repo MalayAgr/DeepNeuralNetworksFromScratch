@@ -30,52 +30,47 @@ class Activation(BaseLayer):
         """
         The formula used to calculate the activations.
         Subclasses classes must implement this.
-
         If the activation function is called g with input z,
         this should return g(z).
-
         Arguments:
             ip (Numpy-array): The input z for the function.
-
         Returns:
             A Numpy-array with the calculated activations, g(z).
         """
 
     @abstractmethod
-    def derivative_func(self, ip):
+    def derivative_func(self, ip, activations=None):
         """
         The formula used to calculate the derivatives.
         Subclasses classes must implement this.
-
         If the activation function is called g with input z,
         this should return g'(z).
-
         Arguments:
             ip (Numpy-array): The input z with respect to which derivatives
                 need to be calculated.
-
         Example:
             For sigmoid, the derivative is sigmoid(z) * (1 - sigmoid(z)).
             This should be implemented as:
                 def derivative_func(self):
                     sigmoid = self.activation_func(ip)
                     return sigmoid * (1 - sigmoid)
-
         Returns:
             A Numpy-array with the calculated derivatives, g'(z).
         """
 
-    def calculate_activations(self, ip=None):
+    def compute_activations(self, ip=None):
         if ip is None:
             ip = self.input()
 
-        return self.activation_func(ip)
+        return self.activation_func(ip).astype(np.float32)
 
-    def calculate_derivatives(self, ip=None):
+    def compute_derivatives(self, ip=None):
         if ip is None:
             ip = self.input()
-
-        return self.derivative_func(ip)
+            return self.derivative_func(ip, activations=self.activations).astype(
+                np.float32
+            )
+        return self.derivative_func(ip).astype(np.float32)
 
     @cached_property
     def fans(self):
@@ -91,28 +86,32 @@ class Activation(BaseLayer):
     def forward_step(self, *args, **kwargs):
         ip = kwargs.pop("ip", None)
 
-        self.activations = self.calculate_activations(ip)
+        self.activations = self.compute_activations(ip)
 
         return self.activations
 
     def backprop_step(self, dA, *args, **kwargs):
         ip = kwargs.pop("ip", None)
 
-        dZdA = self.calculate_derivatives(ip)
+        dA = dA * self.compute_derivatives(ip)
 
-        self.dX = dA * dZdA
+        self.activations = None
 
-        return self.dX
+        return dA
 
 
 class Sigmoid(Activation):
     name = "sigmoid"
 
     def activation_func(self, ip):
-        return 1 / (1 + np.exp(-ip))
+        z = 1.0
+        z /= np.exp(-ip) + 1
+        return z
 
-    def derivative_func(self, ip):
-        activations = self.activation_func(ip)
+    def derivative_func(self, ip, activations=None):
+        if activations is None:
+            activations = self.activation_func(ip)
+
         return activations * (1 - activations)
 
 
@@ -121,22 +120,27 @@ class Softmax(Activation):
 
     def activation_func(self, ip):
         z = ip - np.max(ip, axis=0, keepdims=True)
-        exp_z = np.exp(z)
-        summation = np.sum(exp_z, axis=0, keepdims=True)
-        return exp_z / summation
+        z = np.exp(z)
+        z /= np.sum(z, axis=0, keepdims=True)
+        return z
 
-    def derivative_func(self, ip):
-        activations = self.activation_func(ip)
+    def derivative_func(self, ip, activations=None):
+        if activations is None:
+            activations = self.activation_func(ip)
+
         units = activations.shape[0]
-        grads = (np.eye(units) - activations.T[..., None]) * activations[:, None, :].T
+
+        grads = np.eye(units, dtype=np.float32) - activations.T[..., None]
+        grads *= activations[:, None, :].T
+
         return np.moveaxis(grads, 0, -1)
 
     def backprop_step(self, dA, *args, **kwargs):
-        super().backprop_step(dA, *args, **kwargs)
+        dA = super().backprop_step(dA, *args, **kwargs)
 
-        self.dX = np.sum(self.dX, axis=1)
+        dA = np.sum(dA, axis=1)
 
-        return self.dX
+        return dA
 
 
 class Tanh(Activation):
@@ -145,8 +149,12 @@ class Tanh(Activation):
     def activation_func(self, ip):
         return np.tanh(ip)
 
-    def derivative_func(self, ip):
-        return 1 - self.activation_func(ip) ** 2
+    def derivative_func(self, ip, activations=None):
+        if activations is None:
+            activations = self.activation_func(ip)
+
+        activations **= 2
+        return 1 - activations
 
 
 class ReLU(Activation):
@@ -155,7 +163,7 @@ class ReLU(Activation):
     def activation_func(self, ip):
         return np.maximum(0, ip)
 
-    def derivative_func(self, ip):
+    def derivative_func(self, ip, activations=None):
         return np.where(ip > 0, 1.0, 0)
 
 
@@ -174,7 +182,7 @@ class LeakyReLU(Activation):
     def activation_func(self, ip):
         return np.where(ip > 0, ip, self.alpha * ip)
 
-    def derivative_func(self, ip):
+    def derivative_func(self, ip, activations=None):
         return np.where(ip > 0, 1.0, self.alpha)
 
 
@@ -185,5 +193,5 @@ class ELU(LeakyReLU):
     def activation_func(self, ip):
         return np.where(ip > 0, ip, self.alpha * (np.exp(ip) - 1))
 
-    def derivative_func(self, ip):
+    def derivative_func(self, ip, activations=None):
         return np.where(ip > 0, 1.0, self.alpha * np.exp(ip))

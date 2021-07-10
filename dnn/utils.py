@@ -66,6 +66,7 @@ def backprop(model, loss, labels, preds, reg_param=0.0):
 
     for layer in reversed(model.layers):
         dA = layer.backprop_step(dA, reg_param=reg_param)
+        layer.reset_attrs()
 
 
 def compute_l2_cost(model, reg_param, cost):

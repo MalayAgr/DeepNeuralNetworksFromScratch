@@ -127,7 +127,7 @@ class BaseLayer(ABC):
         """
 
     def reset_attrs(self):
-        attrs = (("gradients", {}), "dX")
+        attrs = ("dX",)
 
         if self.reset is not None:
             attrs += self.reset

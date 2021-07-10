@@ -38,6 +38,8 @@ class BaseMiniBatchGD(Optimizer):
                 current_val = rgetattr(layer, attr)
                 rsetattr(layer, attr, current_val - self.lr * updates[key])
 
+            layer.gradients = {}
+
     def mini_batch_step(self, model, batch_X, batch_Y, loss, *args, **kwargs):
         preds = model.predict(batch_X)
 

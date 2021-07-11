@@ -127,20 +127,43 @@ def vectorize_for_conv(X, kernel_size, stride, output_size, reshape=None):
     return vectorized_ip, indices
 
 
-def accumulate_dX_conv(
-    dX, dIp, slice_idx, kernel_size, shape, padding=(0, 0), moveaxis=True
-):
+def accumulate_dX_conv(dIp, slice_idx, kernel_size, X_shape, transpose=None):
     kH, kW = kernel_size
+    ipH, ipW = X_shape
 
-    for idx, (start_r, start_c) in enumerate(slice_idx):
-        end_r, end_c = start_r + kH, start_c + kW
-        dX[..., start_r:end_r, start_c:end_c] += dIp[:, idx, ...].reshape(*shape)
+    m = dIp.shape[0]
+    rows = dIp.shape[1]
+    units_per_row = np.prod(dIp.shape[2:])
+    ip_C = units_per_row // (kH * kW)
 
-    if padding != (0, 0):
-        pH, pW = padding
-        dX = dX[..., pH:-pH, pW:-pW]
+    pos = np.empty(shape=(rows, units_per_row, 2), dtype=np.int16)
 
-    if moveaxis is False:
-        return dX
+    idx = slice_idx[:, 0][..., None] + range(kH)
+    idx = np.repeat(idx, kW).reshape(rows, kH * kW)
 
-    return np.moveaxis(dX, 0, -1)
+    pos[:, :, 0] = np.tile(idx, ip_C)
+
+    idx = slice_idx[:, 1][..., None] + range(kW)
+    idx = np.tile(idx, kH)
+
+    pos[:, :, 1] = np.tile(idx, ip_C)
+
+    pos.shape = (rows, *dIp.shape[2:], -1)
+
+    dX = np.array(
+        [
+            dIp[..., (pos[..., 0] == i) & (pos[..., 1] == j)]
+            .reshape(m, ip_C, -1, order="F")
+            .sum(axis=-1)
+            .astype(np.float32)
+            for i, j in np.ndindex(ipH, ipW)
+        ],
+        dtype=np.float32,
+    )
+
+    dX.shape = (ipH, ipW, *dX.shape[1:])
+
+    if transpose is not None:
+        dX = dX.transpose(*transpose)
+
+    return dX

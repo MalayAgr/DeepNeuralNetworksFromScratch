@@ -367,20 +367,18 @@ class Conv2D(BaseLayer):
     def _compute_dX(self, dZ):
         dVec_ip = np.matmul(dZ, self._vectorized_kernel.T, dtype=np.float32)
 
-        dX = np.zeros(
-            shape=(dZ.shape[0], self.ip_C, *self._padded_shape), dtype=np.float32
-        )
-
-        shape = (-1, self.ip_C, self.kernel_H, self.kernel_W)
-
-        return accumulate_dX_conv(
-            dX=dX,
+        dX = accumulate_dX_conv(
             dIp=dVec_ip,
             slice_idx=self._slice_idx,
             kernel_size=self.kernel_size,
-            shape=shape,
-            padding=(self.p_H, self.p_W),
+            X_shape=self._padded_shape,
+            transpose=(-1, 0, 1, 2),
         )
+
+        if self.padding != "valid":
+            dX = dX[:, self.p_H : -self.p_H, self.p_W : -self.p_W, :]
+
+        return dX
 
     def backprop_step(self, dA, *args, **kwargs):
         reg_param = kwargs.pop("reg_param", 0.0)
@@ -502,20 +500,18 @@ class MaxPooling2D(BaseLayer):
     def _compute_dX(self, dZ):
         dVec_ip = self._dX_share * dZ[..., None]
 
-        dX = np.zeros(
-            shape=(dZ.shape[0], self.windows, *self._padded_shape), dtype=np.float32
-        )
-
-        shape = (-1, self.windows, self.pool_H, self.pool_W)
-
-        return accumulate_dX_conv(
-            dX=dX,
+        dX = accumulate_dX_conv(
             dIp=dVec_ip,
             slice_idx=self._slice_idx,
             kernel_size=self.pool_size,
-            shape=shape,
-            padding=(self.p_H, self.p_W),
+            X_shape=self._padded_shape,
+            transpose=(-1, 0, 1, 2),
         )
+
+        if self.padding != "valid":
+            dX = dX[:, self.p_H : -self.p_H, self.p_W : -self.p_W, :]
+
+        return dX
 
     def backprop_step(self, dA, *args, **kwargs):
         dA_flat = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)

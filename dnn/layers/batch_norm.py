@@ -67,7 +67,7 @@ class BatchNorm(BaseLayer):
         self.mean_mva += one_minus_mom * mean
 
         self.std_mva *= mom
-        self.std_mva += one_minus_mom * mean
+        self.std_mva += one_minus_mom * std
 
     def forward_step(self, *args, **kwargs):
         ip = self.input()

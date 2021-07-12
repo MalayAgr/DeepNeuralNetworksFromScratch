@@ -214,12 +214,10 @@ class Adam(BaseMiniBatchGD):
         updates = {}
         for key in layer.gradients:
             m1 = np.divide(layer.m1[key], 1.0 - self.momentum ** t)
-
             updates[key] = m1
 
-            m2 = np.divide(layer.m2[key], 1.0 - self.rho ** t)
-
-            updates[key] /= (np.sqrt(m2) + self.epsilon)
+            m1 = np.divide(layer.m2[key], 1.0 - self.rho ** t)
+            updates[key] /= np.sqrt(m1) + self.epsilon
 
         return updates
 

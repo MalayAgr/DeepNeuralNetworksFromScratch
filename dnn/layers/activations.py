@@ -71,9 +71,8 @@ class Activation(BaseLayer):
             )
         return self.derivative_func(ip).astype(np.float32)
 
-    @cached_property
     def fans(self):
-        ip_layer_fans = self.ip_layer.fans
+        ip_layer_fans = self.ip_layer.fans()
         return ip_layer_fans[-1], ip_layer_fans[-1]
 
     def output(self):

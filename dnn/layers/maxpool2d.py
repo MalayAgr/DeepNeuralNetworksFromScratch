@@ -1,5 +1,3 @@
-from functools import cached_property
-
 import numpy as np
 from dnn.layers.base_layer import BaseLayer
 from dnn.layers.utils import (
@@ -43,7 +41,6 @@ class MaxPooling2D(BaseLayer):
         self._padded_shape = None
         self._dX_share = None
 
-    @cached_property
     def fans(self):
         return self.ip_C, self.ip_C
 

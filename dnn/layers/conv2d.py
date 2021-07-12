@@ -1,5 +1,3 @@
-from functools import cached_property
-
 import numpy as np
 from dnn.layers.base_layer import BaseLayer
 from dnn.layers.utils import (
@@ -72,7 +70,6 @@ class Conv2D(BaseLayer):
         self._vectorized_kernel = None
         self._padded_shape = None
 
-    @cached_property
     def fans(self):
         receptive_field_size = np.prod(self.kernel_size)
         fan_in = self.ip_C * receptive_field_size

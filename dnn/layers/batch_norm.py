@@ -1,5 +1,3 @@
-from functools import cached_property
-
 import numpy as np
 from dnn.layers.base_layer import BaseLayer
 
@@ -27,9 +25,8 @@ class BatchNorm(BaseLayer):
         self.mean_mva = None
         self.std_mva = None
 
-    @cached_property
     def fans(self):
-        _, ip_fan_out = self.ip_layer.fans
+        _, ip_fan_out = self.ip_layer.fans()
 
         return ip_fan_out, ip_fan_out
 

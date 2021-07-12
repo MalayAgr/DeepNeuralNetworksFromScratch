@@ -1,5 +1,3 @@
-from functools import cached_property
-
 import numpy as np
 from dnn.layers.base_layer import BaseLayer
 
@@ -16,9 +14,8 @@ class Flatten(BaseLayer):
 
         self.flat = None
 
-    @cached_property
     def fans(self):
-        _, ip_fan_out = self.ip_layer.fans
+        _, ip_fan_out = self.ip_layer.fans()
 
         return ip_fan_out, self.units
 

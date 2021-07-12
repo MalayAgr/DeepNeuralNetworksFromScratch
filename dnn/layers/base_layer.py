@@ -44,7 +44,6 @@ class BaseLayer(ABC):
         for attr, value in attrs.items():
             self.__setattr__(attr, value)
 
-    @cached_property
     @abstractmethod
     def fans(self):
         """
@@ -52,7 +51,7 @@ class BaseLayer(ABC):
         """
 
     def _initializer_variance(self, initializer):
-        fan_in, fan_out = self.fans
+        fan_in, fan_out = self.fans()
 
         return {
             "he": 2 / fan_in,

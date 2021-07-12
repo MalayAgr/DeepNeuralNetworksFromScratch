@@ -1,5 +1,3 @@
-from functools import cached_property
-
 import numpy as np
 from dnn.layers.base_layer import BaseLayer
 from dnn.layers.utils import add_activation
@@ -26,13 +24,12 @@ class Dense(BaseLayer):
 
         super().__init__(ip=ip, params=params)
 
-    @cached_property
     def fans(self):
         fan_in = self.input_shape()[0]
         return fan_in, self.units
 
     def init_params(self):
-        y_dim, _ = self.fans
+        y_dim, _ = self.fans()
 
         variance = self._initializer_variance(self.initializer)
 

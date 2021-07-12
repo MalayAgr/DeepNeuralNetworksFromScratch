@@ -1,4 +1,3 @@
-from dnn.utils import pad
 from functools import cached_property
 from dnn.layers.base_layer import BaseLayer
 from dnn.layers.utils import (

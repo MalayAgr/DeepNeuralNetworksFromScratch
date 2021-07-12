@@ -364,22 +364,6 @@ class Conv2D(BaseLayer):
 
         return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters) / ip.shape[0]
 
-    def _compute_dX(self, dZ):
-        dVec_ip = np.matmul(dZ, self._vectorized_kernel.T, dtype=np.float32)
-
-        dX = accumulate_dX_conv(
-            dIp=dVec_ip,
-            slice_idx=self._slice_idx,
-            kernel_size=self.kernel_size,
-            X_shape=self._padded_shape,
-            transpose=(-1, 0, 1, 2),
-        )
-
-        if self.padding != "valid":
-            dX = dX[:, self.p_H : -self.p_H, self.p_W : -self.p_W, :]
-
-        return dX
-
     def backprop_step(self, dA, *args, **kwargs):
         reg_param = kwargs.pop("reg_param", 0.0)
 
@@ -389,9 +373,9 @@ class Conv2D(BaseLayer):
             else dA
         )
 
-        dZ_flat = np.swapaxes(dZ, 0, -1).reshape(dZ.shape[-1], -1, self.filters)
+        dZ = np.swapaxes(dZ, 0, -1).reshape(dZ.shape[-1], -1, self.filters)
 
-        dW = self._compute_dW(dZ_flat)
+        dW = self._compute_dW(dZ)
 
         if reg_param > 0:
             dW += (reg_param / dZ.shape[-1]) * self.kernels
@@ -400,11 +384,18 @@ class Conv2D(BaseLayer):
 
         if self.use_bias:
             self.gradients["biases"] = (
-                dZ_flat.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:])
+                dZ.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:])
                 / dZ.shape[-1]
             )
 
-        dX = self._compute_dX(dZ_flat)
+        dX = accumulate_dX_conv(
+            dX_shape=(dZ.shape[0], self.ip_C, *self._padded_shape),
+            dIp=np.matmul(dZ, self._vectorized_kernel.T, dtype=np.float32),
+            slice_idx=self._slice_idx,
+            kernel_size=self.kernel_size,
+            reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),
+            padding=(self.p_H, self.p_W),
+        )
 
         self.reset_attrs()
 
@@ -497,26 +488,17 @@ class MaxPooling2D(BaseLayer):
         self.pooled = self._pool(self.input())
         return self.pooled
 
-    def _compute_dX(self, dZ):
-        dVec_ip = self._dX_share * dZ[..., None]
-
-        dX = accumulate_dX_conv(
-            dIp=dVec_ip,
-            slice_idx=self._slice_idx,
-            kernel_size=self.pool_size,
-            X_shape=self._padded_shape,
-            transpose=(-1, 0, 1, 2),
-        )
-
-        if self.padding != "valid":
-            dX = dX[:, self.p_H : -self.p_H, self.p_W : -self.p_W, :]
-
-        return dX
-
     def backprop_step(self, dA, *args, **kwargs):
         dA_flat = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
 
-        dX = self._compute_dX(dA_flat)
+        dX = accumulate_dX_conv(
+            dX_shape=(dA_flat.shape[0], self.windows, *self._padded_shape),
+            dIp=self._dX_share * dA_flat[..., None],
+            slice_idx=self._slice_idx,
+            kernel_size=self.pool_size,
+            reshape=(-1, self.windows, self.pool_H, self.pool_W),
+            padding=(self.p_H, self.p_W),
+        )
 
         self.reset_attrs()
 

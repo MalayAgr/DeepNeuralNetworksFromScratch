@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from functools import cached_property
 
 from dnn.input_layer import Input
 

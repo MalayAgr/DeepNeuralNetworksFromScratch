@@ -225,7 +225,6 @@ class Conv2D(BaseLayer):
         "activations",
         "_vectorized_ip",
         "_vectorized_kernel",
-        "_slice_idx",
     )
 
     def __init__(
@@ -276,7 +275,6 @@ class Conv2D(BaseLayer):
 
         self._vectorized_ip = None
         self._vectorized_kernel = None
-        self._slice_idx = None
         self._padded_shape = None
 
     @cached_property
@@ -323,7 +321,7 @@ class Conv2D(BaseLayer):
     def _convolve(self, X):
         X, self._padded_shape = pad(X, self.p_H, self.p_W)
 
-        X, self._slice_idx = vectorize_for_conv(
+        X = vectorize_for_conv(
             X, self.kernel_size, self.stride, (self.out_H, self.out_W)
         )
 
@@ -365,8 +363,6 @@ class Conv2D(BaseLayer):
         return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters) / ip.shape[0]
 
     def backprop_step(self, dA, *args, **kwargs):
-        reg_param = kwargs.pop("reg_param", 0.0)
-
         dZ = (
             self.activation.backprop_step(dA, ip=self.convolutions)
             if self.activation is not None
@@ -377,6 +373,7 @@ class Conv2D(BaseLayer):
 
         dW = self._compute_dW(dZ)
 
+        reg_param = kwargs.pop("reg_param", 0.0)
         if reg_param > 0:
             dW += (reg_param / dZ.shape[-1]) * self.kernels
 
@@ -384,14 +381,14 @@ class Conv2D(BaseLayer):
 
         if self.use_bias:
             self.gradients["biases"] = (
-                dZ.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:])
-                / dZ.shape[-1]
+                dZ.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / dZ.shape[-1]
             )
 
         dX = accumulate_dX_conv(
             dX_shape=(dZ.shape[0], self.ip_C, *self._padded_shape),
+            output_size=(self.out_H, self.out_W),
             dIp=np.matmul(dZ, self._vectorized_kernel.T, dtype=np.float32),
-            slice_idx=self._slice_idx,
+            stride=self.stride,
             kernel_size=self.kernel_size,
             reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),
             padding=(self.p_H, self.p_W),
@@ -403,7 +400,7 @@ class Conv2D(BaseLayer):
 
 
 class MaxPooling2D(BaseLayer):
-    reset = ("pooled", "_slice_idx", "_dX_share")
+    reset = ("pooled", "_dX_share")
 
     def __init__(self, ip, pool_size, stride=(2, 2), padding="valid"):
         self.pool_size = pool_size
@@ -470,7 +467,7 @@ class MaxPooling2D(BaseLayer):
     def _pool(self, X):
         X, self._padded_shape = pad(X, self.p_H, self.p_W)
 
-        X, self._slice_idx = vectorize_for_conv(
+        X = vectorize_for_conv(
             X=X,
             kernel_size=self.pool_size,
             stride=self.stride,
@@ -489,12 +486,13 @@ class MaxPooling2D(BaseLayer):
         return self.pooled
 
     def backprop_step(self, dA, *args, **kwargs):
-        dA_flat = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
+        dA = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
 
         dX = accumulate_dX_conv(
-            dX_shape=(dA_flat.shape[0], self.windows, *self._padded_shape),
-            dIp=self._dX_share * dA_flat[..., None],
-            slice_idx=self._slice_idx,
+            dX_shape=(dA.shape[0], self.windows, *self._padded_shape),
+            output_size=(self.out_H, self.out_W),
+            dIp=self._dX_share * dA[..., None],
+            stride=self.stride,
             kernel_size=self.pool_size,
             reshape=(-1, self.windows, self.pool_H, self.pool_W),
             padding=(self.p_H, self.p_W),

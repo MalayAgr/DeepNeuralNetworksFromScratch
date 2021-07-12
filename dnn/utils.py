@@ -107,32 +107,43 @@ def pad(X, pad_H, pad_W):
     return padded, new_size
 
 
-def vectorize_for_conv(X, kernel_size, stride, output_size, reshape=None):
-    stride_H, stride_W = stride
-    kernel_H, kernel_W = kernel_size
-    out_H, out_W = output_size
+def slice_idx_generator(oH, oW, sH, sW):
+    return ((i * sH, j * sW) for i in range(oH) for j in range(oH))
 
-    indices = np.array(
-        [(i * stride_H, j * stride_W) for i in range(out_H) for j in range(out_W)],
-        dtype=np.int16,
-    )
+
+def vectorize_for_conv(X, kernel_size, stride, output_size, reshape=None):
+    sH, sW = stride
+    kH, kW = kernel_size
+    oH, oW = output_size
+
+    indices = slice_idx_generator(oH, oW, sH, sW)
 
     if reshape is None:
         reshape = (-1, X.shape[-1])
 
     vectorized_ip = np.array(
-        [X[:, i : i + kernel_H, j : j + kernel_W].reshape(*reshape) for i, j in indices]
+        [X[:, i : i + kH, j : j + kW].reshape(*reshape) for i, j in indices]
     )
 
-    return vectorized_ip, indices
+    return vectorized_ip
 
 
 def accumulate_dX_conv(
-    dX_shape, dIp, slice_idx, kernel_size, reshape, padding=(0, 0), moveaxis=True
+    dX_shape,
+    output_size,
+    dIp,
+    stride,
+    kernel_size,
+    reshape,
+    padding=(0, 0),
+    moveaxis=True,
 ):
     kH, kW = kernel_size
+    sH, sW = stride
 
     dX = np.zeros(shape=dX_shape, dtype=np.float32)
+
+    slice_idx = slice_idx_generator(output_size[0], output_size[1], sH, sW)
 
     for idx, (start_r, start_c) in enumerate(slice_idx):
         end_r, end_c = start_r + kH, start_c + kW

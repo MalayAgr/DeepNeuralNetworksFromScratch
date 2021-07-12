@@ -1,6 +1,7 @@
 from functools import cached_property
-from dnn.layers.base_layer import BaseLayer
+
 import numpy as np
+from dnn.layers.base_layer import BaseLayer
 
 
 class BatchNorm(BaseLayer):

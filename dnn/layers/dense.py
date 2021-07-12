@@ -1,7 +1,8 @@
 from functools import cached_property
+
+import numpy as np
 from dnn.layers.base_layer import BaseLayer
 from dnn.layers.utils import add_activation
-import numpy as np
 
 
 class Dense(BaseLayer):

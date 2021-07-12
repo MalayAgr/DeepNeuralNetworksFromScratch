@@ -1,14 +1,14 @@
 from functools import cached_property
-from dnn.layers.base_layer import BaseLayer
-from dnn.layers.utils import (
-    pad,
-    compute_conv_padding,
-    compute_conv_output_dim,
-    vectorize_for_conv,
-    accumulate_dX_conv,
-)
 
 import numpy as np
+from dnn.layers.base_layer import BaseLayer
+from dnn.layers.utils import (
+    accumulate_dX_conv,
+    compute_conv_output_dim,
+    compute_conv_padding,
+    pad,
+    vectorize_for_conv,
+)
 
 
 class MaxPooling2D(BaseLayer):

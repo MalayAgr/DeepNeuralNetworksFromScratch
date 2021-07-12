@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from functools import cached_property
 
 import numpy as np
-
 from dnn.layers.base_layer import BaseLayer
 
 

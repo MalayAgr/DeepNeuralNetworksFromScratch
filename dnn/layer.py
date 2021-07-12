@@ -111,6 +111,10 @@ class BatchNorm(BaseLayer):
 
         scale = dA.size / self.x_dim
 
+        if self.requires_dX is False:
+            self.reset_attrs()
+            return
+
         dX = (scale * dA - mean_share - var_share) / (scale * self.std)
 
         self.reset_attrs()
@@ -211,6 +215,10 @@ class Dense(BaseLayer):
 
         if self.use_bias:
             self.gradients["biases"] = np.sum(dZ, keepdims=True, axis=1) / m
+
+        if self.requires_dX is False:
+            self.reset_attrs()
+            return
 
         dX = np.matmul(self.weights.T, dZ, dtype=np.float32)
 
@@ -384,6 +392,10 @@ class Conv2D(BaseLayer):
                 dZ.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / dZ.shape[-1]
             )
 
+        if self.requires_dX is False:
+            self.reset_attrs()
+            return
+
         dX = accumulate_dX_conv(
             dX_shape=(dZ.shape[0], self.ip_C, *self._padded_shape),
             output_size=(self.out_H, self.out_W),
@@ -488,6 +500,10 @@ class MaxPooling2D(BaseLayer):
     def backprop_step(self, dA, *args, **kwargs):
         dA = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
 
+        if self.requires_dX is False:
+            self.reset_attrs()
+            return
+
         dX = accumulate_dX_conv(
             dX_shape=(dA.shape[0], self.windows, *self._padded_shape),
             output_size=(self.out_H, self.out_W),
@@ -551,7 +567,11 @@ class Flatten(BaseLayer):
         return self.flat
 
     def backprop_step(self, dA, *args, **kwargs):
-        return dA.reshape(*self._ip_dims, -1)
+        dA = dA.reshape(*self._ip_dims, -1)
+
+        self.reset_attrs()
+
+        return dA
 
 
 class Dropout(BaseLayer):

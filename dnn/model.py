@@ -24,6 +24,8 @@ class Model:
 
             layer = layer.ip_layer
 
+        layer.requires_dX = False
+
         return layers[::-1], trainable_layers[::-1]
 
     def __str__(self):

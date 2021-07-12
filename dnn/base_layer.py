@@ -24,7 +24,7 @@ class BaseLayer(ABC):
         if params is not None:
             self.param_map = self._add_params(params)
 
-        self._dX = None
+        self.requires_dX = True
         self.gradients = {}
 
         self._add_extra_attrs(kwargs)

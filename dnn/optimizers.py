@@ -84,8 +84,8 @@ class BaseMiniBatchGD(Optimizer):
                     **kwargs,
                 )
 
-                log_msg = f"  Step {step + 1}: Train loss = {cost: .5f}"
-                print(log_msg, end="\r", flush=True)
+                log_msg = f"\r  Step {step + 1}: Train loss = {cost: .5f}"
+                print(log_msg, end="", flush=True)
 
             print()
             history.append(cost)

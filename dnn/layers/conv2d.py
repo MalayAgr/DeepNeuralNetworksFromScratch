@@ -20,6 +20,8 @@ class Conv2D(BaseLayer):
         "_vectorized_kernel",
     )
 
+    str_attrs = ("filters", "kernel_size", "stride", "padding", "activation")
+
     def __init__(
         self,
         ip,

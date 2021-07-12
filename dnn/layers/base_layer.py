@@ -6,6 +6,7 @@ from dnn.input_layer import Input
 
 class BaseLayer(ABC):
     reset = None
+    str_attrs = tuple()
 
     def __init__(self, ip, *args, trainable=True, params=None, **kwargs):
         if ip is not None and not isinstance(ip, (Input, BaseLayer)):
@@ -28,6 +29,10 @@ class BaseLayer(ABC):
         self.gradients = {}
 
         self._add_extra_attrs(kwargs)
+
+    def __str__(self):
+        attrs = ", ".join(f"{attr}={getattr(self, attr)}" for attr in self.str_attrs)
+        return f"{self.__class__.__name__}({attrs})"
 
     def _add_params(self, params):
         for param in params:

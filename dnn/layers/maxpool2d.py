@@ -14,6 +14,8 @@ from dnn.layers.utils import (
 class MaxPooling2D(BaseLayer):
     reset = ("pooled", "_dX_share")
 
+    str_attrs = ("pool_size", "stride", "padding")
+
     def __init__(self, ip, pool_size, stride=(2, 2), padding="valid"):
         self.pool_size = pool_size
         self.pool_H, self.pool_W = pool_size

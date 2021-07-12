@@ -6,6 +6,7 @@ from dnn.layers.base_layer import BaseLayer
 
 class Dropout(BaseLayer):
     reset = ("dropped", "dropout_mask")
+    str_attrs = ("keep_prob",)
 
     def __init__(self, ip, keep_prob=0.5):
         if not 0 < keep_prob <= 1:

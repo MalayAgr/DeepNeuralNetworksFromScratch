@@ -7,6 +7,7 @@ from dnn.layers.utils import add_activation
 
 class Dense(BaseLayer):
     reset = ("linear", "activations")
+    str_attrs = ("units", "activation")
 
     def __init__(self, ip, units, activation=None, initializer="he", use_bias=True):
         self.units = units

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 
 
@@ -18,7 +20,7 @@ class Input:
             Actual input that the layer will provide to its users.
     """
 
-    def __init__(self, shape, *args, **kwargs):
+    def __init__(self, shape: tuple, *args, **kwargs) -> None:
         """
         Initializes an Input instance with the given input shape.
 
@@ -31,21 +33,21 @@ class Input:
         self.ip_shape = shape
         self._ip = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}(ip_shape={self.ip_shape})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
     @property
-    def ip(self):
+    def ip(self) -> np.ndarray:
         """
         The actual input to be used in the layer.
         """
         return self._ip
 
     @ip.setter
-    def ip(self, X):
+    def ip(self, X: np.ndarray) -> np.ndarray:
         """
         Setter for the ip property.
 

@@ -1,13 +1,19 @@
+from __future__ import annotations
+
 import functools
-from math import ceil
+from typing import Generator, Optional
 
 import numpy as np
 
 from dnn.layers.activations import Activation
 from dnn.loss import Loss
+from dnn.model import Model
+from dnn.types import LayerInput
 
 
-def activation_factory(activation, *args, ip=None, **kwargs):
+def activation_factory(
+    activation: str, *args, ip: Optional[LayerInput] = None, **kwargs
+) -> Activation:
     registry = Activation.get_activation_classes()
     cls = registry.get(activation)
     if cls is None:
@@ -15,7 +21,7 @@ def activation_factory(activation, *args, ip=None, **kwargs):
     return cls(ip=ip, *args, **kwargs)
 
 
-def loss_factory(loss):
+def loss_factory(loss: str) -> Loss:
     registry = Loss.get_loss_classes()
     cls = registry.get(loss)
     if cls is None:
@@ -23,7 +29,9 @@ def loss_factory(loss):
     return cls()
 
 
-def generate_batches(X, Y, batch_size, shuffle=True):
+def generate_batches(
+    X: np.ndarray, Y: np.ndarray, batch_size: int, shuffle: bool = True
+) -> Generator[tuple[np.ndarray, np.ndarray, int], None, None]:
     num_samples = X.shape[-1]
 
     if batch_size > num_samples:
@@ -51,14 +59,20 @@ def generate_batches(X, Y, batch_size, shuffle=True):
         yield X[..., start:], Y[..., start:], num_samples - start
 
 
-def backprop(model, loss, labels, preds, reg_param=0.0):
+def backprop(
+    model: Model,
+    loss: Loss,
+    labels: np.ndarray,
+    preds: np.ndarray,
+    reg_param: float = 0.0,
+) -> None:
     dA = loss.compute_derivatives(labels, preds)
 
     for layer in reversed(model.layers):
         dA = layer.backprop_step(dA, reg_param=reg_param)
 
 
-def compute_l2_cost(model, reg_param, cost):
+def compute_l2_cost(model: Model, reg_param: float, cost: float) -> float:
     norm = np.add.reduce([np.linalg.norm(layer.weights) ** 2 for layer in model.layers])
 
     m = model.ip_layer.ip.shape[-1]

@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 
 import numpy as np
+
+from dnn.layers.base_layer import BaseLayer
+from dnn.loss import Loss
+from dnn.model import Model
 
 from .utils import (
     backprop,
@@ -13,25 +19,34 @@ from .utils import (
 
 
 class Optimizer(ABC):
-    def __init__(self, *args, learning_rate=0.01, **kwargs):
+    def __init__(self, *args, learning_rate: float = 0.01, **kwargs) -> None:
         self.lr = learning_rate
 
     @abstractmethod
     def optimize(
-        self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
-    ):
+        self,
+        model: Model,
+        X: np.ndarray,
+        Y: np.ndarray,
+        batch_size: int,
+        epochs: int,
+        *args,
+        loss: str = "bce",
+        shuffle: bool = True,
+        **kwargs,
+    ) -> list:
         pass
 
 
 class BaseMiniBatchGD(Optimizer):
     @staticmethod
-    def init_zeros_from_param_map(layer):
+    def init_zeros_from_param_map(layer: BaseLayer) -> dict:
         return {
             key: np.zeros(shape=rgetattr(layer, attr).shape, dtype=np.float32)
             for key, attr in layer.param_map.items()
         }
 
-    def update_params(self, model, *args, **kwargs):
+    def update_params(self, model: Model, *args, **kwargs) -> None:
         for layer in model.trainable_layers:
             updates = self.compute_update(layer, *args, **kwargs)
             for key, attr in layer.param_map.items():
@@ -42,7 +57,15 @@ class BaseMiniBatchGD(Optimizer):
 
             layer.gradients = {}
 
-    def mini_batch_step(self, model, batch_X, batch_Y, loss, *args, **kwargs):
+    def mini_batch_step(
+        self,
+        model: Model,
+        batch_X: np.ndarray,
+        batch_Y: np.ndarray,
+        loss: Loss,
+        *args,
+        **kwargs,
+    ) -> float:
         preds = model.predict(batch_X)
 
         cost = loss.compute_loss(batch_Y, preds)
@@ -59,8 +82,17 @@ class BaseMiniBatchGD(Optimizer):
         return cost
 
     def optimize(
-        self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
-    ):
+        self,
+        model: Model,
+        X: np.ndarray,
+        Y: np.ndarray,
+        batch_size: int,
+        epochs: int,
+        *args,
+        loss: str = "bce",
+        shuffle: bool = True,
+        **kwargs,
+    ) -> list:
         history, step_count = [], 0
 
         loss_func = loss_factory(loss)
@@ -93,12 +125,12 @@ class BaseMiniBatchGD(Optimizer):
         return history
 
     @abstractmethod
-    def compute_update(self, layer, *args, **kwargs):
+    def compute_update(self, layer: BaseLayer, *args, **kwargs) -> dict:
         pass
 
 
 class SGD(BaseMiniBatchGD):
-    def __init__(self, *args, learning_rate=0.01, **kwargs):
+    def __init__(self, *args, learning_rate: float = 0.01, **kwargs) -> None:
         momentum = kwargs.pop("momentum", 0)
 
         if not 0 <= momentum <= 1:
@@ -107,25 +139,34 @@ class SGD(BaseMiniBatchGD):
         self.momentum = momentum
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
-    def init_velocities(self, model):
+    def init_velocities(self, model: Model) -> None:
         for layer in model.trainable_layers:
             layer.velocities = self.init_zeros_from_param_map(layer)
 
-    def update_layer_velocities(self, layer):
+    def update_layer_velocities(self, layer: BaseLayer) -> None:
         for key, grad in layer.gradients.items():
             layer.velocities[key] *= self.momentum
             layer.velocities[key] += (1 - self.momentum) * grad
 
-    def compute_update_momentum(self, layer, *args, **kwargs):
+    def compute_update_momentum(self, layer: BaseLayer, *args, **kwargs) -> dict:
         self.update_layer_velocities(layer)
         return layer.velocities
 
-    def compute_update(self, layer, *args, **kwargs):
+    def compute_update(self, layer: BaseLayer, *args, **kwargs) -> dict:
         return layer.gradients
 
     def optimize(
-        self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
-    ):
+        self,
+        model: Model,
+        X: np.ndarray,
+        Y: np.ndarray,
+        batch_size: int,
+        epochs: int,
+        *args,
+        loss: str = "bce",
+        shuffle: bool = True,
+        **kwargs,
+    ) -> list:
         if self.momentum > 0:
             self.init_velocities(model)
             self.compute_update = self.compute_update_momentum
@@ -136,7 +177,7 @@ class SGD(BaseMiniBatchGD):
 
 
 class RMSProp(BaseMiniBatchGD):
-    def __init__(self, *args, learning_rate=0.01, **kwargs):
+    def __init__(self, *args, learning_rate: float = 0.01, **kwargs) -> None:
         rho = kwargs.pop("rho", 0.9)
 
         if not 0 <= rho <= 1:
@@ -146,16 +187,16 @@ class RMSProp(BaseMiniBatchGD):
         self.epsilon = kwargs.pop("epislon", 1e-7)
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
-    def init_rms(self, model):
+    def init_rms(self, model: Model):
         for layer in model.trainable_layers:
             layer.rms = self.init_zeros_from_param_map(layer)
 
-    def update_layer_rms(self, layer):
+    def update_layer_rms(self, layer: BaseLayer) -> None:
         for key, grad in layer.gradients.items():
             layer.rms[key] *= self.rho
             layer.rms[key] += (1 - self.rho) * np.square(grad)
 
-    def compute_update(self, layer, *args, **kwargs):
+    def compute_update(self, layer: BaseLayer, *args, **kwargs) -> dict:
         self.update_layer_rms(layer)
 
         return {
@@ -174,7 +215,7 @@ class RMSProp(BaseMiniBatchGD):
 
 
 class Adam(BaseMiniBatchGD):
-    def __init__(self, *args, learning_rate=0.01, **kwargs):
+    def __init__(self, *args, learning_rate: float = 0.01, **kwargs) -> None:
         momentum = kwargs.pop("beta_1", 0.9)
 
         if not 0 <= momentum <= 1:
@@ -190,12 +231,12 @@ class Adam(BaseMiniBatchGD):
         self.epsilon = kwargs.pop("epsilon", 1e-8)
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
-    def init_moments(self, model):
+    def init_moments(self, model: Model) -> None:
         for layer in model.trainable_layers:
             layer.m1 = self.init_zeros_from_param_map(layer)
             layer.m2 = self.init_zeros_from_param_map(layer)
 
-    def update_layer_moments(self, layer):
+    def update_layer_moments(self, layer: BaseLayer) -> None:
         for key, grad in layer.gradients.items():
             layer.m1[key] *= self.momentum
             layer.m1[key] += (1 - self.momentum) * grad
@@ -203,7 +244,7 @@ class Adam(BaseMiniBatchGD):
             layer.m2[key] *= self.rho
             layer.m2[key] += (1 - self.rho) * np.square(grad)
 
-    def compute_update(self, layer, *args, **kwargs):
+    def compute_update(self, layer: BaseLayer, *args, **kwargs) -> dict:
         t = kwargs.pop("step_count", None)
 
         if t is None:
@@ -222,8 +263,17 @@ class Adam(BaseMiniBatchGD):
         return updates
 
     def optimize(
-        self, model, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
-    ):
+        self,
+        model: Model,
+        X: np.ndarray,
+        Y: np.ndarray,
+        batch_size: int,
+        epochs: int,
+        *args,
+        loss: str = "bce",
+        shuffle: bool = True,
+        **kwargs,
+    ) -> list:
         self.init_moments(model)
 
         return super().optimize(

@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+import numpy as np
+
+from dnn.layers.base_layer import BaseLayer
 from dnn.optimizers import Optimizer
+from dnn.types import LayerInput
 
 
 class Model:
-    def __init__(self, ip_layer, op_layer):
+    def __init__(self, ip_layer: LayerInput, op_layer: LayerInput):
         self.ip_layer = ip_layer
         self.op_layer = op_layer
 
@@ -11,7 +17,9 @@ class Model:
         self.opt = None
 
     @staticmethod
-    def _deconstruct(ip_layer, op_layer):
+    def _deconstruct(
+        ip_layer: LayerInput, op_layer: LayerInput
+    ) -> tuple[list[BaseLayer], list[BaseLayer]]:
         layers, trainable_layers = [], []
 
         layer = op_layer
@@ -28,14 +36,14 @@ class Model:
 
         return layers[::-1], trainable_layers[::-1]
 
-    def __str__(self):
+    def __str__(self) -> str:
         layers = ", ".join([str(l) for l in self.layers])
         return f"{self.__class__.__name__}({self.ip_layer}, {layers})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
         self.ip_layer.ip = X
 
         for layer in self.layers:
@@ -43,7 +51,7 @@ class Model:
 
         return self.op_layer.output()
 
-    def compile(self, opt):
+    def compile(self, opt: Optimizer):
         if not isinstance(opt, Optimizer):
             raise ValueError("opt should be an instance of a subclass of Optimizer.")
 
@@ -52,13 +60,21 @@ class Model:
 
         self.opt = opt
 
-    def set_operation_mode(self, training):
+    def set_operation_mode(self, training: bool) -> None:
         for layer in self.layers:
             layer.is_training = training
 
     def train(
-        self, X, Y, batch_size, epochs, *args, loss="bce", shuffle=True, **kwargs
-    ):
+        self,
+        X: np.ndarray,
+        Y: np.ndarray,
+        batch_size: int,
+        epochs: int,
+        *args,
+        loss: str = "bce",
+        shuffle: bool = True,
+        **kwargs,
+    ) -> list:
         if X.shape[-1] != Y.shape[-1]:
             raise ValueError("X and Y should have the same number of samples.")
 

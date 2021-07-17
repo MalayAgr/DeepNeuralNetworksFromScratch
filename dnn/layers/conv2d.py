@@ -1,4 +1,7 @@
+from typing import Any, Optional, Union
+
 import numpy as np
+from dnn.layers.activations import Activation
 from dnn.layers.base_layer import BaseLayer
 from dnn.layers.utils import (
     accumulate_dX_conv,
@@ -8,6 +11,7 @@ from dnn.layers.utils import (
     pad,
     vectorize_for_conv,
 )
+from dnn.types import LayerInput
 
 
 class Conv2D(BaseLayer):
@@ -22,15 +26,15 @@ class Conv2D(BaseLayer):
 
     def __init__(
         self,
-        ip,
-        filters,
-        kernel_size,
-        stride=(1, 1),
-        activation=None,
-        padding="valid",
-        initializer="he",
-        use_bias=True,
-    ):
+        ip: LayerInput,
+        filters: int,
+        kernel_size: tuple[int, int],
+        stride: tuple[int, int] = (1, 1),
+        activation: Optional[Union[Activation, str]] = None,
+        padding: str = "valid",
+        initializer: str = "he",
+        use_bias: bool = True,
+    ) -> None:
         self.filters = filters
 
         self.kernel_size = kernel_size
@@ -70,12 +74,12 @@ class Conv2D(BaseLayer):
         self._vectorized_kernel = None
         self._padded_shape = None
 
-    def fans(self):
+    def fans(self) -> tuple[int, int]:
         receptive_field_size = np.prod(self.kernel_size)
         fan_in = self.ip_C * receptive_field_size
         return fan_in, receptive_field_size * self.filters
 
-    def init_params(self):
+    def init_params(self) -> None:
         variance = self._initializer_variance(self.initializer)
 
         shape = (self.ip_C, *self.kernel_size, self.filters)
@@ -86,7 +90,7 @@ class Conv2D(BaseLayer):
         if self.use_bias:
             self.biases = np.zeros(shape=(self.filters, 1, 1, 1), dtype=np.float32)
 
-    def count_params(self):
+    def count_params(self) -> int:
         total = np.prod(self.kernels.shape)
 
         if self.use_bias:
@@ -94,23 +98,23 @@ class Conv2D(BaseLayer):
 
         return total
 
-    def build(self):
+    def build(self) -> Any:
         self.init_params()
 
-    def output(self):
+    def output(self) -> np.ndarray:
         return self.activations
 
-    def output_shape(self):
+    def output_shape(self) -> tuple:
         if self.activations is not None:
             return self.activations.shape
 
         return self.filters, self.out_H, self.out_W, None
 
-    def _vectorize_kernels(self):
+    def _vectorize_kernels(self) -> np.ndarray:
         self._vectorized_kernel = self.kernels.reshape(-1, self.filters)
         return self._vectorized_kernel
 
-    def _convolve(self, X):
+    def _convolve(self, X: np.ndarray) -> np.ndarray:
         X, self._padded_shape = pad(X, self.p_H, self.p_W)
 
         X = vectorize_for_conv(
@@ -129,7 +133,7 @@ class Conv2D(BaseLayer):
 
         return np.swapaxes(convolution, 0, 2).reshape(shape)
 
-    def forward_step(self, *args, **kwargs):
+    def forward_step(self, *args, **kwargs) -> np.ndarray:
         convolutions = self._convolve(self.input())
 
         if self.use_bias:
@@ -145,7 +149,7 @@ class Conv2D(BaseLayer):
 
         return self.activations
 
-    def _compute_dW(self, dZ):
+    def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
         ip = self._vectorized_ip
 
         dW = np.matmul(ip[..., None], dZ[..., None, :], dtype=np.float32).sum(
@@ -154,7 +158,7 @@ class Conv2D(BaseLayer):
 
         return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters) / ip.shape[0]
 
-    def backprop_step(self, dA, *args, **kwargs):
+    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
         dZ = (
             self.activation.backprop_step(dA, ip=self.convolutions)
             if self.activation is not None

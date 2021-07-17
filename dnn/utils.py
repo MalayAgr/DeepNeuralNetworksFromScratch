@@ -7,7 +7,6 @@ import numpy as np
 
 from dnn.layers.activations import Activation
 from dnn.loss import Loss
-from dnn.model import Model
 from dnn.types import LayerInput
 
 
@@ -60,7 +59,7 @@ def generate_batches(
 
 
 def backprop(
-    model: Model,
+    model: 'Model',
     loss: Loss,
     labels: np.ndarray,
     preds: np.ndarray,
@@ -72,7 +71,7 @@ def backprop(
         dA = layer.backprop_step(dA, reg_param=reg_param)
 
 
-def compute_l2_cost(model: Model, reg_param: float, cost: float) -> float:
+def compute_l2_cost(model: 'Model', reg_param: float, cost: float) -> float:
     norm = np.add.reduce([np.linalg.norm(layer.weights) ** 2 for layer in model.layers])
 
     m = model.ip_layer.ip.shape[-1]

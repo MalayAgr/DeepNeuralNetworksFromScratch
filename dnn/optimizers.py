@@ -6,7 +6,6 @@ import numpy as np
 
 from dnn.layers.base_layer import BaseLayer
 from dnn.loss import Loss
-from dnn.model import Model
 
 from .utils import (
     backprop,
@@ -25,7 +24,7 @@ class Optimizer(ABC):
     @abstractmethod
     def optimize(
         self,
-        model: Model,
+        model: 'Model',
         X: np.ndarray,
         Y: np.ndarray,
         batch_size: int,
@@ -46,7 +45,7 @@ class BaseMiniBatchGD(Optimizer):
             for key, attr in layer.param_map.items()
         }
 
-    def update_params(self, model: Model, *args, **kwargs) -> None:
+    def update_params(self, model: 'Model', *args, **kwargs) -> None:
         for layer in model.trainable_layers:
             updates = self.compute_update(layer, *args, **kwargs)
             for key, attr in layer.param_map.items():
@@ -59,7 +58,7 @@ class BaseMiniBatchGD(Optimizer):
 
     def mini_batch_step(
         self,
-        model: Model,
+        model: 'Model',
         batch_X: np.ndarray,
         batch_Y: np.ndarray,
         loss: Loss,
@@ -83,7 +82,7 @@ class BaseMiniBatchGD(Optimizer):
 
     def optimize(
         self,
-        model: Model,
+        model: 'Model',
         X: np.ndarray,
         Y: np.ndarray,
         batch_size: int,
@@ -139,7 +138,7 @@ class SGD(BaseMiniBatchGD):
         self.momentum = momentum
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
-    def init_velocities(self, model: Model) -> None:
+    def init_velocities(self, model: 'Model') -> None:
         for layer in model.trainable_layers:
             layer.velocities = self.init_zeros_from_param_map(layer)
 
@@ -157,7 +156,7 @@ class SGD(BaseMiniBatchGD):
 
     def optimize(
         self,
-        model: Model,
+        model: 'Model',
         X: np.ndarray,
         Y: np.ndarray,
         batch_size: int,
@@ -187,7 +186,7 @@ class RMSProp(BaseMiniBatchGD):
         self.epsilon = kwargs.pop("epislon", 1e-7)
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
-    def init_rms(self, model: Model):
+    def init_rms(self, model: 'Model'):
         for layer in model.trainable_layers:
             layer.rms = self.init_zeros_from_param_map(layer)
 
@@ -231,7 +230,7 @@ class Adam(BaseMiniBatchGD):
         self.epsilon = kwargs.pop("epsilon", 1e-8)
         super().__init__(*args, learning_rate=learning_rate, **kwargs)
 
-    def init_moments(self, model: Model) -> None:
+    def init_moments(self, model: 'Model') -> None:
         for layer in model.trainable_layers:
             layer.m1 = self.init_zeros_from_param_map(layer)
             layer.m2 = self.init_zeros_from_param_map(layer)
@@ -264,7 +263,7 @@ class Adam(BaseMiniBatchGD):
 
     def optimize(
         self,
-        model: Model,
+        model: 'Model',
         X: np.ndarray,
         Y: np.ndarray,
         batch_size: int,

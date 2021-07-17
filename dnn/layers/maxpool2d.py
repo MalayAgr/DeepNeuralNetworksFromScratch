@@ -1,3 +1,4 @@
+from dnn.types import LayerInput
 import numpy as np
 from dnn.layers.base_layer import BaseLayer
 from dnn.layers.utils import (
@@ -14,7 +15,13 @@ class MaxPooling2D(BaseLayer):
 
     str_attrs = ("pool_size", "stride", "padding")
 
-    def __init__(self, ip, pool_size, stride=(2, 2), padding="valid"):
+    def __init__(
+        self,
+        ip: LayerInput,
+        pool_size: tuple,
+        stride: tuple[int, int] = (2, 2),
+        padding: str = "valid",
+    ) -> None:
         self.pool_size = pool_size
         self.pool_H, self.pool_W = pool_size
 
@@ -41,19 +48,19 @@ class MaxPooling2D(BaseLayer):
         self._padded_shape = None
         self._dX_share = None
 
-    def fans(self):
+    def fans(self) -> tuple[int, int]:
         return self.ip_C, self.ip_C
 
-    def output(self):
+    def output(self) -> np.ndarray:
         return self.pooled
 
-    def output_shape(self):
+    def output_shape(self) -> tuple:
         if self.pooled is not None:
             return self.pooled.shape
 
         return self.windows, self.out_H, self.out_W, None
 
-    def _get_pool_outputs(self, ip):
+    def _get_pool_outputs(self, ip: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         ip_shape = ip.shape
 
         flat = np.prod(ip_shape[:-1])
@@ -75,7 +82,7 @@ class MaxPooling2D(BaseLayer):
 
         return np.swapaxes(maximums, 0, -1).reshape(*shape), mask
 
-    def _pool(self, X):
+    def _pool(self, X: np.ndarray) -> np.ndarray:
         X, self._padded_shape = pad(X, self.p_H, self.p_W)
 
         X = vectorize_for_conv(
@@ -92,11 +99,11 @@ class MaxPooling2D(BaseLayer):
 
         return pooled
 
-    def forward_step(self, *args, **kwargs):
+    def forward_step(self, *args, **kwargs) -> np.ndarray:
         self.pooled = self._pool(self.input())
         return self.pooled
 
-    def backprop_step(self, dA, *args, **kwargs):
+    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
         dA = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
 
         if self.requires_dX is False:

@@ -1,11 +1,20 @@
+from typing import Any
 import numpy as np
 from dnn.layers.base_layer import BaseLayer
+
+from dnn.types import LayerInput
 
 
 class BatchNorm(BaseLayer):
     reset = ("std", "norm", "scaled_norm")
 
-    def __init__(self, ip, axis=0, momentum=0.5, epsilon=1e-7):
+    def __init__(
+        self,
+        ip: LayerInput,
+        axis: int = 0,
+        momentum: float = 0.5,
+        epsilon: float = 1e-7,
+    ) -> None:
         self.axis = axis
         self.momentum = momentum
         self.epsilon = epsilon
@@ -25,39 +34,39 @@ class BatchNorm(BaseLayer):
         self.mean_mva = None
         self.std_mva = None
 
-    def fans(self):
+    def fans(self) -> tuple[int, int]:
         _, ip_fan_out = self.ip_layer.fans()
 
         return ip_fan_out, ip_fan_out
 
-    def init_params(self):
+    def init_params(self) -> None:
         rem_dims = (1,) * len(self.axes)
 
         self.gamma = np.ones(shape=(self.x_dim, *rem_dims), dtype=np.float32)
 
         self.beta = np.zeros(shape=(self.x_dim, *rem_dims), dtype=np.float32)
 
-    def _init_mva(self):
+    def _init_mva(self) -> None:
         rem_dims = (1,) * len(self.axes)
 
         self.mean_mva = np.zeros(shape=(self.x_dim, *rem_dims), dtype=np.float32)
 
         self.std_mva = np.ones(shape=(self.x_dim, *rem_dims), dtype=np.float32)
 
-    def count_params(self):
+    def count_params(self) -> int:
         return 2 * self.x_dim
 
-    def build(self):
+    def build(self) -> Any:
         self.init_params()
         self._init_mva()
 
-    def output(self):
+    def output(self) -> np.ndarray:
         return self.scaled_norm
 
-    def output_shape(self):
+    def output_shape(self) -> tuple:
         return self.input_shape()
 
-    def _update_mva(self, mean, std):
+    def _update_mva(self, mean: np.ndarray, std: np.ndarray) -> None:
         mom, one_minus_mom = self.momentum, 1 - self.momentum
 
         self.mean_mva *= mom
@@ -66,7 +75,7 @@ class BatchNorm(BaseLayer):
         self.std_mva *= mom
         self.std_mva += one_minus_mom * std
 
-    def forward_step(self, *args, **kwargs):
+    def forward_step(self, *args, **kwargs) -> np.ndarray:
         ip = self.input()
 
         if self.is_training:
@@ -86,7 +95,7 @@ class BatchNorm(BaseLayer):
 
         return self.scaled_norm
 
-    def backprop_step(self, dA, *args, **kwargs):
+    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
         self.gradients = {
             "gamma": np.sum(dA * self.norm, axis=self.axes, keepdims=True),
             "beta": np.sum(dA, axis=self.axes, keepdims=True),

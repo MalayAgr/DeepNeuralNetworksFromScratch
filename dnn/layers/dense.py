@@ -1,3 +1,6 @@
+from dnn.layers.activations import Activation
+from typing import Any, Optional, Union
+from dnn.types import LayerInput
 import numpy as np
 from dnn.layers.base_layer import BaseLayer
 from dnn.layers.utils import add_activation
@@ -7,7 +10,14 @@ class Dense(BaseLayer):
     reset = ("linear", "activations")
     str_attrs = ("units", "activation")
 
-    def __init__(self, ip, units, activation=None, initializer="he", use_bias=True):
+    def __init__(
+        self,
+        ip: LayerInput,
+        units: int,
+        activation: Optional[Union[Activation, str]] = None,
+        initializer: str = "he",
+        use_bias: bool = True,
+    ) -> None:
         self.units = units
         self.activation = add_activation(activation)
         self.initializer = initializer
@@ -24,11 +34,11 @@ class Dense(BaseLayer):
 
         super().__init__(ip=ip, params=params)
 
-    def fans(self):
+    def fans(self) -> tuple[int, int]:
         fan_in = self.input_shape()[0]
         return fan_in, self.units
 
-    def init_params(self):
+    def init_params(self) -> None:
         y_dim, _ = self.fans()
 
         variance = self._initializer_variance(self.initializer)
@@ -39,7 +49,7 @@ class Dense(BaseLayer):
         if self.use_bias:
             self.biases = np.zeros(shape=(self.units, 1), dtype=np.float32)
 
-    def count_params(self):
+    def count_params(self) -> int:
         total = self.weights.shape[0] * self.weights.shape[-1]
 
         if self.use_bias:
@@ -47,19 +57,19 @@ class Dense(BaseLayer):
 
         return total
 
-    def build(self):
+    def build(self) -> Any:
         self.init_params()
 
-    def output(self):
+    def output(self) -> np.ndarray:
         return self.activations
 
-    def output_shape(self):
+    def output_shape(self) -> tuple:
         if self.activations is not None:
             return self.activations.shape
 
         return self.units, None
 
-    def forward_step(self, *args, **kwargs):
+    def forward_step(self, *args, **kwargs) -> np.ndarray:
         linear = np.matmul(self.weights, self.input(), dtype=np.float32)
 
         if self.use_bias:
@@ -75,7 +85,7 @@ class Dense(BaseLayer):
 
         return self.activations
 
-    def backprop_step(self, dA, *args, **kwargs):
+    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
         ip = self.input()
         m = ip.shape[-1]
 

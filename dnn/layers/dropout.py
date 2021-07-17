@@ -1,3 +1,4 @@
+from dnn.types import LayerInput
 import numpy as np
 from dnn.layers.base_layer import BaseLayer
 
@@ -6,7 +7,7 @@ class Dropout(BaseLayer):
     reset = ("dropped", "dropout_mask")
     str_attrs = ("keep_prob",)
 
-    def __init__(self, ip, keep_prob=0.5):
+    def __init__(self, ip: LayerInput, keep_prob: float = 0.5) -> None:
         if not 0 < keep_prob <= 1:
             raise AttributeError("keep_prob should be in the interval (0, 1]")
 
@@ -17,18 +18,18 @@ class Dropout(BaseLayer):
         self.dropped = None
         self.dropout_mask = None
 
-    def fans(self):
+    def fans(self) -> tuple[int, int]:
         _, ip_fan_out = self.ip_layer.fans()
 
         return ip_fan_out, ip_fan_out
 
-    def output(self):
+    def output(self) -> np.ndarray:
         return self.dropped
 
-    def output_shape(self):
+    def output_shape(self) -> tuple:
         return self.input_shape()
 
-    def forward_step(self, *args, **kwargs):
+    def forward_step(self, *args, **kwargs) -> np.ndarray:
         ip = self.input()
 
         self.dropout_mask = (
@@ -39,7 +40,7 @@ class Dropout(BaseLayer):
 
         return self.dropped
 
-    def backprop_step(self, dA, *args, **kwargs):
+    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
         dA *= self.dropout_mask
         dA /= self.keep_prob
 

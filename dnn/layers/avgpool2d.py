@@ -3,7 +3,7 @@ from dnn.layers.maxpool2d import MaxPooling2D
 
 
 class AveragePooling2D(MaxPooling2D):
-    def _get_pool_outputs(self, ip):
+    def _get_pool_outputs(self, ip: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         ip_shape = ip.shape
 
         averages = ip.mean(axis=-1)

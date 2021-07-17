@@ -1,9 +1,10 @@
-from dnn.layers.activations import Activation
 from typing import Any, Optional, Union
-from dnn.types import LayerInput
+
 import numpy as np
-from dnn.layers.base_layer import BaseLayer
-from dnn.layers.utils import add_activation
+from dnn.layers.activations import Activation
+
+from .base_layer import BaseLayer, LayerInput
+from .utils import add_activation
 
 
 class Dense(BaseLayer):

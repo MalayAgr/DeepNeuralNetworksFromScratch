@@ -1,8 +1,10 @@
-from typing import Any
-import numpy as np
-from dnn.layers.base_layer import BaseLayer
+from __future__ import annotations
 
-from dnn.types import LayerInput
+from typing import Any
+
+import numpy as np
+
+from .base_layer import BaseLayer, LayerInput
 
 
 class BatchNorm(BaseLayer):

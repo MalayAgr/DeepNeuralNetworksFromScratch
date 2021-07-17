@@ -1,9 +1,10 @@
 from typing import Any, Optional, Union
 
 import numpy as np
-from dnn.layers.activations import Activation
-from dnn.layers.base_layer import BaseLayer
-from dnn.layers.utils import (
+
+from .activations import Activation
+from .base_layer import BaseLayer, LayerInput
+from .utils import (
     accumulate_dX_conv,
     add_activation,
     compute_conv_output_dim,
@@ -11,7 +12,6 @@ from dnn.layers.utils import (
     pad,
     vectorize_for_conv,
 )
-from dnn.types import LayerInput
 
 
 class Conv2D(BaseLayer):

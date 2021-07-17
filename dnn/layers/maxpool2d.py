@@ -1,7 +1,9 @@
-from dnn.types import LayerInput
+from __future__ import annotations
+
 import numpy as np
-from dnn.layers.base_layer import BaseLayer
-from dnn.layers.utils import (
+
+from .base_layer import BaseLayer, LayerInput
+from .utils import (
     accumulate_dX_conv,
     compute_conv_output_dim,
     compute_conv_padding,

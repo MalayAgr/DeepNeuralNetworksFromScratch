@@ -1,6 +1,8 @@
-from dnn.types import LayerInput
+from __future__ import annotations
+
 import numpy as np
-from dnn.layers.base_layer import BaseLayer
+
+from .base_layer import BaseLayer, LayerInput
 
 
 class Dropout(BaseLayer):

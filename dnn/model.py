@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import numpy as np
 
+from dnn.layers import LayerInput
 from dnn.layers.base_layer import BaseLayer
 from dnn.optimizers import Optimizer
-from dnn.types import LayerInput
 
 
 class Model:

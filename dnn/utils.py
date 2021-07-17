@@ -1,23 +1,11 @@
 from __future__ import annotations
 
 import functools
-from typing import Generator, Optional
+from typing import Generator
 
 import numpy as np
 
-from dnn.layers.activations import Activation
 from dnn.loss import Loss
-from dnn.types import LayerInput
-
-
-def activation_factory(
-    activation: str, *args, ip: Optional[LayerInput] = None, **kwargs
-) -> Activation:
-    registry = Activation.get_activation_classes()
-    cls = registry.get(activation)
-    if cls is None:
-        raise ValueError("Activation with this name does not exist")
-    return cls(ip=ip, *args, **kwargs)
 
 
 def loss_factory(loss: str) -> Loss:
@@ -59,7 +47,7 @@ def generate_batches(
 
 
 def backprop(
-    model: 'Model',
+    model: "Model",
     loss: Loss,
     labels: np.ndarray,
     preds: np.ndarray,
@@ -71,7 +59,7 @@ def backprop(
         dA = layer.backprop_step(dA, reg_param=reg_param)
 
 
-def compute_l2_cost(model: 'Model', reg_param: float, cost: float) -> float:
+def compute_l2_cost(model: "Model", reg_param: float, cost: float) -> float:
     norm = np.add.reduce([np.linalg.norm(layer.weights) ** 2 for layer in model.layers])
 
     m = model.ip_layer.ip.shape[-1]

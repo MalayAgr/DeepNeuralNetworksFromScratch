@@ -1,9 +1,20 @@
 from math import ceil
 from typing import Generator, Optional, Union
-from dnn.layers.activations import Activation
-from dnn.utils import activation_factory
 
 import numpy as np
+
+from .activations import Activation
+from .base_layer import LayerInput
+
+
+def activation_factory(
+    activation: str, *args, ip: Optional[LayerInput] = None, **kwargs
+) -> Activation:
+    registry = Activation.get_activation_classes()
+    cls = registry.get(activation)
+    if cls is None:
+        raise ValueError("Activation with this name does not exist")
+    return cls(ip=ip, *args, **kwargs)
 
 
 def add_activation(activation: Union[Activation, str, None]) -> Activation:

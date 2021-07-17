@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from dnn.types import LayerInput
+from abc import abstractmethod
 from typing import Optional
 
 import numpy as np
-from dnn.layers.base_layer import BaseLayer
+
+from .base_layer import BaseLayer, LayerInput
 
 
 class Activation(BaseLayer):

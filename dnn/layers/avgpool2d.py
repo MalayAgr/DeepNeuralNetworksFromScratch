@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import numpy as np
-from dnn.layers.maxpool2d import MaxPooling2D
+
+from .maxpool2d import MaxPooling2D
 
 
 class AveragePooling2D(MaxPooling2D):

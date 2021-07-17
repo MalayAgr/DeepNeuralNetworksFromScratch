@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional, Union
 
 import numpy as np
-
 from dnn.input_layer import Input
 
 
@@ -139,3 +138,6 @@ class BaseLayer(ABC):
                 setattr(self, attr[0], attr[-1])
                 continue
             setattr(self, attr, None)
+
+
+LayerInput = Union[Input, BaseLayer]

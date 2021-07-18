@@ -41,7 +41,6 @@ class MaxPooling2D(BaseLayer):
         self.pooled = None
 
         self._slice_idx = None
-        self._padded_shape = None
         self._dX_share = None
 
     def fans(self) -> Tuple[int, int]:
@@ -90,7 +89,7 @@ class MaxPooling2D(BaseLayer):
         return np.swapaxes(maximums, 0, -1).reshape(*shape), mask
 
     def _pool(self, X: np.ndarray) -> np.ndarray:
-        X, self._padded_shape = pad(X, self.p_H, self.p_W)
+        X = pad(X, self.p_H, self.p_W)
 
         X = vectorize_for_conv(
             X=X,
@@ -117,8 +116,11 @@ class MaxPooling2D(BaseLayer):
             self.reset_attrs()
             return
 
+        ipH, ipW = self.input_shape()[1:-1]
+        padded_shape = (ipH + 2 * self.p_H, ipW + 2 * self.p_W)
+
         dX = accumulate_dX_conv(
-            dX_shape=(dA.shape[0], self.windows, *self._padded_shape),
+            dX_shape=(dA.shape[0], self.windows, *padded_shape),
             output_size=self.output_area(),
             dIp=self._dX_share * dA[..., None],
             stride=self.stride,

@@ -10,8 +10,6 @@ from .utils import (
     compute_conv_output_dim,
     compute_conv_padding,
     convolve2d,
-    pad,
-    vectorize_for_conv,
 )
 
 

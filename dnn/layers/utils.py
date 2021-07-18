@@ -40,12 +40,8 @@ def compute_conv_output_dim(n: int, f: int, p: int, s: int) -> int:
     return int((n - f + 2 * p) / s + 1)
 
 
-def pad(X: np.ndarray, pad_H: int, pad_W: int) -> Tuple[np.ndarray, Tuple[int, int]]:
-    padded = np.pad(X, ((0, 0), (pad_H, pad_H), (pad_W, pad_W), (0, 0)))
-
-    new_size = padded.shape[1], padded.shape[2]
-
-    return padded, new_size
+def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
+    return np.pad(X, ((0, 0), (pad_H, pad_H), (pad_W, pad_W), (0, 0)))
 
 
 def slice_idx_generator(

@@ -43,6 +43,9 @@ class BaseLayer(ABC):
         attrs = ", ".join(f"{attr}={getattr(self, attr)}" for attr in self.str_attrs)
         return f"{self.__class__.__name__}({attrs})"
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def _add_extra_attrs(self, attrs: dict) -> None:
         for attr, value in attrs.items():
             self.__setattr__(attr, value)

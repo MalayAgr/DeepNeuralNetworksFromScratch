@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import List, Tuple
 
 import numpy as np
 
@@ -19,7 +20,7 @@ class Model:
     @staticmethod
     def _deconstruct(
         ip_layer: LayerInput, op_layer: LayerInput
-    ) -> tuple[list[BaseLayer], list[BaseLayer]]:
+    ) -> Tuple[List[BaseLayer], List[BaseLayer]]:
         layers, trainable_layers = [], []
 
         layer = op_layer

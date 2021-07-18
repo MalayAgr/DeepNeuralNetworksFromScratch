@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Tuple
 
 import numpy as np
 
@@ -26,7 +26,6 @@ class BatchNorm(BaseLayer):
         super().__init__(ip=ip, params=params)
 
         ip_shape = self.input_shape()
-        self.x_dim = ip_shape[axis]
         self.axes = tuple(ax for ax, _ in enumerate(ip_shape) if ax != axis)
 
         self.std = None
@@ -36,27 +35,32 @@ class BatchNorm(BaseLayer):
         self.mean_mva = None
         self.std_mva = None
 
-    def fans(self) -> tuple[int, int]:
+    def fans(self) -> Tuple[int, int]:
         _, ip_fan_out = self.ip_layer.fans()
 
         return ip_fan_out, ip_fan_out
 
+    def x_dim(self):
+        return self.input_shape()[self.axis]
+
     def init_params(self) -> None:
+        x_dim = self.x_dim()
         rem_dims = (1,) * len(self.axes)
 
-        self.gamma = np.ones(shape=(self.x_dim, *rem_dims), dtype=np.float32)
+        self.gamma = np.ones(shape=(x_dim, *rem_dims), dtype=np.float32)
 
-        self.beta = np.zeros(shape=(self.x_dim, *rem_dims), dtype=np.float32)
+        self.beta = np.zeros(shape=(x_dim, *rem_dims), dtype=np.float32)
 
     def _init_mva(self) -> None:
+        x_dim = self.x_dim()
         rem_dims = (1,) * len(self.axes)
 
-        self.mean_mva = np.zeros(shape=(self.x_dim, *rem_dims), dtype=np.float32)
+        self.mean_mva = np.zeros(shape=(x_dim, *rem_dims), dtype=np.float32)
 
-        self.std_mva = np.ones(shape=(self.x_dim, *rem_dims), dtype=np.float32)
+        self.std_mva = np.ones(shape=(x_dim, *rem_dims), dtype=np.float32)
 
     def count_params(self) -> int:
-        return 2 * self.x_dim
+        return 2 * self.x_dim()
 
     def build(self) -> Any:
         self.init_params()
@@ -65,7 +69,7 @@ class BatchNorm(BaseLayer):
     def output(self) -> np.ndarray:
         return self.scaled_norm
 
-    def output_shape(self) -> tuple:
+    def output_shape(self) -> Tuple:
         return self.input_shape()
 
     def _update_mva(self, mean: np.ndarray, std: np.ndarray) -> None:

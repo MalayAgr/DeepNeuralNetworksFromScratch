@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 
@@ -28,8 +28,8 @@ class Conv2D(BaseLayer):
         self,
         ip: LayerInput,
         filters: int,
-        kernel_size: tuple[int, int],
-        stride: tuple[int, int] = (1, 1),
+        kernel_size: Tuple[int, int],
+        stride: Tuple[int, int] = (1, 1),
         activation: Optional[Union[Activation, str]] = None,
         padding: str = "valid",
         initializer: str = "he",
@@ -67,7 +67,7 @@ class Conv2D(BaseLayer):
         self._vectorized_kernel = None
         self._padded_shape = None
 
-    def fans(self) -> tuple[int, int]:
+    def fans(self) -> Tuple[int, int]:
         receptive_field_size = np.prod(self.kernel_size)
         fan_in = self.ip_C * receptive_field_size
         return fan_in, receptive_field_size * self.filters
@@ -97,7 +97,7 @@ class Conv2D(BaseLayer):
     def output(self) -> np.ndarray:
         return self.activations
 
-    def output_area(self) -> tuple[int, int]:
+    def output_area(self) -> Tuple[int, int]:
         ip_shape = self.input_shape()
         ipH, ipW = ip_shape[1], ip_shape[2]
 
@@ -106,7 +106,7 @@ class Conv2D(BaseLayer):
 
         return oH, oW
 
-    def output_shape(self) -> tuple:
+    def output_shape(self) -> Tuple:
         if self.activations is not None:
             return self.activations.shape
 

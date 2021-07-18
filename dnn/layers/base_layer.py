@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 from dnn.input_layer import Input
@@ -55,7 +55,7 @@ class BaseLayer(ABC):
             self.__setattr__(attr, value)
 
     @abstractmethod
-    def fans(self) -> tuple[int, int]:
+    def fans(self) -> Tuple[int, int]:
         """
         Method to obtain the number of input and output units
         """
@@ -103,7 +103,7 @@ class BaseLayer(ABC):
 
         return ret_val
 
-    def input_shape(self) -> tuple:
+    def input_shape(self) -> Tuple:
         if isinstance(self.ip_layer, Input):
             return self.ip_layer.ip_shape
         return self.ip_layer.output_shape()
@@ -115,7 +115,7 @@ class BaseLayer(ABC):
         """
 
     @abstractmethod
-    def output_shape(self) -> tuple:
+    def output_shape(self) -> Tuple:
         """
         Method to determine the shape of the output of the layer
         """

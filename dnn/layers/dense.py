@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 from dnn.layers.activations import Activation
@@ -35,7 +35,7 @@ class Dense(BaseLayer):
 
         super().__init__(ip=ip, params=params)
 
-    def fans(self) -> tuple[int, int]:
+    def fans(self) -> Tuple[int, int]:
         fan_in = self.input_shape()[0]
         return fan_in, self.units
 
@@ -64,7 +64,7 @@ class Dense(BaseLayer):
     def output(self) -> np.ndarray:
         return self.activations
 
-    def output_shape(self) -> tuple:
+    def output_shape(self) -> Tuple:
         if self.activations is not None:
             return self.activations.shape
 

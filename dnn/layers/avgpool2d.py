@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Tuple
 
 import numpy as np
 
@@ -6,7 +7,7 @@ from .maxpool2d import MaxPooling2D
 
 
 class AveragePooling2D(MaxPooling2D):
-    def _get_pool_outputs(self, ip: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def _get_pool_outputs(self, ip: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         ip_shape = ip.shape
 
         averages = ip.mean(axis=-1)

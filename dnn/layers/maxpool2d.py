@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Tuple
 
 import numpy as np
 
@@ -20,8 +21,8 @@ class MaxPooling2D(BaseLayer):
     def __init__(
         self,
         ip: LayerInput,
-        pool_size: tuple,
-        stride: tuple[int, int] = (2, 2),
+        pool_size: Tuple,
+        stride: Tuple[int, int] = (2, 2),
         padding: str = "valid",
     ) -> None:
         self.pool_size = pool_size
@@ -43,13 +44,13 @@ class MaxPooling2D(BaseLayer):
         self._padded_shape = None
         self._dX_share = None
 
-    def fans(self) -> tuple[int, int]:
+    def fans(self) -> Tuple[int, int]:
         return self.ip_C, self.ip_C
 
     def output(self) -> np.ndarray:
         return self.pooled
 
-    def output_area(self) -> tuple[int, int]:
+    def output_area(self) -> Tuple[int, int]:
         ip_shape = self.input_shape()
         ipH, ipW = ip_shape[1], ip_shape[2]
 
@@ -58,7 +59,7 @@ class MaxPooling2D(BaseLayer):
 
         return oH, oW
 
-    def output_shape(self) -> tuple:
+    def output_shape(self) -> Tuple:
         if self.pooled is not None:
             return self.pooled.shape
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Tuple
 
 import numpy as np
 
@@ -17,7 +18,7 @@ class Flatten(BaseLayer):
 
         self.flat = None
 
-    def fans(self) -> tuple[int, int]:
+    def fans(self) -> Tuple[int, int]:
         _, ip_fan_out = self.ip_layer.fans()
 
         return ip_fan_out, self.units
@@ -25,7 +26,7 @@ class Flatten(BaseLayer):
     def output(self) -> np.ndarray:
         return self.flat
 
-    def output_shape(self) -> tuple:
+    def output_shape(self) -> Tuple:
         if self.flat is not None:
             return self.flat.shape
 

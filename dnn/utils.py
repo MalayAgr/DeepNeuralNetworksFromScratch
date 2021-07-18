@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Generator
+from typing import Generator, Tuple
 
 import numpy as np
 
@@ -18,7 +18,7 @@ def loss_factory(loss: str) -> Loss:
 
 def generate_batches(
     X: np.ndarray, Y: np.ndarray, batch_size: int, shuffle: bool = True
-) -> Generator[tuple[np.ndarray, np.ndarray, int], None, None]:
+) -> Generator[Tuple[np.ndarray, np.ndarray, int], None, None]:
     num_samples = X.shape[-1]
 
     if batch_size > num_samples:

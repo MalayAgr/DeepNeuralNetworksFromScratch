@@ -16,7 +16,7 @@ class BaseLayer(ABC):
         ip: Union[Input, BaseLayer],
         *args,
         trainable: bool = True,
-        params: Optional[list] = None,
+        params: Optional[List] = None,
         **kwargs,
     ) -> None:
         if ip is not None and not isinstance(ip, (Input, BaseLayer)):
@@ -62,24 +62,35 @@ class BaseLayer(ABC):
             "xavier_uniform": 6 / (fan_in + fan_out),
         }[initializer]
 
-    def count_params(self) -> int:
-        """
-        Method to count the number of trainable parameters in the layer
-        """
-        if not hasattr(self, "param_map"):
-            return 0
-        raise NotImplementedError(
-            f"{self.__class__.__name__} instances need to implement count_params"
-        )
+    def _add_param(self, shape: Tuple, initializer: str) -> np.ndarray:
+        """Helper method to initialize a parameter with the given shape and initializer"""
+        if initializer == "zeros":
+            return np.zeros(shape=shape, dtype=np.float32)
+        if initializer == "ones":
+            return np.ones(shape=shape, dtype=np.float32)
+
+        variance = self._initializer_variance(initializer)
+
+        return np.random.randn(*shape).astype(np.float32) * np.sqrt(variance)
 
     def build(self) -> Any:
         """
         Method to build the layer, usually by initializing the parameters
         """
-        if hasattr(self, "param_map"):
+        if self.param_keys is not None:
             raise NotImplementedError(
                 f"{self.__class__.__name__} instances need to implement build"
             )
+
+    def count_params(self) -> int:
+        """
+        Method to count the number of trainable parameters in the layer
+        """
+        if self.param_keys is not None:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} instances need to implement count_params"
+            )
+        return 0
 
     def input(self) -> np.ndarray:
         if self.ip_layer is None:

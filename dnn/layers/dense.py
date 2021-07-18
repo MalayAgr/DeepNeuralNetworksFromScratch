@@ -41,16 +41,16 @@ class Dense(BaseLayer):
         fan_in = self.input_shape()[0]
         return fan_in, self.units
 
-    def init_params(self) -> None:
+    def build(self) -> Any:
         y_dim, _ = self.fans()
 
-        variance = self._initializer_variance(self.initializer)
+        shape = (self.units, y_dim)
 
-        self.weights = np.random.randn(self.units, y_dim) * np.sqrt(variance)
-        self.weights = self.weights.astype(np.float32)
+        self.weights = self._add_param(shape=shape, initializer=self.initializer)
 
         if self.use_bias:
-            self.biases = np.zeros(shape=(self.units, 1), dtype=np.float32)
+            shape = (self.units, 1)
+            self.biases = self._add_param(shape=shape, initializer="zeros")
 
     def count_params(self) -> int:
         total = self.weights.shape[0] * self.weights.shape[-1]
@@ -59,9 +59,6 @@ class Dense(BaseLayer):
             return total + self.units
 
         return total
-
-    def build(self) -> Any:
-        self.init_params()
 
     def output(self) -> np.ndarray:
         return self.activations

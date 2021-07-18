@@ -45,28 +45,22 @@ class BatchNorm(BaseLayer):
     def x_dim(self):
         return self.input_shape()[self.axis]
 
-    def init_params(self) -> None:
+    def build(self) -> Any:
         x_dim = self.x_dim()
         rem_dims = (1,) * len(self.axes)
 
-        self.gamma = np.ones(shape=(x_dim, *rem_dims), dtype=np.float32)
+        shape = (x_dim, *rem_dims)
 
-        self.beta = np.zeros(shape=(x_dim, *rem_dims), dtype=np.float32)
+        self.gamma = self._add_param(shape=shape, initializer="ones")
 
-    def _init_mva(self) -> None:
-        x_dim = self.x_dim()
-        rem_dims = (1,) * len(self.axes)
+        self.beta = self._add_param(shape=shape, initializer="zeros")
 
-        self.mean_mva = np.zeros(shape=(x_dim, *rem_dims), dtype=np.float32)
+        self.mean_mva = self._add_param(shape=shape, initializer="zeros")
 
-        self.std_mva = np.ones(shape=(x_dim, *rem_dims), dtype=np.float32)
+        self.std_mva = self._add_param(shape=shape, initializer="ones")
 
     def count_params(self) -> int:
         return 2 * self.x_dim()
-
-    def build(self) -> Any:
-        self.init_params()
-        self._init_mva()
 
     def output(self) -> np.ndarray:
         return self.scaled_norm

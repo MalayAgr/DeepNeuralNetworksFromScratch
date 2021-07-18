@@ -72,16 +72,14 @@ class Conv2D(BaseLayer):
         fan_in = self.ip_C * receptive_field_size
         return fan_in, receptive_field_size * self.filters
 
-    def init_params(self) -> None:
-        variance = self._initializer_variance(self.initializer)
-
+    def build(self) -> Any:
         shape = (self.ip_C, *self.kernel_size, self.filters)
 
-        self.kernels = np.random.randn(*shape) * np.sqrt(variance)
-        self.kernels = self.kernels.astype(np.float32)
+        self.kernels = self._add_param(shape=shape, initializer=self.initializer)
 
         if self.use_bias:
-            self.biases = np.zeros(shape=(self.filters, 1, 1, 1), dtype=np.float32)
+            shape = (self.filters, 1, 1, 1)
+            self.biases = self._add_param(shape=shape, initializer="zeros")
 
     def count_params(self) -> int:
         total = np.prod(self.kernels.shape)
@@ -90,9 +88,6 @@ class Conv2D(BaseLayer):
             return total + self.filters
 
         return total
-
-    def build(self) -> Any:
-        self.init_params()
 
     def output(self) -> np.ndarray:
         return self.activations

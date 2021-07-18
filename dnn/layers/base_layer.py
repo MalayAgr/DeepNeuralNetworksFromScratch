@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from dnn.input_layer import Input
@@ -32,8 +32,7 @@ class BaseLayer(ABC):
 
         self.is_training = False
 
-        if params is not None:
-            self.param_map = self._add_params(params)
+        self.param_keys = params
 
         self.requires_dX = True
         self.gradients = {}
@@ -43,12 +42,6 @@ class BaseLayer(ABC):
     def __str__(self) -> str:
         attrs = ", ".join(f"{attr}={getattr(self, attr)}" for attr in self.str_attrs)
         return f"{self.__class__.__name__}({attrs})"
-
-    def _add_params(self, params: list) -> dict:
-        for param in params:
-            self.__setattr__(param, None)
-
-        return {param: param for param in params}
 
     def _add_extra_attrs(self, attrs: dict) -> None:
         for attr, value in attrs.items():
@@ -131,6 +124,21 @@ class BaseLayer(ABC):
         """
         One step of backpropagation
         """
+
+    def get_param_shapes(self, keys: List) -> Dict:
+        """
+        Helper method to obtain the shapes of the specified parameters of the layer.
+        """
+        return {key: getattr(self, key).shape for key in keys}
+
+    def update_params(self, updates: Dict) -> None:
+        """
+        Helper method to perform one update step on the parameters of the layer.
+        """
+        for key, update in updates.items():
+            new_value = getattr(self, key)
+            new_value -= update
+            setattr(self, key, new_value)
 
     def reset_attrs(self) -> None:
         for attr in self.reset:

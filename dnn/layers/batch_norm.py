@@ -21,6 +21,8 @@ class BatchNorm(BaseLayer):
         self.momentum = momentum
         self.epsilon = epsilon
 
+        self.gamma = self.beta = None
+
         params = ["gamma", "beta"]
 
         super().__init__(ip=ip, params=params)

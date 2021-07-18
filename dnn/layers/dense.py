@@ -23,11 +23,13 @@ class Dense(BaseLayer):
         self.activation = add_activation(activation)
         self.initializer = initializer
 
+        self.weights = None
         params = ["weights"]
 
         self.use_bias = use_bias
 
         if use_bias is True:
+            self.biases = None
             params.append("biases")
 
         self.linear = None

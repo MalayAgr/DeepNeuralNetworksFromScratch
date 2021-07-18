@@ -49,10 +49,12 @@ class Conv2D(BaseLayer):
 
         self.activation = add_activation(activation)
 
+        self.kernels = None
         params = ["kernels"]
 
         self.use_bias = use_bias
         if use_bias:
+            self.biases = None
             params.append("biases")
 
         super().__init__(ip=ip, params=params)

@@ -58,14 +58,7 @@ class Conv2D(BaseLayer):
 
         super().__init__(ip=ip, params=params)
 
-        self.ip_C, self.ip_H, self.ip_W = self.input_shape()[:-1]
-
-        self.out_H = compute_conv_output_dim(
-            self.ip_H, self.kernel_H, self.p_H, self.stride_H
-        )
-        self.out_W = compute_conv_output_dim(
-            self.ip_W, self.kernel_W, self.p_W, self.stride_W
-        )
+        self.ip_C = self.input_shape()[0]
 
         self.convolutions = None
         self.activations = None
@@ -104,11 +97,22 @@ class Conv2D(BaseLayer):
     def output(self) -> np.ndarray:
         return self.activations
 
+    def output_area(self) -> tuple[int, int]:
+        ip_shape = self.input_shape()
+        ipH, ipW = ip_shape[1], ip_shape[2]
+
+        oH = compute_conv_output_dim(ipH, self.kernel_H, self.p_H, self.stride_H)
+        oW = compute_conv_output_dim(ipW, self.kernel_W, self.p_W, self.stride_W)
+
+        return oH, oW
+
     def output_shape(self) -> tuple:
         if self.activations is not None:
             return self.activations.shape
 
-        return self.filters, self.out_H, self.out_W, None
+        oH, oW = self.output_area()
+
+        return self.filters, oH, oW, None
 
     def _vectorize_kernels(self) -> np.ndarray:
         self._vectorized_kernel = self.kernels.reshape(-1, self.filters)
@@ -117,9 +121,9 @@ class Conv2D(BaseLayer):
     def _convolve(self, X: np.ndarray) -> np.ndarray:
         X, self._padded_shape = pad(X, self.p_H, self.p_W)
 
-        X = vectorize_for_conv(
-            X, self.kernel_size, self.stride, (self.out_H, self.out_W)
-        )
+        op_area = self.output_area()
+
+        X = vectorize_for_conv(X, self.kernel_size, self.stride, op_area)
 
         self._vectorized_ip = np.moveaxis(X, -1, 0)
 
@@ -129,7 +133,7 @@ class Conv2D(BaseLayer):
             self._vectorized_ip, weights[None, ...], dtype=np.float32
         )
 
-        shape = (self.filters, self.out_H, self.out_W, -1)
+        shape = (self.filters, *op_area, -1)
 
         return np.swapaxes(convolution, 0, 2).reshape(shape)
 
@@ -186,7 +190,7 @@ class Conv2D(BaseLayer):
 
         dX = accumulate_dX_conv(
             dX_shape=(dZ.shape[0], self.ip_C, *self._padded_shape),
-            output_size=(self.out_H, self.out_W),
+            output_size=self.output_area(),
             dIp=np.matmul(dZ, self._vectorized_kernel.T, dtype=np.float32),
             stride=self.stride,
             kernel_size=self.kernel_size,

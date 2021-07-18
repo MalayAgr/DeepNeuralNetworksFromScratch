@@ -77,6 +77,56 @@ def vectorize_for_conv(
     return vectorized_ip
 
 
+def vectorize_kernel_for_conv(kernel) -> np.ndarray:
+    filters = kernel.shape[-1]
+    return kernel.reshape(-1, filters)
+
+
+def convolve2d(
+    X: np.ndarray,
+    kernel: np.ndarray,
+    stride: Tuple[int, int] = (1, 1),
+    padding: Tuple[int, int] = (0, 0),
+    return_vec_ip: bool = False,
+    return_vec_kernel: bool = False,
+) -> Union[
+    Tuple[np.ndarray, np.ndarray, np.ndarray],
+    Tuple[np.ndarray, np.ndarray],
+    Tuple[np.ndarray],
+]:
+
+    ipH, ipW = X.shape[1:-1]
+    kH, kW, filters = kernel.shape[1:]
+    sH, sW = stride
+    pH, pW = padding
+
+    oH = compute_conv_output_dim(ipH, kH, pH, sH)
+    oW = compute_conv_output_dim(ipW, kW, pW, sW)
+
+    if padding != (0, 0):
+        X, _ = pad(X, pH, pW)
+
+    X = vectorize_for_conv(X, (kH, kW), stride, (oH, oW))
+
+    X = np.moveaxis(X, -1, 0)
+
+    weights = vectorize_kernel_for_conv(kernel)
+
+    convolution = np.matmul(X, weights[None, ...], dtype=np.float32)
+
+    shape = (filters, oH, oW, -1)
+
+    ret_val = (np.swapaxes(convolution, 0, 2).reshape(shape),)
+
+    if return_vec_ip is True:
+        ret_val += (X,)
+
+    if return_vec_kernel is True:
+        ret_val += (weights,)
+
+    return ret_val
+
+
 def accumulate_dX_conv(
     dX_shape: Tuple,
     output_size: Tuple[int, int],

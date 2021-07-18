@@ -9,6 +9,7 @@ from .utils import (
     add_activation,
     compute_conv_output_dim,
     compute_conv_padding,
+    convolve2d,
     pad,
     vectorize_for_conv,
 )
@@ -18,8 +19,8 @@ class Conv2D(BaseLayer):
     reset = (
         "convolutions",
         "activations",
-        "_vectorized_ip",
-        "_vectorized_kernel",
+        "_vec_ip",
+        "_vec_kernel",
     )
 
     str_attrs = ("filters", "kernel_size", "stride", "padding", "activation")
@@ -63,9 +64,8 @@ class Conv2D(BaseLayer):
         self.convolutions = None
         self.activations = None
 
-        self._vectorized_ip = None
-        self._vectorized_kernel = None
-        self._padded_shape = None
+        self._vec_ip = None
+        self._vec_kernel = None
 
     def fans(self) -> Tuple[int, int]:
         receptive_field_size = np.prod(self.kernel_size)
@@ -114,31 +114,16 @@ class Conv2D(BaseLayer):
 
         return self.filters, oH, oW, None
 
-    def _vectorize_kernels(self) -> np.ndarray:
-        self._vectorized_kernel = self.kernels.reshape(-1, self.filters)
-        return self._vectorized_kernel
-
-    def _convolve(self, X: np.ndarray) -> np.ndarray:
-        X, self._padded_shape = pad(X, self.p_H, self.p_W)
-
-        op_area = self.output_area()
-
-        X = vectorize_for_conv(X, self.kernel_size, self.stride, op_area)
-
-        self._vectorized_ip = np.moveaxis(X, -1, 0)
-
-        weights = self._vectorize_kernels()
-
-        convolution = np.matmul(
-            self._vectorized_ip, weights[None, ...], dtype=np.float32
-        )
-
-        shape = (self.filters, *op_area, -1)
-
-        return np.swapaxes(convolution, 0, 2).reshape(shape)
-
     def forward_step(self, *args, **kwargs) -> np.ndarray:
-        convolutions = self._convolve(self.input())
+
+        convolutions, self._vec_ip, self._vec_kernel = convolve2d(
+            X=self.input(),
+            kernel=self.kernels,
+            stride=self.stride,
+            padding=(self.p_H, self.p_W),
+            return_vec_ip=True,
+            return_vec_kernel=True,
+        )
 
         if self.use_bias:
             convolutions += self.biases
@@ -154,7 +139,7 @@ class Conv2D(BaseLayer):
         return self.activations
 
     def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
-        ip = self._vectorized_ip
+        ip = self._vec_ip
 
         dW = np.matmul(ip[..., None], dZ[..., None, :], dtype=np.float32).sum(
             axis=(0, 1)
@@ -188,10 +173,13 @@ class Conv2D(BaseLayer):
             self.reset_attrs()
             return
 
+        ipH, ipW = self.input_shape()[1:-1]
+        padded_shape = (ipH + 2 * self.p_H, ipW + 2 * self.p_W)
+
         dX = accumulate_dX_conv(
-            dX_shape=(dZ.shape[0], self.ip_C, *self._padded_shape),
+            dX_shape=(dZ.shape[0], self.ip_C, *padded_shape),
             output_size=self.output_area(),
-            dIp=np.matmul(dZ, self._vectorized_kernel.T, dtype=np.float32),
+            dIp=np.matmul(dZ, self._vec_kernel.T, dtype=np.float32),
             stride=self.stride,
             kernel_size=self.kernel_size,
             reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),

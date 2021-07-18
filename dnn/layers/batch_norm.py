@@ -112,7 +112,7 @@ class BatchNorm(BaseLayer):
         mean_share = dA.sum(axis=self.axes, keepdims=True)
         var_share = self.norm * np.sum(dA * self.norm, axis=self.axes, keepdims=True)
 
-        scale = dA.size / self.x_dim
+        scale = dA.size / self.x_dim()
 
         if self.requires_dX is False:
             self.reset_attrs()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -76,7 +76,7 @@ class Activation(BaseLayer):
             )
         return self.derivative_func(ip).astype(np.float32)
 
-    def fans(self) -> tuple[int, int]:
+    def fans(self) -> Tuple[int, int]:
         ip_layer_fans = self.ip_layer.fans()
         return ip_layer_fans[-1], ip_layer_fans[-1]
 

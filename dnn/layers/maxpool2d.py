@@ -67,7 +67,7 @@ class MaxPooling2D(BaseLayer):
 
         return self.windows, oH, oW, None
 
-    def _get_pool_outputs(self, ip: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def _get_pool_outputs(self, ip: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         ip_shape = ip.shape
 
         flat = np.prod(ip_shape[:-1])

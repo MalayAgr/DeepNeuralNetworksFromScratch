@@ -39,21 +39,19 @@ class Optimizer(ABC):
 
 class BaseMiniBatchGD(Optimizer):
     @staticmethod
-    def init_zeros_from_param_map(layer: BaseLayer) -> dict:
+    def init_zeros_from_params(layer: BaseLayer) -> dict:
+        shapes = layer.get_param_shapes(layer.param_keys)
+
         return {
-            key: np.zeros(shape=rgetattr(layer, attr).shape, dtype=np.float32)
-            for key, attr in layer.param_map.items()
+            key: np.zeros(shape=shape, dtype=np.float32)
+            for key, shape in shapes.items()
         }
 
     def update_params(self, model: "Model", *args, **kwargs) -> None:
         for layer in model.trainable_layers:
             updates = self.compute_update(layer, *args, **kwargs)
-            for key, attr in layer.param_map.items():
-                val = rgetattr(layer, attr)
-                val -= self.lr * updates[key]
-
-                rsetattr(layer, attr, val)
-
+            updates = {key: self.lr * value for key, value in updates.items()}
+            layer.update_params(updates)
             layer.gradients = {}
 
     def mini_batch_step(
@@ -140,7 +138,7 @@ class SGD(BaseMiniBatchGD):
 
     def init_velocities(self, model: "Model") -> None:
         for layer in model.trainable_layers:
-            layer.velocities = self.init_zeros_from_param_map(layer)
+            layer.velocities = self.init_zeros_from_params(layer)
 
     def update_layer_velocities(self, layer: BaseLayer) -> None:
         for key, grad in layer.gradients.items():
@@ -188,7 +186,7 @@ class RMSProp(BaseMiniBatchGD):
 
     def init_rms(self, model: "Model"):
         for layer in model.trainable_layers:
-            layer.rms = self.init_zeros_from_param_map(layer)
+            layer.rms = self.init_zeros_from_params(layer)
 
     def update_layer_rms(self, layer: BaseLayer) -> None:
         for key, grad in layer.gradients.items():
@@ -232,8 +230,8 @@ class Adam(BaseMiniBatchGD):
 
     def init_moments(self, model: "Model") -> None:
         for layer in model.trainable_layers:
-            layer.m1 = self.init_zeros_from_param_map(layer)
-            layer.m2 = self.init_zeros_from_param_map(layer)
+            layer.m1 = self.init_zeros_from_params(layer)
+            layer.m2 = self.init_zeros_from_params(layer)
 
     def update_layer_moments(self, layer: BaseLayer) -> None:
         for key, grad in layer.gradients.items():

@@ -85,7 +85,7 @@ class Conv2D(BaseLayer):
         total = np.prod(self.kernels.shape)
 
         if self.use_bias:
-            return total + self.filters
+            return total + self.biases.shape[0]
 
         return total
 

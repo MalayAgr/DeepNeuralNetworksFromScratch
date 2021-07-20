@@ -67,7 +67,7 @@ def vectorize_for_conv(
         reshape = (-1, X.shape[-1])
 
     vectorized_ip = np.array(
-        [X[:, i : i + kH, j : j + kW].reshape(*reshape) for i, j in indices]
+        tuple(X[:, i : i + kH, j : j + kW].reshape(*reshape) for i, j in indices)
     )
 
     return vectorized_ip

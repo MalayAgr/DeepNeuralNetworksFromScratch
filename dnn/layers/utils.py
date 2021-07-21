@@ -18,11 +18,11 @@ def activation_factory(
 
 
 def add_activation(activation: Union[Activation, str, None]) -> Activation:
-    if activation is None:
-        return
-
     if isinstance(activation, Activation):
         return activation
+
+    if activation is None:
+        activation = "linear"
 
     return activation_factory(activation)
 

@@ -103,6 +103,21 @@ class Activation(BaseLayer):
         return dA
 
 
+class Linear(Activation):
+    name = "linear"
+
+    def __str__(self) -> str:
+        return "None"
+
+    def activation_func(self, ip: np.ndarray) -> np.ndarray:
+        return ip
+
+    def derivative_func(
+        self, ip: np.ndarray, activations: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        return np.ones_like(ip, dtype=np.float32)
+
+
 class Sigmoid(Activation):
     name = "sigmoid"
 

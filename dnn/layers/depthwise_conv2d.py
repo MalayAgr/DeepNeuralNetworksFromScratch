@@ -1,13 +1,11 @@
-import numpy as np
-from dnn.layers.conv2d import Conv2D
-from dnn.layers.activations import Activation
 from typing import Any, Optional, Tuple, Union
 
-from .base_layer import BaseLayer, LayerInput
-from .utils import (
-    accumulate_dX_conv,
-    depthwise_convolve2d,
-)
+import numpy as np
+
+from .activations import Activation
+from .base_layer import LayerInput
+from .conv2d import Conv2D
+from .utils import depthwise_convolve2d
 
 
 class DepthwiseConv2D(Conv2D):

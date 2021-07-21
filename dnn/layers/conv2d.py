@@ -1,16 +1,9 @@
-from typing import Any, Optional, Tuple, Union
+from typing import Tuple, Union
 
 import numpy as np
 
-from .activations import Activation
 from .base_conv import Conv
-from .utils import (
-    accumulate_dX_conv,
-    add_activation,
-    compute_conv_output_dim,
-    compute_conv_padding,
-    convolve2d,
-)
+from .utils import convolve2d
 
 
 class Conv2D(Conv):

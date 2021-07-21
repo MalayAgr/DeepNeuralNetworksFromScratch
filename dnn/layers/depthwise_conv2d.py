@@ -48,9 +48,9 @@ class DepthwiseConv2D(Conv2D):
         super().build()
 
         if self.use_bias:
-            remaining = (self.filters - 1) * self.ip_C
+            remaining = (self.multiplier * self.ip_C) - self.biases.shape[0]
             extra = self._add_param(shape=(remaining, 1, 1, 1), initializer="zeros")
-            self.biases = np.concatenate(self.biases, extra)
+            self.biases = np.concatenate((self.biases, extra))
 
     def output_shape(self) -> Tuple:
         shape = super().output_shape()

@@ -142,15 +142,17 @@ class Conv2D(BaseLayer):
 
         dW = self._compute_dW(dA)
 
+        m = dA.shape[0]
+
         reg_param = kwargs.pop("reg_param", 0.0)
         if reg_param > 0:
-            dW += (reg_param / dA.shape[-1]) * self.kernels
+            dW += (reg_param / m) * self.kernels
 
         self.gradients["kernels"] = dW
 
         if self.use_bias:
             self.gradients["biases"] = (
-                dA.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / dA.shape[-1]
+                dA.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / m
             )
 
         if self.requires_dX is False:
@@ -161,7 +163,7 @@ class Conv2D(BaseLayer):
         padded_shape = (ipH + 2 * self.p_H, ipW + 2 * self.p_W)
 
         dX = accumulate_dX_conv(
-            dX_shape=(dA.shape[0], self.ip_C, *padded_shape),
+            dX_shape=(m, self.ip_C, *padded_shape),
             output_size=self.output_area(),
             dIp=np.matmul(dA, self._vec_kernel.T, dtype=np.float32),
             stride=self.stride,

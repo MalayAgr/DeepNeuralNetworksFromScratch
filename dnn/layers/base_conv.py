@@ -123,6 +123,7 @@ class Conv(BaseLayer):
         Tuple[np.ndarray, None, np.ndarray],
         Tuple[np.ndarray, None, None],
     ]:
+        """Method to compute the convolutional output of the layer."""
         pass
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:

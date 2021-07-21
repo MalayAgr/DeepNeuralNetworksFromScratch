@@ -195,7 +195,8 @@ class Conv(BaseLayer):
 
         reg_param = kwargs.pop("reg_param", 0.0)
         if reg_param > 0:
-            dW += (reg_param / scale) * self.kernels
+            m = dA.shape[0]
+            dW += (reg_param / (scale * m)) * self.kernels
 
         self.gradients["kernels"] = dW
 

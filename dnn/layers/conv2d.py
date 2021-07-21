@@ -126,6 +126,10 @@ class Conv2D(BaseLayer):
 
         return self.activations
 
+    def _param_scale(self) -> int:
+        oH, oW = self.output_area()
+        return self._vec_ip.shape[0] * oH * oW
+
     def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
         ip = self._vec_ip
 
@@ -133,7 +137,9 @@ class Conv2D(BaseLayer):
             axis=(0, 1)
         )
 
-        return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters) / ip.shape[0]
+        scale = self._param_scale()
+
+        return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters) / scale
 
     def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
         dA = self.activation.backprop_step(dA=dA, ip=self.convolutions)
@@ -142,17 +148,17 @@ class Conv2D(BaseLayer):
 
         dW = self._compute_dW(dA)
 
-        m = dA.shape[0]
+        scale = self._param_scale()
 
         reg_param = kwargs.pop("reg_param", 0.0)
         if reg_param > 0:
-            dW += (reg_param / m) * self.kernels
+            dW += (reg_param / scale) * self.kernels
 
         self.gradients["kernels"] = dW
 
         if self.use_bias:
             self.gradients["biases"] = (
-                dA.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / m
+                dA.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / scale
             )
 
         if self.requires_dX is False:
@@ -163,7 +169,7 @@ class Conv2D(BaseLayer):
         padded_shape = (ipH + 2 * self.p_H, ipW + 2 * self.p_W)
 
         dX = accumulate_dX_conv(
-            dX_shape=(m, self.ip_C, *padded_shape),
+            dX_shape=(dA.shape[0], self.ip_C, *padded_shape),
             output_size=self.output_area(),
             dIp=np.matmul(dA, self._vec_kernel.T, dtype=np.float32),
             stride=self.stride,

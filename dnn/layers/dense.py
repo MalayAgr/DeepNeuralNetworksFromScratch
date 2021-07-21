@@ -81,21 +81,21 @@ class Dense(BaseLayer):
 
     def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
         ip = self.input()
-        m = ip.shape[-1]
 
         dA = self.activation.backprop_step(dA, ip=self.linear)
 
         reg_param = kwargs.pop("reg_param", 0.0)
 
-        dW = np.matmul(dA, ip.T, dtype=np.float32) / m
+        dW = np.matmul(dA, ip.T, dtype=np.float32)
 
         if reg_param > 0:
+            m = ip.shape[-1]
             dW += (reg_param / m) * self.weights
 
         self.gradients["weights"] = dW
 
         if self.use_bias:
-            self.gradients["biases"] = np.sum(dA, keepdims=True, axis=1) / m
+            self.gradients["biases"] = np.sum(dA, keepdims=True, axis=1)
 
         if self.requires_dX is False:
             self.reset_attrs()

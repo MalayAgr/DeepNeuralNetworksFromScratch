@@ -208,6 +208,7 @@ class Conv(BaseLayer):
             return
 
         dX = self._compute_dX(dA)
+        dX /= scale
 
         self.reset_attrs()
 

@@ -90,6 +90,7 @@ class BinaryCrossEntropy(Loss):
 
         grad = (1 - labels) / (1 - preds)
         grad -= labels / preds
+        grad /= labels.shape[-1]
         return grad
 
 
@@ -104,7 +105,7 @@ class MeanSquaredError(Loss):
         return np.squeeze(loss)
 
     def loss_derivative(self, labels: np.ndarray, preds: np.ndarray) -> np.ndarray:
-        return preds - labels
+        return (preds - labels) / labels.shape[-1]
 
 
 class CategoricalCrossEntropy(Loss):
@@ -118,4 +119,5 @@ class CategoricalCrossEntropy(Loss):
     def loss_derivative(self, labels: np.ndarray, preds: np.ndarray) -> np.ndarray:
         grad = -labels
         grad /= preds
+        grad /= labels.shape[-1]
         return grad

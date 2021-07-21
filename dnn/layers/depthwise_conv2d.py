@@ -62,8 +62,15 @@ class DepthwiseConv2D(Conv2D):
 
         return c * self.ip_C, h, w, m
 
-    def forward_step(self, *args, **kwargs) -> np.ndarray:
-        self.convolutions, self._vec_ip, self._vec_kernel = depthwise_convolve2d(
+    def conv_func(
+        self,
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, None],
+        Tuple[np.ndarray, None, np.ndarray],
+        Tuple[np.ndarray, None, None],
+    ]:
+        return depthwise_convolve2d(
             X=self.input(),
             kernel=self.kernels,
             stride=self.stride,
@@ -72,49 +79,32 @@ class DepthwiseConv2D(Conv2D):
             return_vec_kernel=True,
         )
 
-        if self.use_bias:
-            self.convolutions += self.biases
-
-        self.activations = self.activation.forward_step(ip=self.convolutions)
-
-        return self.activations
-
     def _param_scale(self) -> int:
         return self.ip_C * self.multiplier * super()._param_scale()
+
+    def _reshape_dZ(self, dZ: np.ndarray) -> np.ndarray:
+        shape = (dZ.shape[-1], -1, self.ip_C, self.multiplier)
+
+        dZ = np.swapaxes(dZ, -1, 0).reshape(*shape)
+
+        dZ = np.moveaxis(dZ, 1, 2)
+
+        return dZ
 
     def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
         ip = np.swapaxes(self._vec_ip, -1, -2)
 
-        dZ = np.moveaxis(dZ, 1, 2)
-
         dW = np.matmul(ip, dZ).sum(axis=0)
 
-        scale = self._param_scale()
+        return dW.reshape(-1, self.kernel_H, self.kernel_W, self.multiplier)
 
-        return dW.reshape(-1, self.kernel_H, self.kernel_W, self.multiplier) / scale
+    def _compute_dB(self, dZ: np.ndarray) -> np.ndarray:
+        return dZ.sum(axis=(0, 2)).reshape(-1, *self.biases.shape[1:])
 
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
-        dA = self.activation.backprop_step(dA, ip=self.convolutions)
+    def _compute_dVec_Ip(self, dZ: np.ndarray) -> np.ndarray:
+        kernel = np.swapaxes(self._vec_kernel, -1, -2)
 
-        dA = np.swapaxes(dA, -1, 0).reshape(
-            dA.shape[-1], -1, self.ip_C, self.multiplier
-        )
+        dIp = np.matmul(dZ, kernel, dtype=np.float32)
+        dIp = np.moveaxis(dIp, 2, 1)
 
-        dW = self._compute_dW(dA)
-
-        scale = self._param_scale()
-
-        reg_param = kwargs.pop("reg_param", 0.0)
-        if reg_param > 0:
-            dW += (reg_param / scale) * self.kernels
-
-        self.gradients["kernels"] = dW
-
-        if self.use_bias:
-            self.gradients["biases"] = (
-                dA.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / scale
-            )
-
-        if self.requires_dX is False:
-            self.reset_attrs()
-            return
+        return dIp

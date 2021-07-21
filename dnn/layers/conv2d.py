@@ -110,8 +110,7 @@ class Conv2D(BaseLayer):
         return self.filters, oH, oW, None
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
-
-        convolutions, self._vec_ip, self._vec_kernel = convolve2d(
+        self.convolutions, self._vec_ip, self._vec_kernel = convolve2d(
             X=self.input(),
             kernel=self.kernels,
             stride=self.stride,
@@ -121,15 +120,9 @@ class Conv2D(BaseLayer):
         )
 
         if self.use_bias:
-            convolutions += self.biases
+            self.convolutions += self.biases
 
-        activations = (
-            self.activation.forward_step(ip=convolutions)
-            if self.activation is not None
-            else convolutions
-        )
-
-        self.convolutions, self.activations = convolutions, activations
+        self.activations = self.activation.forward_step(ip=self.convolutions)
 
         return self.activations
 
@@ -143,25 +136,21 @@ class Conv2D(BaseLayer):
         return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters) / ip.shape[0]
 
     def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
-        dZ = (
-            self.activation.backprop_step(dA, ip=self.convolutions)
-            if self.activation is not None
-            else dA
-        )
+        dA = self.activation.backprop_step(dA=dA, ip=self.convolutions)
 
-        dZ = np.swapaxes(dZ, 0, -1).reshape(dZ.shape[-1], -1, self.filters)
+        dA = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.filters)
 
-        dW = self._compute_dW(dZ)
+        dW = self._compute_dW(dA)
 
         reg_param = kwargs.pop("reg_param", 0.0)
         if reg_param > 0:
-            dW += (reg_param / dZ.shape[-1]) * self.kernels
+            dW += (reg_param / dA.shape[-1]) * self.kernels
 
         self.gradients["kernels"] = dW
 
         if self.use_bias:
             self.gradients["biases"] = (
-                dZ.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / dZ.shape[-1]
+                dA.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:]) / dA.shape[-1]
             )
 
         if self.requires_dX is False:
@@ -172,9 +161,9 @@ class Conv2D(BaseLayer):
         padded_shape = (ipH + 2 * self.p_H, ipW + 2 * self.p_W)
 
         dX = accumulate_dX_conv(
-            dX_shape=(dZ.shape[0], self.ip_C, *padded_shape),
+            dX_shape=(dA.shape[0], self.ip_C, *padded_shape),
             output_size=self.output_area(),
-            dIp=np.matmul(dZ, self._vec_kernel.T, dtype=np.float32),
+            dIp=np.matmul(dA, self._vec_kernel.T, dtype=np.float32),
             stride=self.stride,
             kernel_size=self.kernel_size,
             reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),

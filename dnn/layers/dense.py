@@ -70,18 +70,12 @@ class Dense(BaseLayer):
         return self.units, None
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
-        linear = np.matmul(self.weights, self.input(), dtype=np.float32)
+        self.linear = np.matmul(self.weights, self.input(), dtype=np.float32)
 
         if self.use_bias:
-            linear += self.biases
+            self.linear += self.biases
 
-        activations = (
-            self.activation.forward_step(ip=linear)
-            if self.activation is not None
-            else linear
-        )
-
-        self.linear, self.activations = linear, activations
+        self.activations = self.activation.forward_step(ip=self.linear)
 
         return self.activations
 
@@ -89,15 +83,11 @@ class Dense(BaseLayer):
         ip = self.input()
         m = ip.shape[-1]
 
-        dZ = (
-            self.activation.backprop_step(dA, ip=self.linear)
-            if self.activation is not None
-            else dA
-        )
+        dA = self.activation.backprop_step(dA, ip=self.linear)
 
         reg_param = kwargs.pop("reg_param", 0.0)
 
-        dW = np.matmul(dZ, ip.T, dtype=np.float32) / m
+        dW = np.matmul(dA, ip.T, dtype=np.float32) / m
 
         if reg_param > 0:
             dW += (reg_param / m) * self.weights
@@ -105,13 +95,13 @@ class Dense(BaseLayer):
         self.gradients["weights"] = dW
 
         if self.use_bias:
-            self.gradients["biases"] = np.sum(dZ, keepdims=True, axis=1) / m
+            self.gradients["biases"] = np.sum(dA, keepdims=True, axis=1) / m
 
         if self.requires_dX is False:
             self.reset_attrs()
             return
 
-        dX = np.matmul(self.weights.T, dZ, dtype=np.float32)
+        dX = np.matmul(self.weights.T, dA, dtype=np.float32)
 
         self.reset_attrs()
 

@@ -175,7 +175,7 @@ def depthwise_convolve2d(
 
     shape = (ipC * multiplier, oH, oW, -1)
 
-    ret_val = (np.swapaxes(convolution, 0, -1).reshape(shape),)
+    ret_val = (np.moveaxis(convolution, [0, -1], [-1, 1]).reshape(shape),)
 
     if return_vec_ip is True:
         ret_val += (X,)

@@ -8,10 +8,12 @@ Currently, the following things are supported:
 
 - `Dense`
 - `Conv2D`
-- `MaxPool` and `AveragePool`
+- `MaxPooling2D` and `AveragePooling2D`
 - `BatchNorm`
 - `Dropout`
-- Activations: `Sigmoid`, `TanH`, `ReLU`, `LeakyReLU`, `ELU` and `Softmax`
+- `Flatten`
+- `DepthwiseConv2D`
+- Activations: `Linear`, `Sigmoid`, `Tanh`, `ReLU`, `LeakyReLU`, `ELU` and `Softmax`
 - Losses: `BinaryCrossEntropy`, `CategoricalCrossEntropy` and `MeanSquaredError`
 - Optimizers: `SGD` with no momentum, `SGD` with momentum, `RMSProp` and `Adam`
 - L2 Regularization

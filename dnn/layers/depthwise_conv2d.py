@@ -80,7 +80,7 @@ class DepthwiseConv2D(Conv2D):
         return self.activations
 
     def _param_scale(self) -> int:
-        return self.ip_C * super()._param_scale()
+        return self.ip_C * self.multiplier * super()._param_scale()
 
     def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
         ip = np.swapaxes(self._vec_ip, -1, -2)

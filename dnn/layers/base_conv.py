@@ -137,38 +137,33 @@ class Conv(BaseLayer):
         return self.activations
 
     @abstractmethod
-    def _param_scale(self) -> int:
-        """Method to calculate the amount by which the kernel and bias gradients should be divided."""
-        pass
-
-    @abstractmethod
     def _reshape_dZ(self, dZ: np.ndarray) -> np.ndarray:
-        """Method to reshape the gradient of the convolution wrt loss."""
+        """Method to reshape the gradient of loss wrt convolutional output."""
         pass
 
     @abstractmethod
     def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
-        """Method to compute the gradient of the kernel wrt loss WITHOUT scaling."""
+        """Method to compute the gradient of the loss wrt kernel."""
         pass
 
     @abstractmethod
     def _compute_dB(self, dZ: np.ndarray) -> np.ndarray:
-        """Method to compute the gradient of the bias wrt loss WITHOUT scaling."""
+        """Method to compute the gradient of the loss wrt biases."""
         pass
 
     @abstractmethod
     def _compute_dVec_Ip(self, dZ: np.ndarray) -> np.ndarray:
-        """Method to compute the derivative of the vectorized input wrt loss."""
+        """Method to compute the derivative of loss wrt to the vectorized input."""
         pass
 
     def _target_dX_shape(self) -> Tuple:
-        """Method to obtain the shape of the derivative of the input wrt loss."""
+        """Method to obtain the shape of the derivative of loss wrt to the input of the layer."""
         post_pad_H, post_pad_W = self.padded_shape()
         m = self.input().shape[-1]
         return m, self.ip_C, post_pad_H, post_pad_W
 
     def _compute_dX(self, dZ: np.ndarray) -> np.ndarray:
-        """Method to compute the derivative of the input wrt loss."""
+        """Method to compute the derivative of the loss wrt input."""
 
         dX_shape = self._target_dX_shape()
         dIp = self._compute_dVec_Ip(dZ)
@@ -188,28 +183,23 @@ class Conv(BaseLayer):
 
         dA = self._reshape_dZ(dA)
 
-        scale = self._param_scale()
-
         dW = self._compute_dW(dA)
-        dW /= scale
 
         reg_param = kwargs.pop("reg_param", 0.0)
         if reg_param > 0:
             m = dA.shape[0]
-            dW += (reg_param / (scale * m)) * self.kernels
+            dW += (reg_param / m) * self.kernels
 
         self.gradients["kernels"] = dW
 
         if self.use_bias:
             self.gradients["biases"] = self._compute_dB(dA)
-            self.gradients["biases"] /= scale
 
         if self.requires_dX is False:
             self.reset_attrs()
             return
 
         dX = self._compute_dX(dA)
-        dX /= scale
 
         self.reset_attrs()
 

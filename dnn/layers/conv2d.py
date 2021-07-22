@@ -24,10 +24,6 @@ class Conv2D(Conv):
             return_vec_kernel=True,
         )
 
-    def _param_scale(self) -> int:
-        oH, oW = self.output_area()
-        return oH * oW
-
     def _reshape_dZ(self, dZ: np.ndarray) -> np.ndarray:
         return np.swapaxes(dZ, 0, -1).reshape(dZ.shape[-1], -1, self.filters)
 

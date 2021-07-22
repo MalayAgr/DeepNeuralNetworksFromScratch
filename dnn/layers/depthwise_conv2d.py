@@ -77,9 +77,6 @@ class DepthwiseConv2D(Conv2D):
             return_vec_kernel=True,
         )
 
-    def _param_scale(self) -> int:
-        return self.ip_C * self.multiplier * super()._param_scale()
-
     def _reshape_dZ(self, dZ: np.ndarray) -> np.ndarray:
         shape = (dZ.shape[-1], -1, self.ip_C, self.multiplier)
 

@@ -158,6 +158,8 @@ class MeanSquaredError(Loss):
         grad *= 2
         grad /= labels.shape[-1]
 
+        return grad
+
 
 class CategoricalCrossEntropy(Loss):
     name = ["categorial_crossentropy", "cce"]

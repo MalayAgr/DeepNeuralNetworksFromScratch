@@ -108,6 +108,7 @@ class BinaryCrossEntropy(Loss):
     def should_reshape(self, shape: Tuple) -> bool:
         return len(shape) > self.ndim or shape[0] != 1
 
+    @staticmethod
     def reshape_labels_and_preds(
         labels: np.ndarray, preds: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -142,6 +143,7 @@ class MeanSquaredError(Loss):
     def should_reshape(self, shape: Tuple) -> bool:
         return len(shape) > self.ndim or shape[0] != 1
 
+    @staticmethod
     def reshape_labels_and_preds(
         labels: np.ndarray, preds: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -169,6 +171,7 @@ class CategoricalCrossEntropy(Loss):
     def should_reshape(self, shape: Tuple) -> bool:
         return len(shape) > self.ndim
 
+    @staticmethod
     def reshape_labels_and_preds(
         labels: np.ndarray, preds: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:

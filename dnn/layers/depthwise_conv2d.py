@@ -22,6 +22,7 @@ class DepthwiseConv2D(Conv2D):
         padding: str = "valid",
         initializer: str = "he",
         use_bias: bool = True,
+        name: str = None,
         **kwargs
     ) -> None:
         super().__init__(
@@ -33,6 +34,7 @@ class DepthwiseConv2D(Conv2D):
             padding=padding,
             initializer=initializer,
             use_bias=use_bias,
+            name=name,
         )
 
         self.multiplier = multiplier

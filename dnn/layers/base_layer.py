@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from itertools import count
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -8,8 +10,10 @@ from dnn.input_layer import Input
 
 
 class BaseLayer(ABC):
-    reset = None
-    str_attrs = tuple()
+    reset: Tuple = None
+    str_attrs: Tuple = tuple()
+
+    _id = count(0)
 
     def __init__(
         self,
@@ -17,6 +21,7 @@ class BaseLayer(ABC):
         *args,
         trainable: bool = True,
         params: Optional[List] = None,
+        name: str = None,
         **kwargs,
     ) -> None:
         if ip is not None and not isinstance(ip, (Input, BaseLayer)):
@@ -27,6 +32,8 @@ class BaseLayer(ABC):
             raise AttributeError(msg)
 
         self.ip_layer = ip
+
+        self.name = self._make_name() if name is None else name
 
         self.trainable = trainable
 
@@ -43,6 +50,17 @@ class BaseLayer(ABC):
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def _make_name(self) -> str:
+        cls = self.__class__.__name__.lower()
+        _id = next(BaseLayer._id)
+        base = f"{cls}{_id}_"
+
+        return base + "/".join(
+            f"{attr[0]}@{getattr(self, attr)}"
+            for attr in self.str_attrs
+            if attr != "activation"
+        )
 
     @abstractmethod
     def fans(self) -> Tuple[int, int]:

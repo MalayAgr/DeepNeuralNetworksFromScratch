@@ -16,6 +16,7 @@ class BatchNorm(BaseLayer):
         axis: int = 0,
         momentum: float = 0.5,
         epsilon: float = 1e-7,
+        name: str = None,
     ) -> None:
         self.axis = axis
         self.momentum = momentum
@@ -25,7 +26,7 @@ class BatchNorm(BaseLayer):
 
         params = ["gamma", "beta"]
 
-        super().__init__(ip=ip, params=params)
+        super().__init__(ip=ip, params=params, name=name)
 
         ip_shape = self.input_shape()
         self.axes = tuple(ax for ax, _ in enumerate(ip_shape) if ax != axis)

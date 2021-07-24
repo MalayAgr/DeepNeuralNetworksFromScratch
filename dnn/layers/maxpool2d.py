@@ -24,6 +24,7 @@ class MaxPooling2D(BaseLayer):
         pool_size: Tuple,
         stride: Tuple[int, int] = (2, 2),
         padding: str = "valid",
+        name: str = None,
     ) -> None:
         self.pool_size = pool_size
         self.pool_H, self.pool_W = pool_size
@@ -34,7 +35,7 @@ class MaxPooling2D(BaseLayer):
         self.padding = padding
         self.p_H, self.p_W = compute_conv_padding(pool_size, mode=padding)
 
-        super().__init__(ip, trainable=False)
+        super().__init__(ip, trainable=False, name=name)
 
         self.windows = self.input_shape()[0]
 

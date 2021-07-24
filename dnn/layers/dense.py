@@ -18,6 +18,7 @@ class Dense(BaseLayer):
         activation: Optional[Union[Activation, str]] = None,
         initializer: str = "he",
         use_bias: bool = True,
+        name: str = None,
     ) -> None:
         self.units = units
         self.activation = add_activation(activation)
@@ -35,7 +36,7 @@ class Dense(BaseLayer):
         self.linear = None
         self.activations = None
 
-        super().__init__(ip=ip, params=params)
+        super().__init__(ip=ip, params=params, name=name)
 
     def fans(self) -> Tuple[int, int]:
         fan_in = self.input_shape()[0]

@@ -34,6 +34,7 @@ class Conv(BaseLayer):
         padding: str = "valid",
         initializer: str = "he",
         use_bias: bool = True,
+        name: str = None,
     ) -> None:
         self.filters = filters
 
@@ -58,7 +59,7 @@ class Conv(BaseLayer):
             self.biases = None
             params.append("biases")
 
-        super().__init__(ip=ip, params=params)
+        super().__init__(ip=ip, params=params, name=name)
 
         self.ip_C = self.input_shape()[0]
 

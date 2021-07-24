@@ -10,13 +10,15 @@ class Dropout(BaseLayer):
     reset = ("dropped", "dropout_mask")
     str_attrs = ("keep_prob",)
 
-    def __init__(self, ip: LayerInput, keep_prob: float = 0.5) -> None:
+    def __init__(
+        self, ip: LayerInput, keep_prob: float = 0.5, name: str = None
+    ) -> None:
         if not 0 < keep_prob <= 1:
             raise AttributeError("keep_prob should be in the interval (0, 1]")
 
         self.keep_prob = keep_prob
 
-        super().__init__(ip=ip, trainable=False)
+        super().__init__(ip=ip, trainable=False, name=name)
 
         self.dropped = None
         self.dropout_mask = None

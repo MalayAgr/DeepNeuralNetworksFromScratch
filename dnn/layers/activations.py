@@ -11,8 +11,10 @@ from .base_layer import BaseLayer, LayerInput
 class Activation(BaseLayer):
     name = None
 
-    def __init__(self, *args, ip: Optional[LayerInput] = None, **kwargs) -> None:
-        super().__init__(ip=ip, trainable=False)
+    def __init__(
+        self, *args, ip: Optional[LayerInput] = None, name: str = None, **kwargs
+    ) -> None:
+        super().__init__(ip=ip, trainable=False, name=name)
 
         self.activations = None
 

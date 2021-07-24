@@ -69,7 +69,7 @@ class LayerNode(Node):
 
     @property
     def gradients(self) -> List[np.ndarray]:
-        return list(getattr(self.layer, attr) for attr in self.layer.param_keys)
+        return [getattr(self.layer, attr) for attr in self.layer.param_keys]
 
     def forward(self) -> np.ndarray:
         return self.layer.forward_step()

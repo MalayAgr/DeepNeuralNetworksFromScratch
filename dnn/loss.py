@@ -35,8 +35,9 @@ class Loss(ABC):
         """Method to determine if the labels and predictions should be reshaped."""
         return False
 
+    @staticmethod
     def reshape_labels_and_preds(
-        self, labels: np.ndarray, preds: np.ndarray
+        labels: np.ndarray, preds: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Method to reshape the labels and predictions if they should be reshaped."""
         return labels, preds
@@ -108,7 +109,7 @@ class BinaryCrossEntropy(Loss):
         return len(shape) > self.ndim or shape[0] != 1
 
     def reshape_labels_and_preds(
-        self, labels: np.ndarray, preds: np.ndarray
+        labels: np.ndarray, preds: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         return labels.reshape(1, -1), preds.reshape(1, -1)
 
@@ -142,7 +143,7 @@ class MeanSquaredError(Loss):
         return len(shape) > self.ndim or shape[0] != 1
 
     def reshape_labels_and_preds(
-        self, labels: np.ndarray, preds: np.ndarray
+        labels: np.ndarray, preds: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         return labels.reshape(1, -1), preds.reshape(1, -1)
 
@@ -169,7 +170,7 @@ class CategoricalCrossEntropy(Loss):
         return len(shape) > self.ndim
 
     def reshape_labels_and_preds(
-        self, labels: np.ndarray, preds: np.ndarray
+        labels: np.ndarray, preds: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         classes = labels.shape[0]
         return labels.reshape(classes, -1), preds.reshape(classes, -1)

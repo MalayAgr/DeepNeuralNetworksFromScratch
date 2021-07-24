@@ -11,7 +11,7 @@ from dnn.input_layer import Input
 
 class BaseLayer(ABC):
     reset: Tuple = None
-    str_attrs: Tuple = tuple()
+    str_attrs = ()
 
     _id = count(0)
 

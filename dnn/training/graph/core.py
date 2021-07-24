@@ -14,6 +14,13 @@ class ComputationGraph:
 
         self._ordering: List[str] = []
 
+    def __str__(self) -> str:
+        num_nodes = len(self._node_names)
+        return f"{self.__class__.__name__}(num_nodes={num_nodes})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
     @property
     def topological_order(self) -> List[str]:
         return self._ordering

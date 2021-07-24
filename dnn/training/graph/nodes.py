@@ -1,22 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import Callable, List, Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 from dnn.layers import BaseLayer
-from enum import Enum
-
-
-class Colors(Enum):
-    WHITE = 0
-    BLACK = 1
-
 
 class Node(ABC):
     def __init__(self, name: str, source: bool = False) -> None:
         self.name = name
         self.backprop_grad = 0
         self.is_source = source
-        self.color = Colors.WHITE
+        self.visited = False
 
     @property
     def parents(self) -> Union[List[str], None]:
@@ -70,7 +63,7 @@ class LayerNode(Node):
 
     @property
     def gradients(self) -> List[np.ndarray]:
-        return list(self.layer.gradients.values())
+        return list(getattr(self.layer, attr) for attr in self.layer.param_keys)
 
     def forward(self) -> np.ndarray:
         return self.layer.forward_step()

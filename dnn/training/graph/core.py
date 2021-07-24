@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
-from .nodes import Colors, Node
+from .nodes import Node
 
 
 class ComputationGraph:
@@ -45,15 +45,15 @@ class ComputationGraph:
         self._ordering = []
 
         for node in self.nodes:
-            node.color = Colors.WHITE
+            node.visited = False
 
     def _dfs_visit_node(self, u):
         for name in self.adj[u.name]:
             v = self.fetch_node(name)
-            if v.color == Colors.WHITE:
+            if v.visited is False:
                 self._dfs_visit_node(v)
 
-        u.color = Colors.BLACK
+        u.visited = True
         self._ordering.append(u.name)
 
     def _topological_sort(self):
@@ -61,7 +61,7 @@ class ComputationGraph:
             self._reset_topological_order()
 
         for node in self.nodes:
-            if node.color == Colors.WHITE:
+            if node.visited is False:
                 self._dfs_visit_node(node)
 
         self._ordering.reverse()

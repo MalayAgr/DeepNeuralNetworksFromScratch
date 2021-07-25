@@ -43,6 +43,10 @@ class Node(ABC):
         """
 
     @abstractmethod
+    def forward_output(self) -> np.ndarray:
+        """Method to obtain the output of the forward pass through the node."""
+
+    @abstractmethod
     def backprop(self) -> Union[np.ndarray, Tuple[np.ndarray]]:
         """
         Method to execute the backprop step of the node.
@@ -85,6 +89,9 @@ class LayerNode(Node):
 
     def forward(self) -> np.ndarray:
         return self.layer.forward_step()
+
+    def forward_output(self) -> np.ndarray:
+        return self.layer.output()
 
     def backprop(self) -> Union[np.ndarray, Tuple[np.ndarray]]:
         return self.layer.backprop_step(self.backprop_grad)

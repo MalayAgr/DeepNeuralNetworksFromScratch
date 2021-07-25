@@ -112,13 +112,23 @@ class ComputationGraph:
         if not node.is_source:
             self._pass_gradients_to_parents(node, grads)
 
-    def backprop(self, grad: np.ndarray):
+        node_weights = node.get_trainable_weight_values()
+
+        return [(weight, grad) for weight, grad in zip(node_weights, node.gradients)]
+
+    def backprop(self, grad: np.ndarray) -> List[Tuple[np.ndarray, np.ndarray]]:
         if not self.topological_order:
             raise AttributeError(
                 "You must run forward propagation before running backpropagation."
             )
 
-        self._backprop_single_node(self.topological_order[-1], backprop_grad=grad)
+        weights_and_grads = self._backprop_single_node(
+            self.topological_order[-1], backprop_grad=grad
+        )
 
         for name in reversed(self.topological_order[:-1]):
-            self._backprop_single_node(name)
+            node_w_and_g = self._backprop_single_node(name)
+            weights_and_grads.extend(node_w_and_g)
+
+        weights_and_grads.reverse()
+        return weights_and_grads

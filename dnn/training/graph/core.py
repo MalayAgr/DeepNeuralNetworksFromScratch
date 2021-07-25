@@ -76,13 +76,11 @@ class ComputationGraph:
     def forward_propagation(self):
         self._topological_sort()
 
-        val = None
-
         for name in self.topological_order:
             node = self.fetch_node(name)
-            val = node.forward()
+            node.forward()
 
-        return val
+        return node.forward_output()
 
     def _pass_gradients_to_parents(
         self, node: Node, grads: Union[np.ndarray, Tuple[np.ndarray]]

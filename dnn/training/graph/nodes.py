@@ -70,7 +70,9 @@ class LayerNode(Node):
 
     @property
     def trainable_weights(self) -> List[str]:
-        return self.layer.param_keys
+        if self.layer.trainable is True:
+            return self.layer.param_keys
+        return []
 
     def get_trainable_weight_values(self) -> Generator[np.ndarray, None, None]:
         attrs = self.trainable_weights

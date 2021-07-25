@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Union
+from typing import Generator, List, Tuple, Union
 
 import numpy as np
 from dnn.layers import BaseLayer
+
 
 class Node(ABC):
     def __init__(self, name: str, source: bool = False) -> None:
@@ -12,7 +13,7 @@ class Node(ABC):
         self.visited = False
 
     def __str__(self) -> str:
-        return f'{self.__class__.__name__}(name={self.name})'
+        return f"{self.__class__.__name__}(name={self.name})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -26,9 +27,13 @@ class Node(ABC):
     def trainable_weights(self) -> List[str]:
         """Method to obtain a list of names of trainable weights of the node."""
 
+    @abstractmethod
+    def get_trainable_weight_values(self) -> Generator[np.ndarray, None, None]:
+        """Method to obtain a generator of the trainable weights of the node."""
+
     @property
     @abstractmethod
-    def gradients(self) -> List[np.ndarray]:
+    def gradients(self) -> Generator[np.ndarray, None, None]:
         """Method to obtain the gradient of the loss wrt the trainable weights of the node."""
 
     @abstractmethod
@@ -67,9 +72,14 @@ class LayerNode(Node):
     def trainable_weights(self) -> List[str]:
         return self.layer.param_keys
 
+    def get_trainable_weight_values(self) -> Generator[np.ndarray, None, None]:
+        attrs = self.trainable_weights
+        return (getattr(self.layer, attr) for attr in attrs)
+
     @property
-    def gradients(self) -> List[np.ndarray]:
-        return [getattr(self.layer, attr) for attr in self.layer.param_keys]
+    def gradients(self) -> Generator[np.ndarray, None, None]:
+        keys = self.trainable_weights
+        return (self.layer.gradients[key] for key in keys)
 
     def forward(self) -> np.ndarray:
         return self.layer.forward_step()

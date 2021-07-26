@@ -22,14 +22,16 @@ class SGD(Optimizer):
 
     @property
     def momentum(self):
-        return self.state["momentum"]
+        return self.fetch_state_variable("momentum")
 
-    def _update_velocity(self, grad: np.ndarray, velocity: np.ndarray) -> None:
+    def _update_velocity(self, grad: np.ndarray, velocity: np.ndarray) -> np.ndarray:
         mom = self.momentum
         one_minus_mom = 1 - mom
 
         velocity *= mom
         velocity += one_minus_mom * grad
+
+        return velocity
 
     def pre_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
         super().pre_iteration_state(grads=grads)
@@ -46,11 +48,9 @@ class SGD(Optimizer):
         update = gradient
 
         if self._momentum:
-            velocities = self.state["velocities"]
+            velocities = self.fetch_state_variable("velocities")
 
             velocity = velocities[grad_idx]
-            self._update_velocity(gradient, velocity)
-
-            update = velocity
+            update = self._update_velocity(gradient, velocity)
 
         weight -= lr * update

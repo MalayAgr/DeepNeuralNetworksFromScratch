@@ -32,6 +32,9 @@ class Optimizer(ABC):
         """The number of minimization iterations run so far."""
         return self._state["iterations"]
 
+    def fetch_state_variable(self, state_var: str) -> Any:
+        return self._state[state_var]
+
     def add_or_update_state_variable(self, state_var: str, value: Any) -> None:
         """Method to add a new state variable."""
         self._state[state_var] = value

@@ -23,7 +23,7 @@ class Optimizer(ABC):
         return list(self._state.keys())
 
     @property
-    def learning_rate(self) -> float:
+    def lr(self) -> float:
         """The current learing rate of the optimizer."""
         return self._state["lr"]
 
@@ -31,10 +31,6 @@ class Optimizer(ABC):
     def iterations(self) -> int:
         """The number of minimization iterations run so far."""
         return self._state["iterations"]
-
-    def fetch_state_variable(self, state_var) -> Any:
-        """Method to obtain the value of a state variable."""
-        return self._state[state_var]
 
     def add_or_update_state_variable(self, state_var: str, value: Any) -> None:
         """Method to add a new state variable."""
@@ -64,9 +60,10 @@ class Optimizer(ABC):
 
         self.post_iteration_state(grads=weights_and_grads)
 
-
     @abstractmethod
-    def _apply_gradient(self, weight: np.ndarray, gradient: np.ndarray, grad_idx: int) -> None:
+    def _apply_gradient(
+        self, weight: np.ndarray, gradient: np.ndarray, grad_idx: int
+    ) -> None:
         """
         Method to apply the gradient to a single weight.
 
@@ -74,6 +71,6 @@ class Optimizer(ABC):
         has an effect.
         """
 
-    def apply_gradients(self, grads: List[np.ndarray, np.ndarray]):
+    def apply_gradients(self, grads: List[Tuple[np.ndarray, np.ndarray]]):
         for idx, (weight, grad) in enumerate(grads):
             self._apply_gradient(weight, grad, idx)

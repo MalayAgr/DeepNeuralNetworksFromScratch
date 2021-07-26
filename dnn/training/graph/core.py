@@ -21,6 +21,11 @@ class ComputationGraph:
     def __repr__(self) -> str:
         return self.__str__()
 
+    def __contains__(self, key: Union[Node, str]) -> bool:
+        if isinstance(key, Node):
+            return key.name in self._node_names
+        return key in self._node_names
+
     @property
     def topological_order(self) -> List[str]:
         return self._ordering

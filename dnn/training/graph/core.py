@@ -63,8 +63,8 @@ class ComputationGraph:
         u.visited = True
         self._ordering.append(u.name)
 
-    def _topological_sort(self):
-        if self.topological_order:
+    def _topological_sort(self, reset=True):
+        if reset is True:
             self._reset_topological_order()
 
         for node in self.nodes:

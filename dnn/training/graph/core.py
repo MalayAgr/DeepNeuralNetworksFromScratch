@@ -128,5 +128,4 @@ class ComputationGraph:
             node_w_and_g = self._backprop_single_node(name)
             weights_and_grads.extend(node_w_and_g)
 
-        weights_and_grads.reverse()
         return weights_and_grads

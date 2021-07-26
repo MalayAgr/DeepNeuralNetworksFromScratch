@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
@@ -40,14 +40,14 @@ class Optimizer(ABC):
         """Method to add a new state variable."""
         self._state[state_var] = value
 
-    def pre_iteration_state(self, grads: List[np.ndarray, np.ndarray]) -> None:
+    def pre_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
         """
         Method to prepare the optimizer before a minimization iteration.
 
         By default, it does nothing.
         """
 
-    def post_iteration_state(self, grads: List[np.ndarray, np.ndarray]) -> None:
+    def post_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
         """
         Method to update the optimizer after a minimization iteration.
 
@@ -66,7 +66,7 @@ class Optimizer(ABC):
 
 
     @abstractmethod
-    def _apply_gradient(pass, weight: np.ndarray, gradient: np.ndarray) -> None:
+    def _apply_gradient(self, weight: np.ndarray, gradient: np.ndarray, grad_idx: int) -> None:
         """
         Method to apply the gradient to a single weight.
 
@@ -75,5 +75,5 @@ class Optimizer(ABC):
         """
 
     def apply_gradients(self, grads: List[np.ndarray, np.ndarray]):
-        for weight, grad in grads:
-            self._apply_gradient(weight, grad)
+        for idx, (weight, grad) in enumerate(grads):
+            self._apply_gradient(weight, grad, idx)

@@ -85,7 +85,8 @@ class ComputationGraph:
         self._ordering.reverse()
 
     def forward_propagation(self) -> Tuple[np.ndarray]:
-        self._topological_sort()
+        if not self.topological_order:
+            self._topological_sort()
 
         for name in self.topological_order:
             node = self.fetch_node(name)

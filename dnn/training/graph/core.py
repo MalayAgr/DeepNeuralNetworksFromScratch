@@ -30,7 +30,10 @@ class ComputationGraph:
     def topological_order(self) -> List[str]:
         return self._ordering
 
-    def add_node(self, node: Node):
+    def add_node(self, node: Node) -> None:
+        if node in self:
+            return
+
         self.nodes.append(node)
 
         name = node.name

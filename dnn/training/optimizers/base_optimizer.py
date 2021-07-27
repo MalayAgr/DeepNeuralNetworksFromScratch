@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -54,8 +54,12 @@ class Optimizer(ABC):
         """
         self._state["iterations"] += 1
 
-    def minimize(self, graph: ComputationGraph, initial_grad: np.ndarray):
-        weights_and_grads = graph.backprop(grad=initial_grad)
+    def minimize(
+        self,
+        graph: ComputationGraph,
+        initial_grads: List[np.ndarray],
+    ):
+        weights_and_grads = graph.backprop(grads=initial_grads)
 
         self.pre_iteration_state(grads=weights_and_grads)
 

@@ -215,7 +215,14 @@ class MultiInputBaseLayer(BaseLayer):
         return ret_val
 
     def input_shape(self) -> List[Tuple]:
-        return [ip.ip_shape if isinstance(ip, Input) else ip.output_shape() for ip in self.ip_layer]
+        return [
+            ip.ip_shape if isinstance(ip, Input) else ip.output_shape()
+            for ip in self.ip_layer
+        ]
+
+    @abstractmethod
+    def output(self) -> Union[np.ndarray, List[np.ndarray]]:
+        """Method to obtain the output(s) of the layer."""
 
 
 LayerInput = Union[Input, BaseLayer]

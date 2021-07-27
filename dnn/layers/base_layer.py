@@ -39,6 +39,8 @@ class BaseLayer(ABC):
 
         self.is_training = False
 
+        self._built = False
+
         self.param_keys = params
 
         self.requires_dX = True
@@ -50,6 +52,14 @@ class BaseLayer(ABC):
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    @property
+    def built(self) -> bool:
+        return self._built
+
+    @built.setter
+    def built(self, value: bool) -> None:
+        self._built = value
 
     def _make_name(self) -> str:
         cls = self.__class__.__name__.lower()
@@ -138,6 +148,12 @@ class BaseLayer(ABC):
         """
         Method to determine the shape of the output of the layer
         """
+
+    def _forward_step(self, *args, **kwargs) -> np.ndarray:
+        if not self.built:
+            self.build()
+            self.built = True
+        return self.forward_step(*args, **kwargs)
 
     @abstractmethod
     def forward_step(self, *args, **kwargs) -> np.ndarray:

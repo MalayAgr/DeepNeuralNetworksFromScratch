@@ -91,7 +91,7 @@ class LayerNode(Node):
         return (self.layer.gradients[key] for key in keys)
 
     def forward(self) -> np.ndarray:
-        return self.layer.forward_step()
+        return self.layer._forward_step()
 
     def forward_output(self) -> np.ndarray:
         return self.layer.output()

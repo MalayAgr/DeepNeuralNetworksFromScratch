@@ -174,4 +174,48 @@ class BaseLayer(ABC):
             setattr(self, attr, None)
 
 
+class MultiInputBaseLayer(BaseLayer):
+    def __init__(
+        self,
+        ip: List[Union[Input, BaseLayer]],
+        *args,
+        trainable: bool,
+        params: Optional[List],
+        name: str,
+        **kwargs,
+    ) -> None:
+        if ip is not None:
+            if not isinstance(ip, List):
+                raise ValueError(f"{self.__class__.__name__} expects a list of inputs.")
+
+            if any(not isinstance(i, (BaseLayer, Input)) for i in ip):
+                msg = (
+                    f"{self.__class__.__name__} expects all inputs in the list of inputs "
+                    "to be instances of Input or other layers."
+                )
+                raise ValueError(msg)
+
+        super().__init__(
+            ip=None, *args, trainable=trainable, params=params, name=name, **kwargs
+        )
+
+        self.ip_layer = ip
+
+    def input(self) -> List[np.ndarray]:
+        ret_val = []
+
+        for ip in self.ip_layer:
+            op = ip.ip if isinstance(ip, Input) else ip.output()
+
+            if op is None:
+                raise ValueError(f"No input found in {ip}.")
+
+            ret_val.append(op)
+
+        return ret_val
+
+    def input_shape(self) -> List[Tuple]:
+        return [ip.ip_shape if isinstance(ip, Input) else ip.output_shape() for ip in self.ip_layer]
+
+
 LayerInput = Union[Input, BaseLayer]

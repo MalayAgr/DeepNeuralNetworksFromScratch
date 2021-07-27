@@ -1,15 +1,13 @@
-from dnn.utils import generate_batches
 from typing import Generator, List, Tuple
 
 import numpy as np
-
 from dnn import Input
 from dnn.layers import BaseLayer
 from dnn.layers.base_layer import MultiInputBaseLayer
+from dnn.utils import generate_batches
 
 from .graph.core import ComputationGraph
 from .graph.nodes import LayerNode
-
 
 BatchGenerator = Generator[Tuple[np.ndarray, np.ndarray, int], None, None]
 UnpackReturnType = Generator[

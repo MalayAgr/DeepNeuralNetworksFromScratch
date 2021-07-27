@@ -10,7 +10,7 @@ from dnn.utils import loss_factory
 
 from .graph.core import ComputationGraph
 from .model_utils import build_graph_for_model, flatten_layers, get_data_generator
-from .optimizers.base_optimizer import Optimizer
+from .optimizers import Optimizer
 
 
 class Model:

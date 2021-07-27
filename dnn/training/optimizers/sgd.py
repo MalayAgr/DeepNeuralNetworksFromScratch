@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 import numpy as np
+
 from .base_optimizer import Optimizer
 
 

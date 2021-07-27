@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from itertools import count
-
 from abc import ABC, abstractmethod
+from itertools import count
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np

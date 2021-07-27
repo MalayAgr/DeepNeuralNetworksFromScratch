@@ -67,7 +67,7 @@ class LayerNode(Node):
         if self.is_source:
             return None
 
-        if isinstance(ip_layers, BaseLayer):
+        if not isinstance(ip_layers, List):
             return [ip_layers.name]
 
         return [layer.name for layer in ip_layers]

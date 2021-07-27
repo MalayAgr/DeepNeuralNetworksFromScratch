@@ -125,7 +125,7 @@ class ComputationGraph:
 
         node_weights = node.get_trainable_weight_values()
 
-        return [(weight, grad) for weight, grad in zip(node_weights, node.gradients)]
+        return list((weight, grad) for weight, grad in zip(node_weights, node.gradients))
 
     def backprop(self, grads: List[np.ndarray]) -> List[Tuple[np.ndarray, np.ndarray]]:
         if not self.topological_order:

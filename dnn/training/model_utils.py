@@ -1,34 +1,49 @@
 from typing import List
-from .graph.nodes import LayerNode
-from .graph.core import ComputationGraph
 
 from dnn import Input
 from dnn.layers import BaseLayer
+from dnn.layers.base_layer import MultiInputBaseLayer
+
+from .graph.core import ComputationGraph
+from .graph.nodes import LayerNode
 
 
-def _add_layer_to_graph(stop_layer: Input, layer: BaseLayer, graph: ComputationGraph):
-    if layer is stop_layer:
-        return
+def flatten_layers(
+    inputs: List[Input], outputs: List[BaseLayer], accumulator: List
+) -> None:
+    for layer in outputs:
+        print(layer)
+        if layer in inputs:
+            return
 
-    source = False
+        ips = layer.ip_layer
+        if not isinstance(layer, MultiInputBaseLayer):
+            ips = [ips]
 
+        flatten_layers(inputs=inputs, outputs=ips, accumulator=accumulator)
+
+        if layer not in accumulator:
+            accumulator.append(layer)
+
+
+def is_a_source_layer(layer: BaseLayer, inputs: List[Input]) -> bool:
     ips = layer.ip_layer
-    if not isinstance(ips, List):
-        if ips is stop_layer:
-            source = True
-        ips = [ips]
-
-    node = LayerNode(layer, source=source)
-    graph.add_node(node)
-
-    for ip in ips:
-        _add_layer_to_graph(stop_layer=stop_layer, layer=ip, graph=graph)
+    if isinstance(layer, MultiInputBaseLayer):
+        return all(ip in inputs for ip in ips)
+    return ips in inputs
 
 
 def build_graph_for_model(
-    ip_layer: Input, op_layer: BaseLayer, graph: ComputationGraph = None
-):
+    layers: List[BaseLayer],
+    inputs: List[Input],
+    outputs: List[BaseLayer],
+    graph: ComputationGraph = None,
+) -> ComputationGraph:
     graph = ComputationGraph() if graph is None else graph
-    _add_layer_to_graph(stop_layer=ip_layer, layer=op_layer, graph=graph)
+
+    for layer in layers:
+        source = is_a_source_layer(layer, inputs)
+        sink = layer in outputs
+        graph.add_node(LayerNode(layer, source=source, sink=sink))
 
     return graph

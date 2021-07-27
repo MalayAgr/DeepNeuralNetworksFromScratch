@@ -185,21 +185,24 @@ class MultiInputBaseLayer(BaseLayer):
         **kwargs,
     ) -> None:
         if ip is not None:
-            if not isinstance(ip, List):
-                raise ValueError(f"{self.__class__.__name__} expects a list of inputs.")
-
-            if any(not isinstance(i, (BaseLayer, Input)) for i in ip):
-                msg = (
-                    f"{self.__class__.__name__} expects all inputs in the list of inputs "
-                    "to be instances of Input or other layers."
-                )
-                raise ValueError(msg)
+            self._validate_ip(ip)
 
         super().__init__(
             ip=None, *args, trainable=trainable, params=params, name=name, **kwargs
         )
 
         self.ip_layer = ip
+
+    def _validate_ip(self, ip):
+        if not isinstance(ip, List):
+            raise ValueError(f"{self.__class__.__name__} expects a list of inputs.")
+
+        if any(not isinstance(i, (BaseLayer, Input)) for i in ip):
+            msg = (
+                f"{self.__class__.__name__} expects all inputs in the list of inputs "
+                "to be instances of Input or other layers."
+            )
+        raise ValueError(msg)
 
     def input(self) -> List[np.ndarray]:
         ret_val = []

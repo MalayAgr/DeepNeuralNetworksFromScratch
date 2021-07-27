@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Generator, List, Tuple, Union
 
 import numpy as np
 
@@ -56,6 +56,9 @@ class ComputationGraph:
 
         return self.nodes[idx]
 
+    def _sink_nodes(self) -> Generator[Tuple[str, Node], None, None]:
+        return ((node.name, node) for node in self.nodes if node.is_sink)
+
     def _reset_topological_order(self):
         self._ordering = []
 
@@ -81,14 +84,14 @@ class ComputationGraph:
 
         self._ordering.reverse()
 
-    def forward_propagation(self):
+    def forward_propagation(self) -> Tuple[np.ndarray]:
         self._topological_sort()
 
         for name in self.topological_order:
             node = self.fetch_node(name)
             node.forward()
 
-        return node.forward_output()
+        return tuple(node.forward_output() for _, node in self._sink_nodes())
 
     def _pass_gradients_to_parents(
         self, node: Node, grads: Union[np.ndarray, Tuple[np.ndarray]]
@@ -122,18 +125,28 @@ class ComputationGraph:
 
         return [(weight, grad) for weight, grad in zip(node_weights, node.gradients)]
 
-    def backprop(self, grad: np.ndarray) -> List[Tuple[np.ndarray, np.ndarray]]:
+    def backprop(self, grads: List[np.ndarray]) -> List[Tuple[np.ndarray, np.ndarray]]:
         if not self.topological_order:
             raise AttributeError(
                 "You must run forward propagation before running backpropagation."
             )
 
-        weights_and_grads = self._backprop_single_node(
-            self.topological_order[-1], backprop_grad=grad
-        )
+        sink_nodes = tuple(name for name, _ in self._sink_nodes())
 
-        for name in reversed(self.topological_order[:-1]):
-            node_w_and_g = self._backprop_single_node(name)
+        if len(grads) != len(sink_nodes):
+            raise ValueError(
+                "Unexpected number of gradients received. Expected "
+                f"{len(sink_nodes)} but got {len(grads)}."
+            )
+
+        weights_and_grads, backprop_grad, sink_count = [], None, 0
+
+        for name in reversed(self.topological_order):
+            if name in sink_nodes:
+                backprop_grad = grads[sink_count]
+                sink_count += 1
+
+            node_w_and_g = self._backprop_single_node(name, backprop_grad=backprop_grad)
             weights_and_grads.extend(node_w_and_g)
 
         return weights_and_grads

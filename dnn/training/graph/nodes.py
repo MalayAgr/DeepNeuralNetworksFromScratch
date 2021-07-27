@@ -6,10 +6,11 @@ from dnn.layers import BaseLayer
 
 
 class Node(ABC):
-    def __init__(self, name: str, source: bool = False) -> None:
+    def __init__(self, name: str, source: bool = False, sink: bool = False) -> None:
         self.name = name
         self.backprop_grad = 0
         self.is_source = source
+        self.is_sink = sink
         self.visited = False
 
     def __str__(self) -> str:
@@ -56,9 +57,11 @@ class Node(ABC):
 
 
 class LayerNode(Node):
-    def __init__(self, layer: BaseLayer, source: bool = False) -> None:
+    def __init__(
+        self, layer: BaseLayer, source: bool = False, sink: bool = False
+    ) -> None:
         self.layer = layer
-        super().__init__(name=layer.name, source=source)
+        super().__init__(name=layer.name, source=source, sink=sink)
 
     @property
     def parents(self) -> Union[List[str], None]:

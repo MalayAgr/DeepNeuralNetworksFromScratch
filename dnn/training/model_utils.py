@@ -1,4 +1,7 @@
-from typing import List
+from dnn.utils import generate_batches
+from typing import Generator, List, Tuple
+
+import numpy as np
 
 from dnn import Input
 from dnn.layers import BaseLayer
@@ -8,11 +11,16 @@ from .graph.core import ComputationGraph
 from .graph.nodes import LayerNode
 
 
+BatchGenerator = Generator[Tuple[np.ndarray, np.ndarray, int], None, None]
+UnpackReturnType = Generator[
+    Tuple[List[np.ndarray], List[np.ndarray], List[int]], None, None
+]
+
+
 def flatten_layers(
     inputs: List[Input], outputs: List[BaseLayer], accumulator: List
 ) -> None:
     for layer in outputs:
-        print(layer)
         if layer in inputs:
             return
 
@@ -47,3 +55,23 @@ def build_graph_for_model(
         graph.add_node(LayerNode(layer, source=source, sink=sink))
 
     return graph
+
+
+def _unpack_data_generators(generators: Tuple[BatchGenerator]) -> UnpackReturnType:
+    for input_batches in zip(*generators):
+        batch_X, batch_Y, sizes = [], [], []
+        for input_batch in input_batches:
+            batch_X.append(input_batch[0])
+            batch_Y.append(input_batch[1])
+            sizes.append(input_batch[2])
+        yield batch_X, batch_Y, sizes
+
+
+def get_data_generator(
+    X: List[np.ndarray], Y: List[np.ndarray], batch_size: int, shuffle: bool = True
+):
+    generators = tuple(
+        generate_batches(x, y, batch_size=batch_size, shuffle=shuffle)
+        for x, y in zip(X, Y)
+    )
+    return _unpack_data_generators(generators=generators)

@@ -117,6 +117,7 @@ class ComputationGraph:
             node.backprop_grad = backprop_grad
 
         grads = node.backprop()
+        node.backprop_grad = 0
 
         if not node.is_source:
             self._pass_gradients_to_parents(node, grads)

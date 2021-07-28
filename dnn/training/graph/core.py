@@ -102,7 +102,8 @@ class ComputationGraph:
         if len(parents) == 1:
             if not isinstance(grads, np.ndarray):
                 raise TypeError(
-                    f"Expected a single numpy array for {node.name} but got a tuple of values instead."
+                    f"Expected a single numpy array for {node.name} "
+                    "but got a sequence containing one array."
                 )
 
             grads = (grads,)

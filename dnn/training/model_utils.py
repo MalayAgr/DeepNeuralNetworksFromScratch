@@ -55,6 +55,23 @@ def build_graph_for_model(
     return graph
 
 
+def validate_labels_against_outputs(labels: List[np.ndarray], outputs: List[BaseLayer]):
+    if any(y.shape[:-1] != op.output_shape()[:-1] for y, op in zip(labels, outputs)):
+        raise ValueError(
+            "Each set of labels should have the same "
+            "dimensions as the respective output layer."
+        )
+
+
+def validate_labels_against_samples(
+    samples: List[np.ndarray], labels: List[np.ndarray]
+):
+    if any(x.shape[-1] != y.shape[-1] for x, y in zip(samples, labels)):
+        raise ValueError(
+            "There should be an equal number of training examples in each X, Y pair."
+        )
+
+
 def _unpack_data_generators(generators: Tuple[BatchGenerator]) -> UnpackReturnType:
     for input_batches in zip(*generators):
         batch_X, batch_Y, sizes = [], [], []

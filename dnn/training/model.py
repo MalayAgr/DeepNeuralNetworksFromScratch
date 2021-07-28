@@ -9,7 +9,13 @@ from dnn.loss import Loss
 from dnn.utils import loss_factory
 
 from .graph.core import ComputationGraph
-from .model_utils import build_graph_for_model, flatten_layers, get_data_generator
+from .model_utils import (
+    build_graph_for_model,
+    flatten_layers,
+    get_data_generator,
+    validate_labels_against_outputs,
+    validate_labels_against_samples,
+)
 from .optimizers import Optimizer
 
 
@@ -127,22 +133,6 @@ class Model:
         self.opt = opt
         self.losses = [loss_factory(l) if isinstance(l, str) else l for l in loss]
 
-    @staticmethod
-    def _validate_same_samples(X, Y):
-        if any(x.shape[-1] != y.shape[-1] for x, y in zip(X, Y)):
-            raise ValueError(
-                "There should be an equal number of training examples in each X, Y pair."
-            )
-
-    def _validate_labels(self, Y: List[np.ndarray]):
-        if any(
-            y.shape[:-1] != op.output_shape()[:-1] for y, op in zip(Y, self.outputs)
-        ):
-            raise ValueError(
-                "Each set of labels should have the same "
-                "dimensions as the respective output layer."
-            )
-
     def train_step(
         self, batch_X: List[np.ndarray], batch_Y: List[np.ndarray], sizes: List[int]
     ) -> float:
@@ -176,8 +166,8 @@ class Model:
         if not isinstance(Y, List):
             Y = [Y]
 
-        self._validate_same_samples(X, Y)
-        self._validate_labels(Y)
+        validate_labels_against_samples(X, Y)
+        validate_labels_against_outputs(Y, self.outputs)
 
         if verbosity not in [0, 1]:
             raise ValueError("Unexpected verbosity level. Can only be 0 or 1.")

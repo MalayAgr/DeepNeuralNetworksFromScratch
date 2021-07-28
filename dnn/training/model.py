@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, List, Tuple, Union
+from contextlib import ContextDecorator
 
 import numpy as np
 from dnn import Input
@@ -44,6 +45,10 @@ class Model:
         self._graph = graph
 
         self._built = False
+
+        self._compiled = False
+
+        self.is_training = False
 
         self.opt: Optimizer = None
         self.losses: List[Loss] = None
@@ -107,16 +112,17 @@ class Model:
         return self._graph.forward_propagation()
 
     def predict(
-        self, inputs: Union[np.ndarray, List[np.ndarray]]
+        self, inputs: Union[np.ndarray, List[np.ndarray]], training: bool = False
     ) -> Union[np.ndarray, Tuple[np.ndarray]]:
 
         if not isinstance(inputs, List):
             inputs = [inputs]
 
-        op = self._forward_step(inputs=inputs)
+        with TrainingContext(self, training=training) as _:
+            op = self._forward_step(inputs=inputs)
 
-        if len(self.outputs) == 1:
-            op = op[0]
+            if len(self.outputs) == 1:
+                op = op[0]
         return op
 
     def compile(
@@ -132,6 +138,8 @@ class Model:
 
         self.opt = opt
         self.losses = [loss_factory(l) if isinstance(l, str) else l for l in loss]
+
+        self._compiled = True
 
     def train_step(
         self, batch_X: List[np.ndarray], batch_Y: List[np.ndarray], sizes: List[int]
@@ -160,6 +168,9 @@ class Model:
         shuffle: bool = True,
         verbosity: int = 1,
     ) -> List[float]:
+        if not self._compiled:
+            raise RuntimeError("Compile the model before training it.")
+
         if not isinstance(X, List):
             X = [X]
 
@@ -174,22 +185,45 @@ class Model:
 
         history = []
 
-        for epoch in range(epochs):
-            batches = get_data_generator(X, Y, batch_size=batch_size, shuffle=shuffle)
-
-            print(f"Epoch {epoch + 1}/{epochs}:")
-
-            for step, (batch_X, batch_Y, sizes) in enumerate(batches):
-                cost = self.train_step(batch_X, batch_Y, sizes)
-
-                log_msg = (
-                    f"\r  Step {step + 1}: Train loss = {cost: .5f}"
-                    if verbosity == 1
-                    else f"\r  Train loss = {cost: .5f}"
+        with TrainingContext(self, training=True) as _:
+            for epoch in range(epochs):
+                batches = get_data_generator(
+                    X, Y, batch_size=batch_size, shuffle=shuffle
                 )
-                print(log_msg, end="", flush=True)
 
-            print()
-            history.append(cost)
+                print(f"Epoch {epoch + 1}/{epochs}:")
+
+                for step, (batch_X, batch_Y, sizes) in enumerate(batches):
+                    cost = self.train_step(batch_X, batch_Y, sizes)
+
+                    log_msg = (
+                        f"\r  Step {step + 1}: Train loss = {cost: .5f}"
+                        if verbosity == 1
+                        else f"\r  Train loss = {cost: .5f}"
+                    )
+                    print(log_msg, end="", flush=True)
+
+                print()
+                history.append(cost)
 
         return history
+
+
+class TrainingContext(ContextDecorator):
+    def __init__(self, model: Model, training: bool = False) -> None:
+        self.model = model
+        self.training = training
+
+    def _set_operation_mode(self, training: bool = False) -> None:
+        model = self.model
+
+        if model.is_training is not training:
+            model.is_training = training
+            for layer in model.layers:
+                layer.is_training = training
+
+    def __enter__(self):
+        self._set_operation_mode(training=self.training)
+
+    def __exit__(self, *args, **kwargs):
+        self._set_operation_mode()

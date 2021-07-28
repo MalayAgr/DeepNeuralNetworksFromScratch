@@ -125,7 +125,7 @@ class ComputationGraph:
 
         node_weights = node.get_trainable_weight_values()
 
-        return list((weight, grad) for weight, grad in zip(node_weights, node.gradients))
+        return ((weight, grad) for weight, grad in zip(node_weights, node.gradients))
 
     def backprop(self, grads: List[np.ndarray]) -> List[Tuple[np.ndarray, np.ndarray]]:
         if not self.topological_order:
@@ -141,14 +141,15 @@ class ComputationGraph:
                 f"{len(sink_nodes)} but got {len(grads)}."
             )
 
-        weights_and_grads, backprop_grad, sink_count = [], None, 0
+        weights_and_grads, sink_count = [], 0
 
         for name in reversed(self.topological_order):
             if name in sink_nodes:
-                backprop_grad = grads[sink_count]
+                node_w_and_g = self._backprop_single_node(name, grads[sink_count])
                 sink_count += 1
+            else:
+                node_w_and_g = self._backprop_single_node(name)
 
-            node_w_and_g = self._backprop_single_node(name, backprop_grad=backprop_grad)
             weights_and_grads.extend(node_w_and_g)
 
         return weights_and_grads

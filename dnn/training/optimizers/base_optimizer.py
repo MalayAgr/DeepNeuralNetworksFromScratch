@@ -3,13 +3,18 @@ from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 from dnn.training.graph.core import ComputationGraph
+from dnn.training.schedulers import LearningRateScheduler
 
 
 class Optimizer(ABC):
-    def __init__(self, learning_rate: float = 1e-2) -> None:
+    def __init__(
+        self, learning_rate: Union[float, LearningRateScheduler] = 1e-2
+    ) -> None:
         self._state = {}
         self._state["iterations"] = 0
         self._state["lr"] = learning_rate
+        self._scheduler = isinstance(learning_rate, LearningRateScheduler)
+        self._state["lr_t"] = None if self._scheduler else learning_rate
 
     @property
     def state(self) -> Dict:
@@ -24,7 +29,7 @@ class Optimizer(ABC):
     @property
     def lr(self) -> float:
         """The current learing rate of the optimizer."""
-        return self._state["lr"]
+        return self._state["lr_t"]
 
     @property
     def iterations(self) -> int:
@@ -40,16 +45,22 @@ class Optimizer(ABC):
 
     def pre_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
         """
-        Method to prepare the optimizer before a minimization iteration.
+        Method to prepare the state of the optimizer before a minimization iteration.
 
-        By default, it does nothing.
+        By default, it computes the new learning rate if a scheduler is being used.
+
+        If child classes override this method, they MUST call super()
+        to ensure the optimizer works as expected.
         """
+        if self._scheduler:
+            scheduler = self._state["lr"]
+            self._state["lr_t"] = scheduler.lr(self.iterations)
 
     def post_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
         """
-        Method to update the optimizer after a minimization iteration.
+        Method to update the state of the optimizer after a minimization iteration.
 
-        By default, it increments the number of minimization iterations.
+        By default, it increments the iteration count.
         """
         self._state["iterations"] += 1
 

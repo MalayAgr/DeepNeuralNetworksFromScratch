@@ -1,6 +1,7 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
+from dnn.training.schedulers import LearningRateScheduler
 
 from .base_optimizer import Optimizer
 
@@ -8,7 +9,7 @@ from .base_optimizer import Optimizer
 class SGD(Optimizer):
     def __init__(
         self,
-        learning_rate: float = 1e-2,
+        learning_rate: Union[float, LearningRateScheduler] = 1e-2,
         momentum=0.0,
     ) -> None:
 
@@ -45,7 +46,6 @@ class SGD(Optimizer):
         self, weight: np.ndarray, gradient: np.ndarray, grad_idx: int
     ) -> None:
 
-        lr = self.lr
         update = gradient
 
         if self._momentum:
@@ -54,4 +54,4 @@ class SGD(Optimizer):
             velocity = velocities[grad_idx]
             update = self._update_velocity(gradient, velocity)
 
-        weight -= lr * update
+        weight -= self.lr * update

@@ -1,13 +1,17 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
+from dnn.training.schedulers import LearningRateScheduler
 
 from .base_optimizer import Optimizer
 
 
 class RMSProp(Optimizer):
     def __init__(
-        self, learning_rate: float = 1e-2, rho=0.9, epsilon: float = 1e-7
+        self,
+        learning_rate: Union[float, LearningRateScheduler] = 1e-2,
+        rho=0.9,
+        epsilon: float = 1e-7,
     ) -> None:
 
         if not 0.0 <= rho <= 1.0:
@@ -45,12 +49,9 @@ class RMSProp(Optimizer):
     def _apply_gradient(
         self, weight: np.ndarray, gradient: np.ndarray, grad_idx: int
     ) -> None:
-
-        lr = self.lr
-
         root_mean_sqs = self.fetch_state_variable("root_mean_sqs")
 
         rms = root_mean_sqs[grad_idx]
         rms = self._update_rms(gradient, rms)
 
-        weight -= lr * gradient / (np.sqrt(rms) + self.epsilon)
+        weight -= self.lr * gradient / (np.sqrt(rms) + self.epsilon)

@@ -70,6 +70,9 @@ class Model:
         )
         self.built = True
 
+    def count_params(self):
+        return sum(layer.count_params() for layer in self.layers)
+
     def fetch_layer(self, name: str = None, idx: int = None) -> BaseLayer:
         num_layers = len(self.layers)
 

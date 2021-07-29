@@ -160,28 +160,62 @@ class BaseLayer(ABC):
         One step of forward propagation
         """
 
+    def _backprop_step(
+        self, grad: np.ndarray, *args, **kwargs
+    ) -> Union[np.ndarray, Tuple[np.ndarray], None]:
+
+        grad = self.transform_backprop_gradient(grad, *args, **kwargs)
+
+        if self.trainable:
+            self.backprop_parameters(grad, *args, **kwargs)
+
+        ret_val = (
+            self.backprop_inputs(grad, *args, **kwargs) if self.requires_dX else None
+        )
+
+        # Clear memory by resetting unnecessary attributes.
+        self._reset_attrs()
+
+        return ret_val
+
+    def transform_backprop_gradient(
+        self, grad: np.ndarray, *args, **kwargs
+    ) -> np.ndarray:
+        """
+        Apply transformations on the backpropagated gradient so that
+        it is appropriate for use by the layer.
+
+        By default, it returns the gradient as is. Override the method
+        to apply other transformations like reshape, transpose, activations, etc.
+        """
+        return grad
+
+    def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
+        """
+        Method to compute the gradient of loss wrt the layer's parameters.
+
+        Trainable layers must implement this method.
+
+        The implementation should store the derivatives in the 'gradients'
+        attribute of the layer.
+        """
+        if self.trainable:
+            raise NotImplementedError(
+                "Trainable layers must implement backprop_parameters"
+            )
+
     @abstractmethod
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
+    def backprop_inputs(
+        self, grad: np.ndarray, *args, **kwargs
+    ) -> Union[np.ndarray, Tuple[np.ndarray]]:
         """
-        One step of backpropagation
+        Method to compute the derivative of loss wrt the layer's inputs.
+
+        It should return a single Numpy array if the layer has one input
+        or a tuple with as many Numpy arrays as the number of inputs.
         """
 
-    def get_param_shapes(self, keys: List) -> Dict:
-        """
-        Helper method to obtain the shapes of the specified parameters of the layer.
-        """
-        return {key: getattr(self, key).shape for key in keys}
-
-    def update_params(self, updates: Dict) -> None:
-        """
-        Helper method to perform one update step on the parameters of the layer.
-        """
-        for key, update in updates.items():
-            new_value = getattr(self, key)
-            new_value -= update
-            setattr(self, key, new_value)
-
-    def reset_attrs(self) -> None:
+    def _reset_attrs(self) -> None:
         for attr in self.reset:
             if isinstance(attr, tuple):
                 setattr(self, attr[0], attr[-1])

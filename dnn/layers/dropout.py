@@ -45,10 +45,8 @@ class Dropout(BaseLayer):
 
         return self.dropped
 
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
-        dA *= self.dropout_mask
-        dA /= self.keep_prob
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
+        grad *= self.dropout_mask
+        grad /= self.keep_prob
 
-        self.reset_attrs()
-
-        return dA
+        return grad

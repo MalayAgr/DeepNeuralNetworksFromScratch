@@ -37,9 +37,5 @@ class Flatten(BaseLayer):
 
         return self.flat
 
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
-        dA = dA.reshape(*self._ip_dims, -1)
-
-        self.reset_attrs()
-
-        return dA
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
+        return grad.reshape(*self._ip_dims, -1)

@@ -110,26 +110,21 @@ class MaxPooling2D(BaseLayer):
         self.pooled = self._pool(self.input())
         return self.pooled
 
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
-        dA = np.swapaxes(dA, 0, -1).reshape(dA.shape[-1], -1, self.windows)
+    def transform_backprop_gradient(
+        self, grad: np.ndarray, *args, **kwargs
+    ) -> np.ndarray:
+        return np.swapaxes(grad, 0, -1).reshape(grad.shape[-1], -1, self.windows)
 
-        if self.requires_dX is False:
-            self.reset_attrs()
-            return
-
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
         ipH, ipW = self.input_shape()[1:-1]
         padded_shape = (ipH + 2 * self.p_H, ipW + 2 * self.p_W)
 
-        dX = accumulate_dX_conv(
-            dX_shape=(dA.shape[0], self.windows, *padded_shape),
+        return accumulate_dX_conv(
+            dX_shape=(grad.shape[0], self.windows, *padded_shape),
             output_size=self.output_area(),
-            dIp=self._dX_share * dA[..., None],
+            dIp=self._dX_share * grad[..., None],
             stride=self.stride,
             kernel_size=self.pool_size,
             reshape=(-1, self.windows, self.pool_H, self.pool_W),
             padding=(self.p_H, self.p_W),
         )
-
-        self.reset_attrs()
-
-        return dX

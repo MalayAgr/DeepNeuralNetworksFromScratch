@@ -1,4 +1,4 @@
-from typing import Any, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from dnn.layers.activations import Activation
@@ -80,30 +80,20 @@ class Dense(BaseLayer):
 
         return self.activations
 
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
+    def transform_backprop_gradient(
+        self, grad: np.ndarray, *args, **kwargs
+    ) -> np.ndarray:
+        return self.activation._backprop_step(grad, ip=self.linear)
+
+    def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
         ip = self.input()
 
-        dA = self.activation.backprop_step(dA, ip=self.linear)
-
-        reg_param = kwargs.pop("reg_param", 0.0)
-
-        dW = np.matmul(dA, ip.T, dtype=np.float32)
-
-        if reg_param > 0:
-            m = ip.shape[-1]
-            dW += (reg_param / m) * self.weights
+        dW = np.matmul(grad, ip.T, dtype=np.float32)
 
         self.gradients["weights"] = dW
 
         if self.use_bias:
-            self.gradients["biases"] = np.sum(dA, keepdims=True, axis=1)
+            self.gradients["biases"] = np.sum(grad, keepdims=True, axis=1)
 
-        if self.requires_dX is False:
-            self.reset_attrs()
-            return
-
-        dX = np.matmul(self.weights.T, dA, dtype=np.float32)
-
-        self.reset_attrs()
-
-        return dX
+    def backprop_inputs(self, grad, *args, **kwargs) -> np.ndarray:
+        return np.matmul(self.weights.T, grad, dtype=np.float32)

@@ -10,6 +10,7 @@ from .base_layer import BaseLayer, LayerInput
 
 class Activation(BaseLayer):
     name = None
+    reset = ("activations",)
 
     def __init__(
         self, *args, ip: Optional[LayerInput] = None, name: str = None, **kwargs
@@ -95,14 +96,9 @@ class Activation(BaseLayer):
 
         return self.activations
 
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
         ip = kwargs.pop("ip", None)
-
-        dA = dA * self.compute_derivatives(ip)
-
-        self.activations = None
-
-        return dA
+        return grad * self.compute_derivatives(ip)
 
 
 class Linear(Activation):
@@ -159,12 +155,10 @@ class Softmax(Activation):
 
         return np.moveaxis(grads, 0, -1)
 
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
-        dA = super().backprop_step(dA, *args, **kwargs)
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
+        grad = super().backprop_inputs(grad, *args, **kwargs)
 
-        dA = np.sum(dA, axis=1)
-
-        return dA
+        return np.sum(grad, axis=1)
 
 
 class Tanh(Activation):

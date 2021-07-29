@@ -98,25 +98,18 @@ class BatchNorm(BaseLayer):
 
         return self.scaled_norm
 
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
+    def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
         self.gradients = {
-            "gamma": np.sum(dA * self.norm, axis=self.axes, keepdims=True),
-            "beta": np.sum(dA, axis=self.axes, keepdims=True),
+            "gamma": np.sum(grad * self.norm, axis=self.axes, keepdims=True),
+            "beta": np.sum(grad, axis=self.axes, keepdims=True),
         }
 
-        dA *= self.gamma
+    def backprop_inputs(self, grad, *args, **kwargs) -> np.ndarray:
+        grad *= self.gamma
 
-        mean_share = dA.sum(axis=self.axes, keepdims=True)
-        var_share = self.norm * np.sum(dA * self.norm, axis=self.axes, keepdims=True)
+        mean_share = grad.sum(axis=self.axes, keepdims=True)
+        var_share = self.norm * np.sum(grad * self.norm, axis=self.axes, keepdims=True)
 
-        scale = dA.size / self.x_dim()
+        scale = grad.size / self.x_dim()
 
-        if self.requires_dX is False:
-            self.reset_attrs()
-            return
-
-        dX = (scale * dA - mean_share - var_share) / (scale * self.std)
-
-        self.reset_attrs()
-
-        return dX
+        return (scale * grad - mean_share - var_share) / (scale * self.std)

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -118,12 +118,7 @@ class Conv(BaseLayer):
     @abstractmethod
     def conv_func(
         self,
-    ) -> Union[
-        Tuple[np.ndarray, np.ndarray, np.ndarray],
-        Tuple[np.ndarray, np.ndarray, None],
-        Tuple[np.ndarray, None, np.ndarray],
-        Tuple[np.ndarray, None, None],
-    ]:
+    ) -> Tuple[np.ndarray, Union[np.ndarray, None], Union[np.ndarray, None]]:
         """Method to compute the convolutional output of the layer."""
         pass
 
@@ -163,11 +158,40 @@ class Conv(BaseLayer):
         m = self.input().shape[-1]
         return m, self.ip_C, post_pad_H, post_pad_W
 
-    def _compute_dX(self, dZ: np.ndarray) -> np.ndarray:
-        """Method to compute the derivative of the loss wrt input."""
+    # def _compute_dX(self, dZ: np.ndarray) -> np.ndarray:
+    #     """Method to compute the derivative of the loss wrt input."""
 
+    #     dX_shape = self._target_dX_shape()
+    #     dIp = self._compute_dVec_Ip(dZ)
+
+    #     return accumulate_dX_conv(
+    #         dX_shape=dX_shape,
+    #         output_size=self.output_area(),
+    #         dIp=dIp,
+    #         stride=self.stride,
+    #         kernel_size=self.kernel_size,
+    #         reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),
+    #         padding=(self.p_H, self.p_W),
+    #     )
+
+    def transform_backprop_gradient(
+        self, grad: np.ndarray, *args, **kwargs
+    ) -> np.ndarray:
+        dA = self.activation._backprop_step(grad, ip=self.convolutions)
+
+        return self._reshape_dZ(dA)
+
+    def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
+        dW = self._compute_dW(grad)
+
+        self.gradients["kernels"] = dW
+
+        if self.use_bias:
+            self.gradients["biases"] = self._compute_dB(grad)
+
+    def backprop_inputs(self, grad, *args, **kwargs) -> np.ndarray:
         dX_shape = self._target_dX_shape()
-        dIp = self._compute_dVec_Ip(dZ)
+        dIp = self._compute_dVec_Ip(grad)
 
         return accumulate_dX_conv(
             dX_shape=dX_shape,
@@ -178,30 +202,3 @@ class Conv(BaseLayer):
             reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),
             padding=(self.p_H, self.p_W),
         )
-
-    def backprop_step(self, dA: np.ndarray, *args, **kwargs) -> np.ndarray:
-        dA = self.activation.backprop_step(dA=dA, ip=self.convolutions)
-
-        dA = self._reshape_dZ(dA)
-
-        dW = self._compute_dW(dA)
-
-        reg_param = kwargs.pop("reg_param", 0.0)
-        if reg_param > 0:
-            m = dA.shape[0]
-            dW += (reg_param / m) * self.kernels
-
-        self.gradients["kernels"] = dW
-
-        if self.use_bias:
-            self.gradients["biases"] = self._compute_dB(dA)
-
-        if self.requires_dX is False:
-            self.reset_attrs()
-            return
-
-        dX = self._compute_dX(dA)
-
-        self.reset_attrs()
-
-        return dX

@@ -101,7 +101,7 @@ class BaseLayer(ABC):
         """
         Method to build the layer, usually by initializing the parameters
         """
-        if self.param_keys is not None:
+        if self.trainable:
             raise NotImplementedError(
                 f"{self.__class__.__name__} instances need to implement build"
             )
@@ -110,7 +110,7 @@ class BaseLayer(ABC):
         """
         Method to count the number of trainable parameters in the layer
         """
-        if self.param_keys is not None:
+        if self.trainable:
             raise NotImplementedError(
                 f"{self.__class__.__name__} instances need to implement count_params"
             )

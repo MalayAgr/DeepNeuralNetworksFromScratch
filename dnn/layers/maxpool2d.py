@@ -18,6 +18,8 @@ class MaxPooling2D(BaseLayer):
 
     str_attrs = ("pool_size", "stride", "padding")
 
+    __slots__ = ("pooled", "_dX_share")
+
     def __init__(
         self,
         ip: LayerInput,
@@ -40,8 +42,6 @@ class MaxPooling2D(BaseLayer):
         self.windows = self.input_shape()[0]
 
         self.pooled = None
-
-        self._slice_idx = None
         self._dX_share = None
 
     def fans(self) -> Tuple[int, int]:

@@ -14,6 +14,8 @@ class BaseLayer(ABC):
 
     _id = count(0)
 
+    __slots__ = ('__dict__', 'param_keys', 'gradients')
+
     def __init__(
         self,
         ip: Union[Input, BaseLayer],

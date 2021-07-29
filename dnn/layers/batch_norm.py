@@ -10,6 +10,8 @@ from .base_layer import BaseLayer, LayerInput
 class BatchNorm(BaseLayer):
     reset = ("std", "norm", "scaled_norm")
 
+    __slots__ = ("gamma", "beta", "norm", "scaled_norm", "mean_mva", "std_mva")
+
     def __init__(
         self,
         ip: LayerInput,

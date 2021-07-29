@@ -24,6 +24,15 @@ class Conv(BaseLayer):
 
     str_attrs = ("filters", "kernel_size", "stride", "padding", "activation")
 
+    __slots__ = (
+        "convolutions",
+        "activations",
+        "_vec_ip",
+        "_vec_kernel",
+        "kernels",
+        "biases",
+    )
+
     def __init__(
         self,
         ip: LayerInput,
@@ -157,22 +166,6 @@ class Conv(BaseLayer):
         post_pad_H, post_pad_W = self.padded_shape()
         m = self.input().shape[-1]
         return m, self.ip_C, post_pad_H, post_pad_W
-
-    # def _compute_dX(self, dZ: np.ndarray) -> np.ndarray:
-    #     """Method to compute the derivative of the loss wrt input."""
-
-    #     dX_shape = self._target_dX_shape()
-    #     dIp = self._compute_dVec_Ip(dZ)
-
-    #     return accumulate_dX_conv(
-    #         dX_shape=dX_shape,
-    #         output_size=self.output_area(),
-    #         dIp=dIp,
-    #         stride=self.stride,
-    #         kernel_size=self.kernel_size,
-    #         reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),
-    #         padding=(self.p_H, self.p_W),
-    #     )
 
     def transform_backprop_gradient(
         self, grad: np.ndarray, *args, **kwargs

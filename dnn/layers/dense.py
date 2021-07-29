@@ -11,6 +11,8 @@ class Dense(BaseLayer):
     reset = ("linear", "activations")
     str_attrs = ("units", "activation")
 
+    __slots__ = ("activations", "linear", "weights", "biases")
+
     def __init__(
         self,
         ip: LayerInput,

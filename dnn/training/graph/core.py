@@ -85,10 +85,12 @@ class ComputationGraph:
         self._ordering.reverse()
 
     def forward_propagation(self) -> Tuple[np.ndarray]:
-        if not self.topological_order:
+        topological_order = self.topological_order
+
+        if not topological_order:
             self._topological_sort()
 
-        for name in self.topological_order:
+        for name in topological_order:
             node = self.fetch_node(name)
             node.forward()
 
@@ -129,7 +131,9 @@ class ComputationGraph:
         return ((weight, grad) for weight, grad in zip(node_weights, node.gradients))
 
     def backprop(self, grads: List[np.ndarray]) -> List[Tuple[np.ndarray, np.ndarray]]:
-        if not self.topological_order:
+        topological_order = self.topological_order
+
+        if not topological_order:
             raise AttributeError(
                 "You must run forward propagation before running backpropagation."
             )
@@ -144,7 +148,7 @@ class ComputationGraph:
 
         weights_and_grads, sink_count = [], 0
 
-        for name in reversed(self.topological_order):
+        for name in reversed(topological_order):
             if name in sink_nodes:
                 node_w_and_g = self._backprop_single_node(name, grads[sink_count])
                 sink_count += 1

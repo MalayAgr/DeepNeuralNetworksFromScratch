@@ -24,7 +24,8 @@ class BatchNorm(BaseLayer):
         self.momentum = momentum
         self.epsilon = epsilon
 
-        self.gamma = self.beta = None
+        self.gamma: np.ndarray
+        self.beta: np.ndarray
 
         params = ["gamma", "beta"]
 
@@ -33,14 +34,17 @@ class BatchNorm(BaseLayer):
         ip_shape = self.input_shape()
         self.axes = tuple(ax for ax, _ in enumerate(ip_shape) if ax != axis)
 
-        self.std = None
-        self.norm = None
-        self.scaled_norm = None
+        self.std: np.ndarray
+        self.norm: np.ndarray
+        self.scaled_norm: np.ndarray
 
-        self.mean_mva = None
-        self.std_mva = None
+        self.mean_mva: np.ndarray
+        self.std_mva: np.ndarray
 
     def fans(self) -> Tuple[int, int]:
+        if not isinstance(self.ip_layer, BaseLayer):
+            raise TypeError("fans() can only be used when the input is another layer.")
+
         _, ip_fan_out = self.ip_layer.fans()
 
         return ip_fan_out, ip_fan_out

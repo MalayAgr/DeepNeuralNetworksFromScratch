@@ -93,6 +93,10 @@ class Activation(BaseLayer):
         return self.derivative_func(ip, activations=activations).astype(np.float32)
 
     def fans(self) -> Tuple[int, int]:
+        if not isinstance(self.ip_layer, BaseLayer):
+            msg = "fans() can only be used when the input is another layer."
+            raise TypeError(msg)
+
         ip_layer_fans = self.ip_layer.fans()
         return ip_layer_fans[-1], ip_layer_fans[-1]
 

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -60,12 +60,12 @@ class Conv(BaseLayer):
 
         self.activation = add_activation(activation)
 
-        self.kernels = None
+        self.kernels: np.ndarray
         params = ["kernels"]
 
         self.use_bias = use_bias
         if use_bias:
-            self.biases = None
+            self.biases: np.ndarray
             params.append("biases")
 
         super().__init__(ip=ip, params=params, name=name)
@@ -75,8 +75,8 @@ class Conv(BaseLayer):
         self.convolutions = None
         self.activations = None
 
-        self._vec_ip = None
-        self._vec_kernel = None
+        self._vec_ip: Optional[np.ndarray] = None
+        self._vec_kernel: Optional[np.ndarray] = None
 
     def fans(self) -> Tuple[int, int]:
         receptive_field_size = np.prod(self.kernel_size)
@@ -92,11 +92,16 @@ class Conv(BaseLayer):
             shape = (self.filters, 1, 1, 1)
             self.biases = self._add_param(shape=shape, initializer="zeros")
 
+        self.built = True
+
     def count_params(self) -> int:
+        if self.kernels is None:
+            raise TypeError("The layer has not been built yet.")
+
         total = np.prod(self.kernels.shape)
 
         if self.use_bias:
-            return total + self.biases.shape[0]
+            total += self.biases.shape[0]
 
         return total
 
@@ -132,6 +137,10 @@ class Conv(BaseLayer):
         pass
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
+        if not self.built:
+            msg = "The layer has not been built yet. Call build() to build it."
+            raise AttributeError(msg)
+
         self.convolutions, self._vec_ip, self._vec_kernel = self.conv_func()
 
         if self.use_bias:
@@ -172,7 +181,7 @@ class Conv(BaseLayer):
     ) -> np.ndarray:
         dA = self.activation._backprop_step(grad, ip=self.convolutions)
 
-        return self._reshape_dZ(dA)
+        return self._reshape_dZ(dA) # pyright: reportGeneralTypeIssues=false
 
     def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
         dW = self._compute_dW(grad)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from itertools import count
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from dnn.input_layer import Input
@@ -129,13 +129,13 @@ class BaseLayer(ABC):
         )
 
         if ret_val is None:
-            raise ValueError("No input found")
+            raise ValueError("No input found.")
 
         return ret_val
 
     def input_shape(self) -> Tuple:
         if self.ip_layer is None:
-            raise ValueError("No input found")
+            raise ValueError("No input found.")
 
         if isinstance(self.ip_layer, Input):
             return self.ip_layer.ip_shape

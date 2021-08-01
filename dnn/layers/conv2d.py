@@ -9,12 +9,7 @@ from .utils import convolve2d
 class Conv2D(Conv):
     def conv_func(
         self,
-    ) -> Union[
-        Tuple[np.ndarray, np.ndarray, np.ndarray],
-        Tuple[np.ndarray, np.ndarray, None],
-        Tuple[np.ndarray, None, np.ndarray],
-        Tuple[np.ndarray, None, None],
-    ]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return convolve2d(
             X=self.input(),
             kernel=self.kernels,

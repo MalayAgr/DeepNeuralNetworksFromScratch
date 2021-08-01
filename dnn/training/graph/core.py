@@ -89,6 +89,7 @@ class ComputationGraph:
 
         if not topological_order:
             self._topological_sort()
+            topological_order = self.topological_order
 
         for name in topological_order:
             node = self.fetch_node(name)

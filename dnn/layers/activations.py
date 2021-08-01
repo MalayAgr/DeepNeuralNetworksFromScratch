@@ -96,7 +96,7 @@ class Activation(BaseLayer):
         ip_layer_fans = self.ip_layer.fans()
         return ip_layer_fans[-1], ip_layer_fans[-1]
 
-    def output(self) -> np.ndarray:
+    def output(self) -> Optional[np.ndarray]:
         return self.activations
 
     def output_shape(self):

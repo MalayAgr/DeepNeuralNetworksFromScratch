@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -28,7 +28,7 @@ class Dropout(BaseLayer):
 
         return ip_fan_out, ip_fan_out
 
-    def output(self) -> np.ndarray:
+    def output(self) -> Optional[np.ndarray]:
         return self.dropped
 
     def output_shape(self) -> Tuple:

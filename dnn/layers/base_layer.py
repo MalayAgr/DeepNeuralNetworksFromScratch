@@ -14,7 +14,7 @@ class BaseLayer(ABC):
 
     _id = count(0)
 
-    __slots__ = ('__dict__', 'param_keys', 'gradients')
+    __slots__ = ("__dict__", "param_keys", "gradients")
 
     def __init__(
         self,
@@ -139,7 +139,7 @@ class BaseLayer(ABC):
         return self.ip_layer.output_shape()
 
     @abstractmethod
-    def output(self) -> np.ndarray:
+    def output(self) -> Optional[np.ndarray]:
         """
         Method to obtain the output of the layer
         """

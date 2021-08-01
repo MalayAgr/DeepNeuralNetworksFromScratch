@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
@@ -65,7 +65,7 @@ class BatchNorm(BaseLayer):
     def count_params(self) -> int:
         return 2 * self.x_dim()
 
-    def output(self) -> np.ndarray:
+    def output(self) -> Optional[np.ndarray]:
         return self.scaled_norm
 
     def output_shape(self) -> Tuple:

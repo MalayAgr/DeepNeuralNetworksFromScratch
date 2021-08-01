@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -23,7 +23,7 @@ class Flatten(BaseLayer):
 
         return ip_fan_out, self.units
 
-    def output(self) -> np.ndarray:
+    def output(self) -> Optional[np.ndarray]:
         return self.flat
 
     def output_shape(self) -> Tuple:

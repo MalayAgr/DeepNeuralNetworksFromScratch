@@ -63,7 +63,7 @@ class Dense(BaseLayer):
 
         return total
 
-    def output(self) -> np.ndarray:
+    def output(self) -> Optional[np.ndarray]:
         return self.activations
 
     def output_shape(self) -> Tuple:

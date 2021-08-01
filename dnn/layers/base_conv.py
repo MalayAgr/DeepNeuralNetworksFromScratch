@@ -100,7 +100,7 @@ class Conv(BaseLayer):
 
         return total
 
-    def output(self) -> np.ndarray:
+    def output(self) -> Optional[np.ndarray]:
         return self.activations
 
     def output_area(self) -> Tuple[int, int]:

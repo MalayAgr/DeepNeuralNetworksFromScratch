@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 from contextlib import ContextDecorator
 
 import numpy as np
@@ -129,7 +129,7 @@ class Model:
         return op
 
     def compile(
-        self, opt: Optimizer, loss: Union[str, Loss, List[str], List[Loss]]
+        self, opt: Optimizer, loss: Union[str, Loss, List[Union[str, Loss]]]
     ) -> None:
         if not isinstance(opt, Optimizer):
             raise TypeError(
@@ -193,6 +193,8 @@ class Model:
                 batches = get_data_generator(
                     X, Y, batch_size=batch_size, shuffle=shuffle
                 )
+
+                cost = 0
 
                 print(f"Epoch {epoch + 1}/{epochs}:")
 

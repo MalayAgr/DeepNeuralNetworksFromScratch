@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -47,7 +47,7 @@ class MaxPooling2D(BaseLayer):
     def fans(self) -> Tuple[int, int]:
         return self.ip_C, self.ip_C
 
-    def output(self) -> np.ndarray:
+    def output(self) -> Optional[np.ndarray]:
         return self.pooled
 
     def output_area(self) -> Tuple[int, int]:

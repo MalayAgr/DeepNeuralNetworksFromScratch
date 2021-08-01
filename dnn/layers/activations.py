@@ -37,8 +37,10 @@ class Activation(BaseLayer):
         Subclasses classes must implement this.
         If the activation function is called g with input z,
         this should return g(z).
+
         Arguments:
             ip (Numpy-array): The input z for the function.
+
         Returns:
             A Numpy-array with the calculated activations, g(z).
         """
@@ -50,19 +52,29 @@ class Activation(BaseLayer):
         """
         The formula used to calculate the derivatives.
         Subclasses classes must implement this.
-        If the activation function is called g with input z,
-        this should return g'(z).
+
+        If the activation function is called g with input ip,
+        this should return g'(ip).
+
         Arguments:
             ip (Numpy-array): The input z with respect to which derivatives
                 need to be calculated.
+            activations (Numpy-array, optional): The activations for the given input.
+                This will be passed when the activation is used as a layer, preventing
+                recalculating it for activations which require the value.
+
         Example:
-            For sigmoid, the derivative is sigmoid(z) * (1 - sigmoid(z)).
+            For sigmoid, the derivative is sigmoid(ip) * (1 - sigmoid(ip)).
+
             This should be implemented as:
-                def derivative_func(self):
-                    sigmoid = self.activation_func(ip)
-                    return sigmoid * (1 - sigmoid)
+                def derivative_func(self, ip, activations=None):
+                    if activations is None:
+                        activations = self.activation_func(ip)
+
+                    return activations * (1 - activations)
+
         Returns:
-            A Numpy-array with the calculated derivatives, g'(z).
+            A Numpy-array with the calculated derivatives, g'(ip).
         """
 
     def compute_activations(self, ip: Optional[np.ndarray] = None) -> np.ndarray:

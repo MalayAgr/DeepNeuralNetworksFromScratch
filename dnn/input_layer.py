@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 
 import numpy as np
 
@@ -31,7 +32,7 @@ class Input:
         if shape[-1] is not None:
             raise AttributeError("The last dimension should be set to None")
         self.ip_shape = shape
-        self._ip = None
+        self._ip: Optional[np.ndarray] = None
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(ip_shape={self.ip_shape})"
@@ -40,14 +41,14 @@ class Input:
         return self.__str__()
 
     @property
-    def ip(self) -> np.ndarray:
+    def ip(self) -> Optional[np.ndarray]:
         """
         The actual input to be used in the layer.
         """
         return self._ip
 
     @ip.setter
-    def ip(self, X: np.ndarray) -> np.ndarray:
+    def ip(self, X: np.ndarray) -> None:
         """
         Setter for the ip property.
 

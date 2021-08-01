@@ -9,7 +9,7 @@ from dnn.input_layer import Input
 
 
 class BaseLayer(ABC):
-    reset: Tuple = None
+    reset = ()
     str_attrs = ()
 
     _id = count(0)
@@ -18,7 +18,7 @@ class BaseLayer(ABC):
 
     def __init__(
         self,
-        ip: Union[Input, BaseLayer],
+        ip: Union[Input, BaseLayer, None],
         *args,
         trainable: bool = True,
         params: Optional[List] = None,
@@ -134,8 +134,12 @@ class BaseLayer(ABC):
         return ret_val
 
     def input_shape(self) -> Tuple:
+        if self.ip_layer is None:
+            raise ValueError("No input found")
+
         if isinstance(self.ip_layer, Input):
             return self.ip_layer.ip_shape
+
         return self.ip_layer.output_shape()
 
     @abstractmethod
@@ -253,7 +257,7 @@ class MultiInputBaseLayer(BaseLayer):
                 f"{self.__class__.__name__} expects all inputs in the list of inputs "
                 "to be instances of Input or other layers."
             )
-        raise ValueError(msg)
+            raise ValueError(msg)
 
     def input(self) -> List[np.ndarray]:
         ret_val = []

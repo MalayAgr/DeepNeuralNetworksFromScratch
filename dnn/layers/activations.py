@@ -72,12 +72,13 @@ class Activation(BaseLayer):
         return self.activation_func(ip).astype(np.float32)
 
     def compute_derivatives(self, ip: Optional[np.ndarray] = None) -> np.ndarray:
+        activations = None
+
         if ip is None:
             ip = self.input()
-            return self.derivative_func(ip, activations=self.activations).astype(
-                np.float32
-            )
-        return self.derivative_func(ip).astype(np.float32)
+            activations = self.activations
+
+        return self.derivative_func(ip, activations=activations).astype(np.float32)
 
     def fans(self) -> Tuple[int, int]:
         ip_layer_fans = self.ip_layer.fans()

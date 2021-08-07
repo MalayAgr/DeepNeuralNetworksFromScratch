@@ -23,11 +23,6 @@ class Dropout(BaseLayer):
         self.dropped = None
         self.dropout_mask = None
 
-    def fans(self) -> Tuple[int, int]:
-        _, ip_fan_out = self.ip_layer.fans()
-
-        return ip_fan_out, ip_fan_out
-
     def output(self) -> Optional[np.ndarray]:
         return self.dropped
 

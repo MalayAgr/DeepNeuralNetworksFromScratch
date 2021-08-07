@@ -73,11 +73,14 @@ class BaseLayer(ABC):
             if attr != "activation"
         )
 
-    @abstractmethod
     def fans(self) -> Tuple[int, int]:
         """
         Method to obtain the number of input and output units
         """
+        if self.trainable:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} instances need to implement fans"
+            )
 
     def _initializer_variance(self, initializer: str) -> float:
         fan_in, fan_out = self.fans()
@@ -235,7 +238,7 @@ class MultiInputBaseLayer(BaseLayer):
         ip: List[Union[Input, BaseLayer]],
         *args,
         trainable: bool,
-        params: Optional[List],
+        params: Optional[List] = None,
         name: str,
         **kwargs,
     ) -> None:

@@ -3,7 +3,12 @@ from typing import Tuple, Union
 import numpy as np
 
 from .base_conv import Conv
-from .utils import convolve2d
+from .utils import (
+    backprop_bias_conv,
+    backprop_ip_conv2d,
+    backprop_kernel_conv2d,
+    convolve2d,
+)
 
 
 class Conv2D(Conv):
@@ -23,16 +28,12 @@ class Conv2D(Conv):
         return np.swapaxes(dZ, 0, -1).reshape(dZ.shape[-1], -1, self.filters)
 
     def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
-        ip = self._vec_ip
-
-        dW = np.matmul(ip[..., None], dZ[..., None, :], dtype=np.float32).sum(
-            axis=(0, 1)
+        return backprop_kernel_conv2d(
+            ip=self._vec_ip, grad=dZ, kernel_size=self.kernel_size, filters=self.filters
         )
 
-        return dW.reshape(-1, self.kernel_H, self.kernel_W, self.filters)
-
     def _compute_dB(self, dZ: np.ndarray) -> np.ndarray:
-        return dZ.sum(axis=(0, 1)).reshape(-1, *self.biases.shape[1:])
+        return backprop_bias_conv(grad=dZ, axis=(0, 1), reshape=self.biases.shape[1:])
 
     def _compute_dVec_Ip(self, dZ: np.ndarray) -> np.ndarray:
-        return np.matmul(dZ, self._vec_kernel.T, dtype=np.float32)
+        return backprop_ip_conv2d(grad=dZ, kernel=self._vec_kernel)

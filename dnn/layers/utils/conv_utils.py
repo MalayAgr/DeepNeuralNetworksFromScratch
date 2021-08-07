@@ -164,6 +164,61 @@ def depthwise_convolve2d(
     return ret_val
 
 
+def _backprop_kernel_generic_conv(
+    ip: np.ndarray,
+    grad: np.ndarray,
+    kernel_size: Tuple[int, int],
+    filters: int,
+    axis: Tuple = (0,),
+) -> np.ndarray:
+    dW = np.matmul(ip, grad, dtype=np.float32)
+    dW = dW.sum(axis=axis)
+    kH, kW = kernel_size
+    return dW.reshape(-1, kH, kW, filters)
+
+
+def backprop_kernel_conv2d(
+    ip: np.ndarray, grad: np.ndarray, kernel_size: Tuple[int, int], filters: int
+) -> np.ndarray:
+    return _backprop_kernel_generic_conv(
+        ip=ip[..., None],
+        grad=grad[..., None, :],
+        kernel_size=kernel_size,
+        filters=filters,
+        axis=(0, 1),
+    )
+
+
+def backprop_kernel_depthwise_conv2d(
+    ip: np.ndarray, grad: np.ndarray, kernel_size: Tuple[int, int], multiplier: int
+) -> np.ndarray:
+    return _backprop_kernel_generic_conv(
+        ip=np.swapaxes(ip, -1, -2),
+        grad=grad,
+        kernel_size=kernel_size,
+        filters=multiplier,
+    )
+
+
+def backprop_bias_conv(
+    grad: np.ndarray, axis: Tuple, reshape: Optional[Tuple] = None
+) -> np.ndarray:
+    grad = grad.sum(axis=axis)
+    if reshape is not None:
+        grad = grad.reshape(-1, *reshape)
+    return grad
+
+
+def backprop_ip_conv2d(grad: np.ndarray, kernel: np.ndarray) -> np.ndarray:
+    return np.matmul(grad, kernel.T, dtype=np.float32)
+
+
+def backprop_ip_depthwise_conv2d(grad: np.ndarray, kernel: np.ndarray) -> np.ndarray:
+    kernel = np.swapaxes(kernel, -1, -2)
+    dIp = np.matmul(grad, kernel, dtype=np.float32)
+    return np.moveaxis(dIp, 2, 1)
+
+
 def accumulate_dX_conv(
     dX_shape: Tuple,
     output_size: Tuple[int, int],

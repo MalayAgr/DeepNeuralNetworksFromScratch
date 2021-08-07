@@ -1,5 +1,10 @@
 from .conv_utils import (
     accumulate_dX_conv,
+    backprop_bias_conv,
+    backprop_ip_conv2d,
+    backprop_ip_depthwise_conv2d,
+    backprop_kernel_conv2d,
+    backprop_kernel_depthwise_conv2d,
     compute_conv_output_dim,
     compute_conv_padding,
     convolve2d,

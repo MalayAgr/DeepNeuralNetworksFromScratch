@@ -5,7 +5,12 @@ import numpy as np
 from .activations import Activation
 from .base_layer import LayerInput
 from .conv2d import Conv2D
-from .utils import depthwise_convolve2d
+from .utils import (
+    backprop_bias_conv,
+    backprop_ip_depthwise_conv2d,
+    backprop_kernel_depthwise_conv2d,
+    depthwise_convolve2d,
+)
 
 
 class DepthwiseConv2D(Conv2D):
@@ -89,19 +94,15 @@ class DepthwiseConv2D(Conv2D):
         return dZ
 
     def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
-        ip = np.swapaxes(self._vec_ip, -1, -2)
-
-        dW = np.matmul(ip, dZ).sum(axis=0)
-
-        return dW.reshape(-1, self.kernel_H, self.kernel_W, self.multiplier)
+        return backprop_kernel_depthwise_conv2d(
+            ip=self._vec_ip,
+            grad=dZ,
+            kernel_size=self.kernel_size,
+            multiplier=self.multiplier,
+        )
 
     def _compute_dB(self, dZ: np.ndarray) -> np.ndarray:
-        return dZ.sum(axis=(0, 2)).reshape(-1, *self.biases.shape[1:])
+        return backprop_bias_conv(grad=dZ, axis=(0,), reshape=self.biases.shape[1:])
 
     def _compute_dVec_Ip(self, dZ: np.ndarray) -> np.ndarray:
-        kernel = np.swapaxes(self._vec_kernel, -1, -2)
-
-        dIp = np.matmul(dZ, kernel, dtype=np.float32)
-        dIp = np.moveaxis(dIp, 2, 1)
-
-        return dIp
+        return backprop_ip_depthwise_conv2d(grad=dZ, kernel=self._vec_kernel)

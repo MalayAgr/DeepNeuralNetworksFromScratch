@@ -181,7 +181,7 @@ class Conv(BaseLayer):
     ) -> np.ndarray:
         dA = self.activation._backprop_step(grad, ip=self.convolutions)
 
-        return self._reshape_dZ(dA) # pyright: reportGeneralTypeIssues=false
+        return self._reshape_dZ(dA)  # pyright: reportGeneralTypeIssues=false
 
     def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
         dW = self._compute_dW(grad)

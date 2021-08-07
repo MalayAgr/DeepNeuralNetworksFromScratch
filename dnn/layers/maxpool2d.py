@@ -9,7 +9,7 @@ from .utils import (
     compute_conv_output_dim,
     compute_conv_padding,
     pad,
-    vectorize_for_conv,
+    vectorize_ip_for_conv,
 )
 
 
@@ -92,7 +92,7 @@ class MaxPooling2D(BaseLayer):
     def _pool(self, X: np.ndarray) -> np.ndarray:
         X = pad(X, self.p_H, self.p_W)
 
-        X = vectorize_for_conv(
+        X = vectorize_ip_for_conv(
             X=X,
             kernel_size=self.pool_size,
             stride=self.stride,

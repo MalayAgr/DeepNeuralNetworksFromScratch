@@ -1,30 +1,8 @@
-from math import ceil
 from typing import Generator, Optional, Tuple, Union
 
+from math import ceil
+
 import numpy as np
-
-from .activations import Activation
-from .base_layer import LayerInput
-
-
-def activation_factory(
-    activation: str, *args, ip: Optional[LayerInput] = None, **kwargs
-) -> Activation:
-    registry = Activation.get_activation_classes()
-    cls = registry.get(activation)
-    if cls is None:
-        raise ValueError("Activation with this name does not exist")
-    return cls(ip=ip, *args, **kwargs)
-
-
-def add_activation(activation: Union[Activation, str, None]) -> Activation:
-    if isinstance(activation, Activation):
-        return activation
-
-    if activation is None:
-        activation = "linear"
-
-    return activation_factory(activation)
 
 
 def compute_conv_padding(
@@ -50,7 +28,7 @@ def slice_idx_generator(
     return ((i * sH, j * sW) for i in range(oH) for j in range(oW))
 
 
-def vectorize_for_conv(
+def vectorize_ip_for_conv(
     X: np.ndarray,
     kernel_size: Tuple[int, int],
     stride: Tuple[int, int],
@@ -99,7 +77,7 @@ def _prepare_ip_for_conv(
     if padding != (0, 0):
         X, _ = pad(X, pH, pW)
 
-    X = vectorize_for_conv(X, (kH, kW), stride, (oH, oW), reshape=vec_reshape)
+    X = vectorize_ip_for_conv(X, (kH, kW), stride, (oH, oW), reshape=vec_reshape)
 
     return X, oH, oW
 

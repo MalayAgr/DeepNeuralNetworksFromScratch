@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -21,7 +21,7 @@ class Input:
             Actual input that the layer will provide to its users.
     """
 
-    def __init__(self, shape: tuple, *args, **kwargs) -> None:
+    def __init__(self, shape: Tuple, *args, **kwargs) -> None:
         """
         Initializes an Input instance with the given input shape.
 
@@ -31,7 +31,7 @@ class Input:
         """
         if shape[-1] is not None:
             raise AttributeError("The last dimension should be set to None")
-        self.ip_shape = shape
+        self._shape = shape
         self._ip: Optional[np.ndarray] = None
 
     def __str__(self) -> str:
@@ -39,6 +39,15 @@ class Input:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    @property
+    def shape(self) -> Tuple:
+        """
+        The shape of the input of the layer.
+        """
+        if self.ip is not None:
+            return self.ip.shape
+        return self._shape
 
     @property
     def ip(self) -> Optional[np.ndarray]:

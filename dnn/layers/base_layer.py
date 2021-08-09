@@ -141,7 +141,7 @@ class BaseLayer(ABC):
             raise ValueError("No input found.")
 
         if isinstance(self.ip_layer, Input):
-            return self.ip_layer.ip_shape
+            return self.ip_layer.shape
 
         return self.ip_layer.output_shape()
 
@@ -277,7 +277,7 @@ class MultiInputBaseLayer(BaseLayer):
 
     def input_shape(self) -> List[Tuple]:
         return [
-            ip.ip_shape if isinstance(ip, Input) else ip.output_shape()
+            ip.shape if isinstance(ip, Input) else ip.output_shape()
             for ip in self.ip_layer
         ]
 

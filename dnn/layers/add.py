@@ -8,7 +8,7 @@ class Add(MultiInputBaseLayer):
     def __init__(self, ip: List[LayerInput], name: str = None) -> None:
         super().__init__(ip=ip, trainable=False, name=name)
 
-        self.add = None
+        self.added: np.ndarray
 
     def _validate_same_shape(self) -> None:
         shapes = self.input_shape()
@@ -21,14 +21,14 @@ class Add(MultiInputBaseLayer):
             raise ValueError(msg)
 
     def output(self) -> Optional[np.ndarray]:
-        return self.add
+        return self.added
 
     def output_shape(self) -> Tuple:
         return self.input_shape()[0]
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
         self._validate_same_shape()
-        self.add = np.add.reduce(self.input())
+        self.added = np.add.reduce(self.input())
         return self.add
 
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:

@@ -35,7 +35,7 @@ class Input:
         self._ip: Optional[np.ndarray] = None
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}(ip_shape={self.ip_shape})"
+        return f"{self.__class__.__name__}(ip_shape={self._shape})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -68,6 +68,6 @@ class Input:
             AttributeError when ip_shape and shape of X do not match.
         """
         # Make sure the supplied input matches the expected shape
-        if X.shape[:-1] != self.ip_shape[:-1]:
+        if X.shape[:-1] != self._shape[:-1]:
             raise AttributeError("The input does not have the expected shape")
         self._ip = X

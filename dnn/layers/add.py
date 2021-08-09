@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from .base_layer import LayerInput, MultiInputBaseLayer
@@ -20,7 +20,7 @@ class Add(MultiInputBaseLayer):
             )
             raise ValueError(msg)
 
-    def output(self) -> np.ndarray:
+    def output(self) -> Optional[np.ndarray]:
         return self.add
 
     def output_shape(self) -> Tuple:

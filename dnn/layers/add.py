@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 import numpy as np
-from .base_layer import BaseLayer, LayerInput, MultiInputBaseLayer
+from .base_layer import LayerInput, MultiInputBaseLayer
 
 
 class Add(MultiInputBaseLayer):
@@ -10,7 +10,7 @@ class Add(MultiInputBaseLayer):
 
         self.add = None
 
-    def _validate_same_shape(self):
+    def _validate_same_shape(self) -> None:
         shapes = self.input_shape()
         first_shape = shapes[0]
         if any(shape != first_shape for shape in shapes[1:]):

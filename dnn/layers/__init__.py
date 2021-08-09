@@ -7,3 +7,5 @@ from dnn.layers.dropout import Dropout
 from dnn.layers.flatten import Flatten
 from dnn.layers.maxpool2d import MaxPooling2D
 from dnn.layers.depthwise_conv2d import DepthwiseConv2D
+from dnn.layers.add import Add
+from dnn.layers.concatenate import Concatenate

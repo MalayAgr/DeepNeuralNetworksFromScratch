@@ -214,14 +214,11 @@ class BaseLayer(ABC):
             )
 
     @abstractmethod
-    def backprop_inputs(
-        self, grad: np.ndarray, *args, **kwargs
-    ) -> Union[np.ndarray, Tuple[np.ndarray]]:
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
         """
-        Method to compute the derivative of loss wrt the layer's inputs.
+        Method to compute the derivative of loss wrt the layer's input.
 
-        It should return a single Numpy array if the layer has one input
-        or a tuple with as many Numpy arrays as the number of inputs.
+        It should return a single Numpy array.
         """
 
     def _reset_attrs(self) -> None:
@@ -282,8 +279,22 @@ class MultiInputBaseLayer(BaseLayer):
         ]
 
     @abstractmethod
-    def output(self) -> Union[np.ndarray, List[np.ndarray]]:
+    def output(self) -> Union[np.ndarray, List[np.ndarray], None]:
         """Method to obtain the output(s) of the layer."""
+
+    @abstractmethod
+    def output_shape(self) -> Union[Tuple, List[Tuple]]:
+        """
+        Method to determine the shape of the output(s) of the layer
+        """
+
+    @abstractmethod
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:
+        """
+        Method to compute the derivative of loss wrt the layer's inputs.
+
+        It should return a tuple with as many Numpy arrays as the number of inputs.
+        """
 
 
 LayerInput = Union[Input, BaseLayer]

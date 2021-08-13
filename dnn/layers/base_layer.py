@@ -1,3 +1,9 @@
+"""Contains the abstract base classes for all layer implementations.
+
+Any layer implemented should inherit from one of the classes in this module.
+"""
+
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -9,6 +15,35 @@ from dnn.input_layer import Input
 
 
 class BaseLayer(ABC):
+    """Abstract base class for all layers with a single input.
+
+    Attributes
+    ----------
+    ip_layer: Instance of Input or of a subclass of BaseLayer, or None
+        Input to the layer.
+
+    name: str
+        Name of the layer (used in computation graph). The name
+        should be unique with respect to all other layers in the same
+        model.
+
+    trainable: bool
+        Indicates whether or not the layer is trainable, i.e. it has parameters
+        that are updated during training.
+
+    is_training: bool
+        Indicates whether or not the layer is currently being trained.
+
+    param_keys: list of str
+        Names of instance attributes that refer to the parameters of the layer.
+
+    requires_dX: bool
+        Indicates whether or not the layer should compute the gradient wrt its input(s).
+
+    gradients: dict
+        Gradients of the layer's parameters (if any).
+    """
+
     reset = ()
     str_attrs = ()
 
@@ -25,6 +60,25 @@ class BaseLayer(ABC):
         name: str = None,
         **kwargs,
     ) -> None:
+        """
+        Arguments
+        ----------
+        ip: Input to the layer.
+
+        trainable: Indicates whether or not the layer is trainable,
+            i.e. it has parameters that are updated during training. Defaults to True.
+
+        params: Names of instance attributes that refer to the
+            parameters of the layer. Defaults to None.
+
+        name: Name of the layer (used in computation graphs). The name should be unique
+            wrt all other layers in the same model. When None, a name is automatically created.
+            Defaults to None.
+
+        Raises
+        ----------
+            TypeError: When ip is not None and it is not an instance of Input or a subclass of BaseLayer.
+        """
         if ip is not None and not isinstance(ip, (Input, BaseLayer)):
             msg = (
                 f"A {self.__class__.__name__} can have only instances "
@@ -56,6 +110,10 @@ class BaseLayer(ABC):
 
     @property
     def built(self) -> bool:
+        """
+        Boolean value that indicates whether or not the layer has been built.
+        This usually means that the layer's parameters have been initialized.
+        """
         return self._built
 
     @built.setter
@@ -63,6 +121,7 @@ class BaseLayer(ABC):
         self._built = value
 
     def _make_name(self) -> str:
+        """Method to generate a name for the layer."""
         cls = self.__class__.__name__.lower()
         _id = next(BaseLayer._id)
         base = f"{cls}{_id}_"
@@ -74,15 +133,32 @@ class BaseLayer(ABC):
         )
 
     def fans(self) -> Tuple[int, int]:
-        """
-        Method to obtain the number of input and output units
+        """Method to obtain the number of input and output units of the layer.
+
+        Trainable layers must implement this method.
+
+        Raises
+        ----------
+            NotImplementedError: When the layer is trainable and the method has not
+                been implemented.
         """
         if self.trainable:
             raise NotImplementedError(
-                f"{self.__class__.__name__} instances need to implement fans"
+                f"{self.__class__.__name__} instances need to implement fans."
             )
 
     def _initializer_variance(self, initializer: str) -> float:
+        """Method to obtain the variance for the given initializer.
+
+        Arguments
+        ----------
+            initializer: Initializer whose variance is required.
+                Can be one of "he", "xavier" or "xavier_uniform".
+
+        Raises
+        ----------
+            KeyError: When initializer is not one of the expected values.
+        """
         fan_in, fan_out = self.fans()
 
         return {
@@ -92,7 +168,7 @@ class BaseLayer(ABC):
         }[initializer]
 
     def _add_param(self, shape: Tuple, initializer: str) -> np.ndarray:
-        """Helper method to initialize a parameter with the given shape and initializer"""
+        """Helper method to initialize a parameter with the given shape and initializer."""
         if initializer == "zeros":
             return np.zeros(shape=shape, dtype=np.float32)
         if initializer == "ones":
@@ -103,25 +179,43 @@ class BaseLayer(ABC):
         return np.random.randn(*shape).astype(np.float32) * np.sqrt(variance)
 
     def build(self) -> Any:
-        """
-        Method to build the layer, usually by initializing the parameters
+        """Method to build the layer, usually by initializing the parameters.
+
+        Trainable layers must implement this method.
+
+        Raises
+        ----------
+            NotImplementedError: When the layer is trainable and the method has not
+                been implemented.
         """
         if self.trainable:
             raise NotImplementedError(
-                f"{self.__class__.__name__} instances need to implement build"
+                f"{self.__class__.__name__} instances need to implement build."
             )
 
     def count_params(self) -> int:
-        """
-        Method to count the number of trainable parameters in the layer
+        """Method to count the number of trainable parameters in the layer.
+
+        Trainable layers must implement this method.
+
+        Raises
+        ----------
+            NotImplementedError: When the layer is trainable and the method has not
+                been implemented.
         """
         if self.trainable:
             raise NotImplementedError(
-                f"{self.__class__.__name__} instances need to implement count_params"
+                f"{self.__class__.__name__} instances need to implement count_params."
             )
         return 0
 
     def input(self) -> np.ndarray:
+        """Method to obtain the underlying NumPy array which is the input to the layer.
+
+        Raises
+        ----------
+            AttributeError: When no NumPy array is found to return.
+        """
         if self.ip_layer is None:
             raise AttributeError("No input found")
 
@@ -137,6 +231,11 @@ class BaseLayer(ABC):
         return ret_val
 
     def input_shape(self) -> Tuple:
+        """Method to obtain the expected shape of the input of the layer.
+
+        Raises:
+            AttributeError: When ip_layer is None.
+        """
         if self.ip_layer is None:
             raise AttributeError("No input found.")
 
@@ -148,16 +247,17 @@ class BaseLayer(ABC):
     @abstractmethod
     def output(self) -> Optional[np.ndarray]:
         """
-        Method to obtain the output of the layer
+        Abstract method to obtain the output of the layer.
         """
 
     @abstractmethod
     def output_shape(self) -> Tuple:
         """
-        Method to determine the shape of the output of the layer
+        Abstract method to obtain the expected shape of the output of the layer.
         """
 
     def _forward_step(self, *args, **kwargs) -> np.ndarray:
+        """Wrapper around forward_step() which builds the layer if it is not built."""
         if not self.built:
             self.build()
             self.built = True
@@ -166,10 +266,16 @@ class BaseLayer(ABC):
     @abstractmethod
     def forward_step(self, *args, **kwargs) -> np.ndarray:
         """
-        One step of forward propagation
+        Abstract method to carry out one step of forward propagation.
         """
 
     def _backprop_step(self, grad: np.ndarray, *args, **kwargs) -> Optional[np.ndarray]:
+        """Method to carry out one complete backprop step.
+
+        Arguments
+        ----------
+            grad: Backpropagated gradient.
+        """
         grad = self.transform_backprop_gradient(grad, *args, **kwargs)
 
         if self.trainable:
@@ -187,23 +293,42 @@ class BaseLayer(ABC):
     def transform_backprop_gradient(
         self, grad: np.ndarray, *args, **kwargs
     ) -> np.ndarray:
-        """
-        Apply transformations on the backpropagated gradient so that
+        """Method to apply transformations on the backpropagated gradient so that
         it is appropriate for use by the layer.
 
         By default, it returns the gradient as is. Override the method
         to apply other transformations like reshape, transpose, activations, etc.
+
+        Arguments
+        ----------
+            grad: Gradient to be transformed.
         """
         return grad
 
     def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
-        """
-        Method to compute the gradient of loss wrt the layer's parameters.
+        """Method to compute the gradient of loss wrt the layer's parameters.
 
         Trainable layers must implement this method.
+        The implementation should store the gradients in the 'gradients'
+        attribute of the layer. The gradients should be Numpy arrays and
+        the keys should be the same as the values passed as params to __init__().
 
-        The implementation should store the derivatives in the 'gradients'
-        attribute of the layer.
+        Arguments
+        ----------
+            grad: Backpropagated gradient *after* transformation using transform_backprop_gradient().
+
+        Raises
+        ----------
+            NotImplementedError: When the layer is trainable and the method has not
+                been implemented.
+
+        Example
+        ---------
+        If params = ['weights', 'biases'], then, after this method is called:
+            >>> gradients = {
+                'weights': <np.ndarray>,
+                'biases': <np.ndarray>,
+            }
         """
         if self.trainable:
             raise NotImplementedError(
@@ -212,13 +337,20 @@ class BaseLayer(ABC):
 
     @abstractmethod
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
-        """
-        Method to compute the derivative of loss wrt the layer's input.
+        """Abstract method to compute the derivative of loss wrt the layer's input.
 
-        It should return a single Numpy array.
+        It should return a single NumPy array.
+
+        Arguments
+        ----------
+            grad: Backpropagated gradient *after* transformation using transform_backprop_gradient().
         """
 
     def _reset_attrs(self) -> None:
+        """Method to clean up unnecessary attributes to save memory.
+
+        The method is always called after one complete backprop step.
+        """
         for attr in self.reset:
             if isinstance(attr, tuple):
                 setattr(self, attr[0], attr[-1])
@@ -226,16 +358,51 @@ class BaseLayer(ABC):
             setattr(self, attr, None)
 
 
+LayerInput = Union[Input, BaseLayer]
+
+
 class MultiInputBaseLayer(BaseLayer):
+    """Abstract base class for all layers with multiple inputs.
+
+    It inherits from BaseLayer.
+
+    Attributes
+    ----------
+    ip_layer: List of instances of Input or of subclasses of BaseLayer
+        Input to the layer.
+
+    And all attributes of BaseLayer.
+    """
+
     def __init__(
         self,
-        ip: List[Union[Input, BaseLayer]],
+        ip: List[LayerInput],
         *args,
         trainable: bool,
         params: Optional[List] = None,
-        name: str,
+        name: str = None,
         **kwargs,
     ) -> None:
+        """
+        Arguments
+        ----------
+        ip: Input to the layer.
+
+        trainable: Indicates whether or not the layer is trainable,
+            i.e. it has parameters that are updated during training. Defaults to True.
+
+        params: Names of instance attributes that refer to the
+            parameters of the layer. Defaults to None.
+
+        name: Name of the layer (used in computation graphs). The name should be unique
+            wrt all other layers in the same model. When None, a name is automatically created.
+            Defaults to None.
+
+        Raises
+        ----------
+            ValueError: When ip is not a list.
+            TypeError: When any item in ip is not an instance of Input or of subclasses of BaseLayer.
+        """
         if ip is not None:
             self._validate_ip(ip)
 
@@ -246,6 +413,7 @@ class MultiInputBaseLayer(BaseLayer):
         self.ip_layer = ip
 
     def _validate_ip(self, ip):
+        """Method to validate the input passed to __init__()."""
         if not isinstance(ip, List):
             raise ValueError(f"{self.__class__.__name__} expects a list of inputs.")
 
@@ -254,22 +422,29 @@ class MultiInputBaseLayer(BaseLayer):
                 f"{self.__class__.__name__} expects all inputs in the list of inputs "
                 "to be instances of Input or other layers."
             )
-            raise ValueError(msg)
+            raise TypeError(msg)
 
     def input(self) -> List[np.ndarray]:
+        """Method to obtain the underlying NumPy arrays which are the inputs to the layer.
+
+        Raises
+        ----------
+            AttributeError: When no Numpy array is found in any of the inputs.
+        """
         ret_val = []
 
         for ip in self.ip_layer:
             op = ip.ip if isinstance(ip, Input) else ip.output()
 
             if op is None:
-                raise ValueError(f"No input found in {ip}.")
+                raise AttributeError(f"No input found in {ip}.")
 
             ret_val.append(op)
 
         return ret_val
 
     def input_shape(self) -> List[Tuple]:
+        """Method to obtain the expected shapes of the inputs of the layer."""
         return [
             ip.shape if isinstance(ip, Input) else ip.output_shape()
             for ip in self.ip_layer
@@ -277,12 +452,14 @@ class MultiInputBaseLayer(BaseLayer):
 
     @abstractmethod
     def output(self) -> Union[np.ndarray, List[np.ndarray], None]:
-        """Method to obtain the output(s) of the layer."""
+        """
+        Abstract method to obtain the output(s) of the layer.
+        """
 
     @abstractmethod
     def output_shape(self) -> Union[Tuple, List[Tuple]]:
         """
-        Method to determine the shape of the output(s) of the layer
+        Abstract method to obtain the expected shape of the output(s) of the layer.
         """
 
     def _backprop_step(
@@ -292,11 +469,11 @@ class MultiInputBaseLayer(BaseLayer):
 
     @abstractmethod
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:
+        """Abstract method to compute the derivative of loss wrt the layer's input.
+
+        It should return a tuple of as many NumPy arrays as there are inputs in the layer.
+
+        Arguments
+        ----------
+            grad: Backpropagated gradient *after* transformation using transform_backprop_gradient().
         """
-        Method to compute the derivative of loss wrt the layer's inputs.
-
-        It should return a tuple with as many Numpy arrays as the number of inputs.
-        """
-
-
-LayerInput = Union[Input, BaseLayer]

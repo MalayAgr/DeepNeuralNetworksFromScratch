@@ -30,7 +30,7 @@ class BaseLayer(ABC):
                 f"A {self.__class__.__name__} can have only instances "
                 "of Input or a subclass of BaseLayer as ip"
             )
-            raise AttributeError(msg)
+            raise TypeError(msg)
 
         self.ip_layer = ip
 
@@ -123,7 +123,7 @@ class BaseLayer(ABC):
 
     def input(self) -> np.ndarray:
         if self.ip_layer is None:
-            raise ValueError("No input found")
+            raise AttributeError("No input found")
 
         ret_val = (
             self.ip_layer.ip
@@ -132,13 +132,13 @@ class BaseLayer(ABC):
         )
 
         if ret_val is None:
-            raise ValueError("No input found.")
+            raise AttributeError("No input found.")
 
         return ret_val
 
     def input_shape(self) -> Tuple:
         if self.ip_layer is None:
-            raise ValueError("No input found.")
+            raise AttributeError("No input found.")
 
         if isinstance(self.ip_layer, Input):
             return self.ip_layer.shape
@@ -169,10 +169,7 @@ class BaseLayer(ABC):
         One step of forward propagation
         """
 
-    def _backprop_step(
-        self, grad: np.ndarray, *args, **kwargs
-    ) -> Union[np.ndarray, Tuple[np.ndarray], None]:
-
+    def _backprop_step(self, grad: np.ndarray, *args, **kwargs) -> Optional[np.ndarray]:
         grad = self.transform_backprop_gradient(grad, *args, **kwargs)
 
         if self.trainable:
@@ -287,6 +284,11 @@ class MultiInputBaseLayer(BaseLayer):
         """
         Method to determine the shape of the output(s) of the layer
         """
+
+    def _backprop_step(
+        self, grad: np.ndarray, *args, **kwargs
+    ) -> Optional[Tuple[np.ndarray]]:
+        return super()._backprop_step(grad=grad, *args, **kwargs)
 
     @abstractmethod
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:

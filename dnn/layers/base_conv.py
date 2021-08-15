@@ -60,12 +60,12 @@ class Conv(BaseLayer):
 
         self.activation = add_activation(activation)
 
-        self.kernels: np.ndarray
+        self.kernels = None
         params = ["kernels"]
 
         self.use_bias = use_bias
         if use_bias:
-            self.biases: np.ndarray
+            self.biases = None
             params.append("biases")
 
         super().__init__(ip=ip, params=params, name=name)

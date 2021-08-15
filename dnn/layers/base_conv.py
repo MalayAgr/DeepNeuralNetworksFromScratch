@@ -137,10 +137,6 @@ class Conv(BaseLayer):
         pass
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
-        if not self.built:
-            msg = "The layer has not been built yet. Call build() to build it."
-            raise AttributeError(msg)
-
         self.convolutions, self._vec_ip, self._vec_kernel = self.conv_func()
 
         if self.use_bias:

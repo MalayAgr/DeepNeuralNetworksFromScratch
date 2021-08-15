@@ -6,17 +6,36 @@ This is an implementation of deep neural networks using nothing but Python and N
 
 Currently, the following things are supported:
 
-- `Dense`
-- `Conv2D`
-- `MaxPooling2D` and `AveragePooling2D`
-- `BatchNorm`
-- `Dropout`
-- `Flatten`
-- `DepthwiseConv2D`
-- Activations: `Linear`, `Sigmoid`, `Tanh`, `ReLU`, `LeakyReLU`, `ELU` and `Softmax`
-- Losses: `BinaryCrossEntropy`, `CategoricalCrossEntropy` and `MeanSquaredError`
-- Optimizers: `SGD` with no momentum, `SGD` with momentum, `RMSProp` and `Adam`
-- L2 Regularization
+- Layers:
+  - `Dense`
+  - `Conv2D`
+  - `MaxPooling2D`
+  - `AveragePooling2D`
+  - `BatchNorm`
+  - `Dropout`
+  - `Flatten`
+  - `DepthwiseConv2D`
+  - `SeparableConv2D`
+  - `Add`
+  - `Concatenate`
+- Activations:
+  - `Linear`
+  - `Sigmoid`
+  - `Tanh`
+  - `ReLU`
+  - `LeakyReLU`
+  - `ELU`
+  - `Softmax`
+- Losses
+  - `BinaryCrossEntropy`
+  - `CategoricalCrossEntropy`
+  - `MeanSquaredError`
+- Optimizers:
+  - Vanilla `SGD`
+  - `SGD` with momentum
+  - `RMSProp`
+  - Vanilla `Adam`
+  - `Adam` with AMSGrad.
 
 It is also possible to easily add layers, activations, losses and optimizers.
 

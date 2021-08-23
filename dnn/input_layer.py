@@ -9,33 +9,40 @@ class Input:
     Class to represent the input layer of a neural network.
 
     In a neural network, the input cannot be determined until previous
-    Layers have done their operation. It also doesn't make sense to lock
-    A neural network with particular architecture with a single input.
+    layers have done their operation. It also doesn't make sense to lock
+    a neural network with particular architecture with a single input.
     This class allows the same architecture to be used with different
-    Inputs and allows the model to conveniently handle the inherently
+    inputs and allows the model to conveniently handle the inherently
     lazy nature of neural networks.
 
-    Attributes:
-        ip_shape (tuple): Expected shape of the input.
-        ip (Numpy-array): Property which can be set to the
-            Actual input that the layer will provide to its users.
+    Attributes
+    ----------
+    ip: Numpy array or None
+        Input that will be provided to other layers.
+
+    shape: tuple
+        Expected shape of the input.
     """
 
     def __init__(self, shape: Tuple, *args, **kwargs) -> None:
         """
         Initializes an Input instance with the given input shape.
 
-        Args:
-            shape (tuple): Input shape to be used.
-            *args, **kwargs: Provided for extensibility.
+        Arguments:
+        ----------
+        shape: Expected shape of the input.
+
+        Raises
+        ----------
+        ValueError: When the last dimension of shape is not None.
         """
         if shape[-1] is not None:
-            raise AttributeError("The last dimension should be set to None")
+            raise ValueError("The last dimension should be set to None.")
         self._shape = shape
-        self._ip: Optional[np.ndarray] = None
+        self._ip = None
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}(ip_shape={self._shape})"
+        return f"{self.__class__.__name__}(shape={self._shape})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -52,7 +59,7 @@ class Input:
     @property
     def ip(self) -> Optional[np.ndarray]:
         """
-        The actual input to be used in the layer.
+        The actual Numpy array that the layer will provide to other layers.
         """
         return self._ip
 
@@ -61,11 +68,13 @@ class Input:
         """
         Setter for the ip property.
 
-        Args:
-            X (Numpy-array): Value of the property.
+        Arguments
+        ----------
+        X: Numpy array which should be provided to other layers.
 
-        Raises:
-            AttributeError when ip_shape and shape of X do not match.
+        Raises
+        ----------
+        AttributeError: When the expected shape and shape of X do not match.
         """
         # Make sure the supplied input matches the expected shape
         if X.shape[:-1] != self._shape[:-1]:

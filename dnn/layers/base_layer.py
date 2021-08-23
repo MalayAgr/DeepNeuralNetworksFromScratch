@@ -24,7 +24,7 @@ class BaseLayer(ABC):
 
     Attributes
     ----------
-    ip_layer: Instan of Input or of a subclass of BaseLayer, or None
+    ip_layer: Instance of Input or of a subclass of BaseLayer, or None
         Input to the layer.
 
     name: str
@@ -76,7 +76,7 @@ class BaseLayer(ABC):
     input_shape() -> tuple
         Returns the expected shape of the input of the layer.
 
-    output() -> Optional[np.ndarray]:
+    output() -> nd.array or None:
         Returns the output of the layer.
 
     output_shape() -> tuple:
@@ -300,7 +300,7 @@ class BaseLayer(ABC):
         AttributeError: When no NumPy array is found to return.
         """
         if self.ip_layer is None:
-            raise AttributeError("No input found")
+            raise AttributeError("No input found.")
 
         ret_val = (
             self.ip_layer.ip
@@ -483,8 +483,8 @@ class MultiInputBaseLayer(BaseLayer):
 
         Raises
         ----------
-        ValueError: When ip is not a list.
-        TypeError: When any item in ip is not an instance of Input or of subclasses of BaseLayer.
+        TypeError: When ip is not a list, or when any item in ip
+            is not an instance of Input or of subclasses of BaseLayer.
         """
         if ip is not None:
             self._validate_ip(ip)
@@ -496,9 +496,9 @@ class MultiInputBaseLayer(BaseLayer):
         self.ip_layer = ip
 
     def _validate_ip(self, ip):
-        """Method to validate the input passed to __init__()."""
+        """Method to validate the input."""
         if not isinstance(ip, List):
-            raise ValueError(f"{self.__class__.__name__} expects a list of inputs.")
+            raise TypeError(f"{self.__class__.__name__} expects a list of inputs.")
 
         if any(not isinstance(i, (BaseLayer, Input)) for i in ip):
             msg = (
@@ -540,7 +540,7 @@ class MultiInputBaseLayer(BaseLayer):
 
     @abstractmethod
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:
-        """Method to compute the derivative of loss wrt the layer's input.
+        """Method to compute the derivative of loss wrt the layer's inputs.
 
         It should return a tuple of as many NumPy arrays as there are inputs in the layer.
 

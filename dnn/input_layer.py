@@ -83,5 +83,5 @@ class Input:
                 "The array does not have the expected shape. "
                 f"Expected {self.shape[:-1]} but got {X.shape[:-1]} (ignoring last dimension)."
             )
-            raise AttributeError(msg)
+            raise ValueError(msg)
         self._ip = X

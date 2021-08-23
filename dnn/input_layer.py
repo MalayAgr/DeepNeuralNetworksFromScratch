@@ -22,6 +22,7 @@ class Input:
 
     shape: tuple
         Expected shape of the input.
+        The last dimension refers to the batch size. Initially, it is None.
     """
 
     def __init__(self, shape: Tuple, *args, **kwargs) -> None:
@@ -77,6 +78,10 @@ class Input:
         AttributeError: When the expected shape and shape of X do not match.
         """
         # Make sure the supplied input matches the expected shape
-        if X.shape[:-1] != self._shape[:-1]:
-            raise AttributeError("The input does not have the expected shape")
+        if X.shape[:-1] != self.shape[:-1]:
+            msg = (
+                "The array does not have the expected shape. "
+                f"Expected {self.shape[:-1]} but got {X.shape[:-1]} (ignoring last dimension)."
+            )
+            raise AttributeError(msg)
         self._ip = X

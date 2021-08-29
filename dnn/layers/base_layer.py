@@ -134,14 +134,14 @@ class BaseLayer(ABC):
         ip: Input to the layer.
 
         trainable: Indicates whether or not the layer is trainable,
-            i.e. it has parameters that are updated during training. Defaults to True.
+        i.e. it has parameters that are updated during training. Defaults to True.
 
         params: Names of instance attributes that refer to the parameters of the layer.
-            Defaults to None.
+        Defaults to None.
 
         name: Name of the layer (used in computation graphs). The name should be unique
-            wrt all other layers in the same model. When None, a name is automatically created.
-            Defaults to None.
+        wrt all other layers in the same model. When None, a name is automatically created.
+        Defaults to None.
 
         Raises
         ----------
@@ -208,7 +208,7 @@ class BaseLayer(ABC):
         Raises
         ----------
         NotImplementedError: When the layer is trainable and the method has not
-            been implemented.
+        been implemented.
         """
         if self.trainable:
             raise NotImplementedError(
@@ -221,7 +221,7 @@ class BaseLayer(ABC):
         Arguments
         ----------
         initializer: Initializer whose variance is required.
-            Can be one of "he", "xavier" or "xavier_uniform".
+        Can be one of "he", "xavier" or "xavier_uniform".
 
         Raises
         ----------
@@ -241,7 +241,8 @@ class BaseLayer(ABC):
         Arguments:
         ----------
         shape: Shape of the parameter.
-        initializer: Initializer that should be used. Supporter initializers:
+
+        initializer: Initializer that should be used. Supported initializers:
             - "he" - He initializer.
             - "xavier" - Xavier initializer.
             - "xavier_uniform" - Uniform Xavier initializer.
@@ -269,7 +270,7 @@ class BaseLayer(ABC):
         Raises
         ----------
         NotImplementedError: When the layer is trainable and the method has not
-            been implemented.
+        been implemented.
         """
         if self.trainable:
             raise NotImplementedError(
@@ -284,7 +285,7 @@ class BaseLayer(ABC):
         Raises
         ----------
         NotImplementedError: When the layer is trainable and the method has not
-            been implemented.
+        been implemented.
         """
         if self.trainable:
             raise NotImplementedError(
@@ -404,7 +405,7 @@ class BaseLayer(ABC):
         Raises
         ----------
         NotImplementedError: When the layer is trainable and the method has not
-            been implemented.
+        been implemented.
 
         Example
         ---------
@@ -483,19 +484,19 @@ class MultiInputBaseLayer(BaseLayer):
         ip: Input to the layer.
 
         trainable: Indicates whether or not the layer is trainable,
-            i.e. it has parameters that are updated during training. Defaults to True.
+        i.e. it has parameters that are updated during training. Defaults to True.
 
         params: Names of instance attributes that refer to the
-            parameters of the layer. Defaults to None.
+        parameters of the layer. Defaults to None.
 
         name: Name of the layer (used in computation graphs). The name should be unique
-            wrt all other layers in the same model. When None, a name is automatically created.
-            Defaults to None.
+        wrt all other layers in the same model. When None, a name is automatically created.
+        Defaults to None.
 
         Raises
         ----------
         TypeError: When ip is not a list, or when any item in ip
-            is not an instance of Input or of subclasses of BaseLayer.
+        is not an instance of Input or of subclasses of BaseLayer.
         """
         if ip is not None:
             self._validate_ip(ip)

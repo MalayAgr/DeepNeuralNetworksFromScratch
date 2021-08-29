@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import Optional, Tuple
 
 import numpy as np
@@ -20,12 +21,12 @@ class Flatten(BaseLayer):
 
     Input shape
     ----------
-    A n-dimensional Numpy array of shape (..., batch_size).
+    (..., batch_size), where ... represents any number of dimensions.
 
     Output shape
     ----------
-    A two-dimensional Numpy array of shape (x, batch_size),
-    where x is the product of all dimensions of the input except batch_size.
+    (x, batch_size), where x is the product of all dimensions
+    of the input shape except batch_size.
 
     Example
     ----------

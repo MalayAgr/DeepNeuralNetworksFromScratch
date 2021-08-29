@@ -27,11 +27,11 @@ class Dropout(BaseLayer):
 
     Input shape
     ----------
-    A n-dimensional Numpy array of shape (..., batch_size).
+    (..., batch_size), where ... represents any number of dimensions.
 
     Output shape
     ----------
-    An n-dimensional Numpy array with the same shape as the input.
+    Same as the input shape.
 
     Example
     ----------

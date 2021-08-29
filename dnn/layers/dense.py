@@ -46,12 +46,11 @@ class Dense(BaseLayer):
 
     Input shape
     ----------
-    A two-dimensional Numpy array of shape (x, batch_size),
-    where x is the number of input units.
+    (x, batch_size), where x is the number of input units.
 
     Output shape
     ----------
-    A two-dimensional Numpy array of shape (units, batch_size).
+    (units, batch_size).
 
     Example
     ----------

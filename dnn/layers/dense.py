@@ -123,21 +123,23 @@ class Dense(BaseLayer):
         return fan_in, self.units
 
     def build(self) -> Any:
-        y_dim, _ = self.fans()
+        ip_units, units = self.fans()
 
-        shape = (self.units, y_dim)
+        shape = (units, ip_units)
 
         self.weights = self._add_param(shape=shape, initializer=self.initializer)
 
         if self.use_bias:
-            shape = (self.units, 1)
+            shape = (units, 1)
             self.biases = self._add_param(shape=shape, initializer="zeros")
 
     def count_params(self) -> int:
-        total = self.weights.shape[0] * self.weights.shape[-1]
+        ip_units, units = self.fans()
+
+        total = ip_units * units
 
         if self.use_bias:
-            return total + self.units
+            total += units
 
         return total
 

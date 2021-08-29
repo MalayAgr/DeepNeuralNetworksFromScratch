@@ -100,7 +100,8 @@ class BatchNorm(BaseLayer):
         name: Name of the layer. Should be unique in a model.
         When None, a name is automatically generated.
 
-        Raises:
+        Raises
+        ----------
         ValueError: When axis is out of bounds or it is negative but not -1.
         """
         self.gamma = None
@@ -126,8 +127,10 @@ class BatchNorm(BaseLayer):
 
         self._ndims = ndims
 
+        # Resolve axis = -1 to refer to the last dimension
         self._axis = ndims - 1 if axis == -1 else axis
 
+        # Get all axes which are not equal to axis
         self._axes = tuple(ax for ax in range(ndims) if ax != self._axis)
 
         self.momentum = momentum
@@ -154,6 +157,10 @@ class BatchNorm(BaseLayer):
 
     def build(self) -> Any:
         x_dim = self.x_dim()
+
+        # The position of x_dim depends on the value of axis
+        # Eg - If axis = 0 and the input is 4D, shape should be (x_dim, 1, 1, 1)
+        # But if axis = -1, the shape should be (1, 1, 1, x_dim)
         shape = tuple(x_dim if ax == self._axis else 1 for ax in range(self._ndims))
 
         self.gamma = self._add_param(shape=shape, initializer="ones")
@@ -185,6 +192,8 @@ class BatchNorm(BaseLayer):
     def forward_step(self, *args, **kwargs) -> np.ndarray:
         ip = self.input()
 
+        # If in training mode, the mean and std are calculated for the current batch
+        # and the moving averages updated
         if self.is_training:
             mean = ip.mean(axis=self._axes, keepdims=True)
             std = np.sqrt(ip.var(axis=self._axes, keepdims=True) + self.epsilon)
@@ -192,6 +201,7 @@ class BatchNorm(BaseLayer):
             self._update_mva(mean, std)
 
             self.std = std
+        # Otherwise, the moving averages act as the mean and std
         else:
             mean, std = self.mean_mva, self.std_mva
 
@@ -211,9 +221,13 @@ class BatchNorm(BaseLayer):
     def backprop_inputs(self, grad, *args, **kwargs) -> np.ndarray:
         grad *= self.gamma
 
+        # Calculate share of the mean in the gradient
         mean_share = grad.sum(axis=self._axes, keepdims=True)
+        # Calculate share of the variance in the gradient
         var_share = self.norm * np.sum(grad * self.norm, axis=self._axes, keepdims=True)
 
+        # Since mean and std are calculated across all dimensions except axis,
+        # The gradient should be scaled by the product of all dimensions except the axis
         scale = grad.size / self.x_dim()
 
         return (scale * grad - mean_share - var_share) / (scale * self.std)

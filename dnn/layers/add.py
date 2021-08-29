@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from typing import List, Optional, Tuple
 
 import numpy as np
+
 from .base_layer import LayerInput, MultiInputBaseLayer
 
 

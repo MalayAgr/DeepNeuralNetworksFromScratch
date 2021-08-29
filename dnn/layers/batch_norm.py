@@ -24,22 +24,22 @@ class BatchNorm(BaseLayer):
         self.momentum = momentum
         self.epsilon = epsilon
 
-        self.gamma: np.ndarray
-        self.beta: np.ndarray
+        self.gamma = None
+        self.beta = None
 
         params = ["gamma", "beta"]
 
         super().__init__(ip=ip, params=params, name=name)
 
-        ip_shape = self.input_shape()
-        self.axes = tuple(ax for ax, _ in enumerate(ip_shape) if ax != axis)
+        ndims = len(self.input_shape())
+        self._axes = tuple(ax for ax in range(ndims) if ax != axis)
 
-        self.std: np.ndarray
-        self.norm: np.ndarray
-        self.scaled_norm: np.ndarray
+        self.std = None
+        self.norm = None
+        self.scaled_norm = None
 
-        self.mean_mva: np.ndarray
-        self.std_mva: np.ndarray
+        self.mean_mva = None
+        self.std_mva = None
 
     def fans(self) -> Tuple[int, int]:
         if not isinstance(self.ip_layer, BaseLayer):
@@ -54,7 +54,7 @@ class BatchNorm(BaseLayer):
 
     def build(self) -> Any:
         x_dim = self.x_dim()
-        rem_dims = (1,) * len(self.axes)
+        rem_dims = (1,) * len(self._axes)
 
         shape = (x_dim, *rem_dims)
 
@@ -88,8 +88,8 @@ class BatchNorm(BaseLayer):
         ip = self.input()
 
         if self.is_training:
-            mean = ip.mean(axis=self.axes, keepdims=True)
-            std = np.sqrt(ip.var(axis=self.axes, keepdims=True) + self.epsilon)
+            mean = ip.mean(axis=self._axes, keepdims=True)
+            std = np.sqrt(ip.var(axis=self._axes, keepdims=True) + self.epsilon)
 
             self._update_mva(mean, std)
 
@@ -106,15 +106,15 @@ class BatchNorm(BaseLayer):
 
     def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
         self.gradients = {
-            "gamma": np.sum(grad * self.norm, axis=self.axes, keepdims=True),
-            "beta": np.sum(grad, axis=self.axes, keepdims=True),
+            "gamma": np.sum(grad * self.norm, axis=self._axes, keepdims=True),
+            "beta": np.sum(grad, axis=self._axes, keepdims=True),
         }
 
     def backprop_inputs(self, grad, *args, **kwargs) -> np.ndarray:
         grad *= self.gamma
 
-        mean_share = grad.sum(axis=self.axes, keepdims=True)
-        var_share = self.norm * np.sum(grad * self.norm, axis=self.axes, keepdims=True)
+        mean_share = grad.sum(axis=self._axes, keepdims=True)
+        var_share = self.norm * np.sum(grad * self.norm, axis=self._axes, keepdims=True)
 
         scale = grad.size / self.x_dim()
 

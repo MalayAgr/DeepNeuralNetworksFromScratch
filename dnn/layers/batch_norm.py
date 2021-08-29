@@ -8,6 +8,73 @@ from .base_layer import BaseLayer, LayerInput
 
 
 class BatchNorm(BaseLayer):
+    """Batch normalization layer.
+
+    Inherits from
+    ----------
+    BaseLayer
+
+    Attributes
+    ----------
+    axis: int
+        Axis along which batch normalization should be performed.
+
+    momentum: float
+        Momentum for the moving averages of the mean and standard deviation.
+
+    epsilon: float
+        Epsilon to avoid divide by zero.
+
+    gamma: np.ndarray
+        Standard deviation scaling parameter.
+
+    beta: np.ndarray
+        Meaning scaling parameter.
+
+    std: np.ndarray
+        Standard deviation of the input.
+
+    norm: np.ndarray
+        Norm of the input, i.e. (input - mean) / std.
+
+    scaled_norm: np.ndarray
+        Norm after it is scaled by gamma and beta, i.e. gamma * norm + beta.
+
+    mean_mva: np.ndarray
+        Moving average of mean.
+
+    std_mva: np.ndarray
+        Moving average of standard deviation.
+
+    Methods
+    ----------
+    x_dim() -> int
+        Returns the dimension of the input along the axis attribute.
+
+    Input shape
+    ----------
+    (..., batch_size), where ... represents any number of dimensions.
+
+    Output shape
+    ----------
+    Same as the input shape.
+
+    Example
+    ----------
+    Example
+    ----------
+    >>> import numpy as np
+    >>> from dnn import Input
+    >>> from dnn.layers import BatchNorm
+
+    >>> ip = Input(shape=(3, 6, 6, None)) # Create input
+    >>> ip.ip = np.random.rand(3, 6, 6, 64)
+
+    >>> layer = BatchNorm(ip=ip)
+    >>> layer.forward_step().shape # Forward step
+    (3, 6, 6, 64)
+    """
+
     reset = ("std", "norm", "scaled_norm")
 
     __slots__ = ("gamma", "beta", "norm", "scaled_norm", "mean_mva", "std_mva")
@@ -40,7 +107,12 @@ class BatchNorm(BaseLayer):
             raise ValueError("-1 is the only negative value allowed for axis.")
 
         self.axis = axis
-        self._axes = tuple(ax for ax in range(ndims) if ax != axis)
+
+        self._ndims = ndims
+
+        self._axis = ndims - 1 if axis == -1 else axis
+
+        self._axes = tuple(ax for ax in range(ndims) if ax != self._axis)
 
         self.momentum = momentum
         self.epsilon = epsilon
@@ -61,13 +133,12 @@ class BatchNorm(BaseLayer):
         return ip_fan_out, ip_fan_out
 
     def x_dim(self) -> int:
+        """Method to obtain the dimension of the input along the axis attribute."""
         return self.input_shape()[self.axis]
 
     def build(self) -> Any:
         x_dim = self.x_dim()
-        rem_dims = (1,) * len(self._axes)
-
-        shape = (x_dim, *rem_dims)
+        shape = tuple(x_dim if ax == self._axis else 1 for ax in range(self._ndims))
 
         self.gamma = self._add_param(shape=shape, initializer="ones")
 

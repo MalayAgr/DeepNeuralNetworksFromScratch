@@ -1,4 +1,6 @@
-from typing import Any, List, Optional, Tuple, Union
+from __future__ import annotations
+
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 from dnn.layers.activations import Activation

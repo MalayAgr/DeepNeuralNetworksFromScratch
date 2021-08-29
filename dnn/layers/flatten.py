@@ -7,6 +7,40 @@ from .base_layer import BaseLayer, LayerInput
 
 
 class Flatten(BaseLayer):
+    """Flatten layer.
+
+    Inherits from
+    ----------
+    BaseLayer
+
+    Attributes
+    ----------
+    flat: np.ndarray
+        Flattened output of the layer.
+
+    Input shape
+    ----------
+    A n-dimensional Numpy array of shape (..., batch_size).
+
+    Output shape
+    ----------
+    A two-dimensional Numpy array of shape (x, batch_size),
+    where x is the product of all dimensions of the input except batch_size.
+
+    Example
+    ----------
+    >>> import numpy as np
+    >>> from dnn import Input
+    >>> from dnn.layers import Flatten
+
+    >>> ip = Input(shape=(3, 6, 6, None)) # Create input
+    >>> ip.ip = np.random.rand(3, 6, 6, 64)
+
+    >>> layer = Flatten(ip=ip)
+    >>> layer.forward_step().shape # Forward step
+    (108, 64)
+    """
+
     reset = ("flat",)
 
     def __init__(self, ip: LayerInput, name: str = None) -> None:

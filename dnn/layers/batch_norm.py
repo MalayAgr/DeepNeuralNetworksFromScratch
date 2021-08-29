@@ -61,8 +61,6 @@ class BatchNorm(BaseLayer):
 
     Example
     ----------
-    Example
-    ----------
     >>> import numpy as np
     >>> from dnn import Input
     >>> from dnn.layers import BatchNorm
@@ -87,6 +85,24 @@ class BatchNorm(BaseLayer):
         epsilon: float = 1e-7,
         name: str = None,
     ) -> None:
+        """
+        Arguments
+        ----------
+        ip: Input to the layer.
+
+        axis: Axis along which normalization should be carried out.
+        Defaults to 0.
+
+        momentum: Momentum for the moving averages. Defaults to 0.5.
+
+        epsilon: Small value to prevent divide by zero. Defaults to 1e-7.
+
+        name: Name of the layer. Should be unique in a model.
+        When None, a name is automatically generated.
+
+        Raises:
+        ValueError: When axis is out of bounds or it is negative but not -1.
+        """
         self.gamma = None
         self.beta = None
 

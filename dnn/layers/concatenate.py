@@ -69,14 +69,29 @@ class Concatenate(MultiInputBaseLayer):
 
         Raises
         ----------
-        ValueError: When all inputs do not have the same shape
-        except along the concatenation axis.
+        ValueError: When axis is out of bounds or negative but not -1, or
+        when all inputs do not have the same shape except along the concatenation axis.
         """
         super().__init__(ip, trainable=False, name=name)
 
-        self._validate_same_shape(axis)
+        ndims = len(self.input_shape()[0])
+
+        if axis >= ndims:
+            msg = (
+                "axis is out of bounds for the layer. "
+                f"Should be -1 or between 0 and {ndims - 1} but got {axis} instead."
+            )
+            raise ValueError(msg)
+
+        if axis < 0 and axis != -1:
+            raise ValueError("-1 is the only negative value allowed for axis.")
+
+        _axis = ndims - 1 if axis == -1 else axis
+
+        self._validate_same_shape(_axis)
 
         self.axis = axis
+        self._axis = _axis
         self.concatenated = None
 
     def _get_axis_excluded_shapes(self, axis: int) -> Iterator[Tuple]:
@@ -117,7 +132,7 @@ class Concatenate(MultiInputBaseLayer):
         return self.concatenated
 
     def output_shape(self) -> Tuple:
-        axis = self.axis
+        axis = self._axis
 
         shapes = self.input_shape()
 
@@ -148,7 +163,7 @@ class Concatenate(MultiInputBaseLayer):
         """
         # Need to recheck since the batch_size, which may have been None
         # During __init__() is also available now.
-        self._validate_same_shape(self.axis)
+        self._validate_same_shape(self._axis)
 
         self.concatenated = np.concatenate(self.input(), axis=self.axis)
 
@@ -158,7 +173,7 @@ class Concatenate(MultiInputBaseLayer):
         """Method to obtain the indices where the gradient should be split."""
         shapes = self.input_shape()
 
-        axis = self.axis
+        axis = self._axis
 
         running_sum = shapes[0][axis]
 
@@ -175,4 +190,4 @@ class Concatenate(MultiInputBaseLayer):
         indices = self._split_indices()
 
         # Split the gradient along the concatenation axis
-        return tuple(np.split(grad, indices_or_sections=indices, axis=self.axis))
+        return tuple(np.split(grad, indices_or_sections=indices, axis=self._axis))

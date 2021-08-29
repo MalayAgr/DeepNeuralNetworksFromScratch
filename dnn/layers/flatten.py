@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import reduce
+from operator import mul
 from typing import Optional, Tuple
 
 import numpy as np
@@ -49,7 +51,7 @@ class Flatten(BaseLayer):
 
         self._ip_dims = self.input_shape()[:-1]
 
-        self._units = np.prod(self._ip_dims)
+        self._units = reduce(mul, self._ip_dims)
 
         self.flat = None
 

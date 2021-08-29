@@ -94,7 +94,7 @@ class BaseLayer(ABC):
         Computes the gradient of loss wrt the layer's parameters.
 
     backprop_inputs(grad, *args, **kwargs) -> np.ndarray
-        Computes the gradient of loss wrt the layer's input.
+        Returns the gradient of loss wrt the layer's input.
 
     Interface
     ----------
@@ -449,12 +449,23 @@ class MultiInputBaseLayer(BaseLayer):
     """Abstract base class for all layers with multiple inputs.
 
     It inherits from BaseLayer. The class is identical to BaseLayer,
-    except for the override below.
+    except for the overrides below.
 
     Attributes
     ----------
     ip_layer: List of instances of Input or of subclasses of BaseLayer
         Input to the layer.
+
+    Methods
+    ----------
+    input() -> List of np.ndarray's
+        Returns the underlying NumPy arrays which are the input to the layer.
+
+    input_shape() -> List of tuples
+        Returns the expected shapes of the inputs of the layer.
+
+    backprop_inputs(grad, *args, **kwargs) -> Tuple of np.ndarray's
+        Returns the gradient of loss wrt the layer's inputs.
     """
 
     def __init__(

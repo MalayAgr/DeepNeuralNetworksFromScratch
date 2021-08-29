@@ -1,6 +1,8 @@
-from typing import List, Optional, Tuple
+from __future__ import annotations
 
+import itertools
 from collections import Iterator
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -175,16 +177,9 @@ class Concatenate(MultiInputBaseLayer):
 
         axis = self._axis
 
-        running_sum = shapes[0][axis]
+        indices = itertools.accumulate(shape[axis] for shape in shapes)
 
-        indices = [running_sum]
-
-        for shape in shapes[1:-1]:
-            dim = shape[axis]
-            running_sum += dim
-            indices.append(running_sum)
-
-        return indices
+        return list(indices)[:-1]
 
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:
         indices = self._split_indices()

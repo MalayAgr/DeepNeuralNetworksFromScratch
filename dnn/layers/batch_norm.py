@@ -20,10 +20,6 @@ class BatchNorm(BaseLayer):
         epsilon: float = 1e-7,
         name: str = None,
     ) -> None:
-        self.axis = axis
-        self.momentum = momentum
-        self.epsilon = epsilon
-
         self.gamma = None
         self.beta = None
 
@@ -32,7 +28,22 @@ class BatchNorm(BaseLayer):
         super().__init__(ip=ip, params=params, name=name)
 
         ndims = len(self.input_shape())
+
+        if axis >= ndims:
+            msg = (
+                "axis is out of bounds for the layer. "
+                f"Should be -1 or between 0 and {ndims - 1} but got {axis} instead."
+            )
+            raise ValueError(msg)
+
+        if axis < 0 and axis != -1:
+            raise ValueError("-1 is the only negative value allowed for axis.")
+
+        self.axis = axis
         self._axes = tuple(ax for ax in range(ndims) if ax != axis)
+
+        self.momentum = momentum
+        self.epsilon = epsilon
 
         self.std = None
         self.norm = None
@@ -49,7 +60,7 @@ class BatchNorm(BaseLayer):
 
         return ip_fan_out, ip_fan_out
 
-    def x_dim(self):
+    def x_dim(self) -> int:
         return self.input_shape()[self.axis]
 
     def build(self) -> Any:

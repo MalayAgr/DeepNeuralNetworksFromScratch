@@ -8,6 +8,64 @@ from .utils import add_activation
 
 
 class Dense(BaseLayer):
+    """Fully-connected layer.
+
+    Inherits from
+    ----------
+    BaseLayer
+
+    Attributes
+    ----------
+    units: int
+        Number of logistic units in the layer.
+
+    activation: Instance of Activation
+        Activation that should be applied on the layer.
+
+    initializer: str
+        Initializer for the weights of the layer.
+
+    use_bias: bool
+        Indicates whether the layer uses a bias or not.
+
+    weights: np.ndarray
+        Weights of the layer.
+
+    biases: np.ndarray
+        Biases of the layer. The attribute is only present if
+        use_bias is True.
+
+    linear: np.ndarray
+        Numpy array holding the linear combination weights * input + biases.
+
+    activations: np.ndarray
+        Numpy array holding the output of the layer after the activation
+        has been applied, i.e. activation(linear).
+
+    Input shape
+    ----------
+    A two-dimensional Numpy array of shape (x, batch_size),
+    where x is the number of input units.
+
+    Output shape
+    ----------
+    A two-dimensional Numpy array of shape (units, batch_size).
+
+    Example
+    ----------
+    >>> import numpy as np
+    >>> from dnn import Input
+    >>> from dnn.layers import Dense
+
+    >>> ip = Input(shape=(5, None)) # Create input
+    >>> ip.ip = np.random.rand(5, 64)
+
+    >>> layer = Dense(ip=ip, units=10, activation="relu")
+    >>> layer.build() # Initialize parameters
+    >>> layer.forward_step().shape # Forward step
+    (10, 64)
+    """
+
     reset = ("linear", "activations")
     str_attrs = ("units", "activation")
 
@@ -22,6 +80,24 @@ class Dense(BaseLayer):
         use_bias: bool = True,
         name: str = None,
     ) -> None:
+        """
+        Arguments
+        ----------
+        ip: Input to the layer.
+
+        units: Number of logistic units in the layer.
+
+        activation: Activation for the layer. When None, a "linear" activation is used
+        i.e. no activation is applied.
+
+        initializer: Initializer for the weights of the layer. Can be one of
+        "he", "xavier", "xavier_uniform", "zeros" or "ones". Defaults to "he".
+
+        use_bias: Indicates whether the layer should use a bias. Defaults to True.
+
+        name: Name for the layer. It should be unique for a model.
+        When None, a name is automatically generated.
+        """
         self.units = units
         self.activation = add_activation(activation)
         self.initializer = initializer

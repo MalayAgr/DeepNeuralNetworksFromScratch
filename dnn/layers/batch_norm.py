@@ -218,11 +218,12 @@ class BatchNorm(BaseLayer):
             "beta": np.sum(grad, axis=self._axes, keepdims=True),
         }
 
-    def backprop_inputs(self, grad, *args, **kwargs) -> np.ndarray:
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
         grad *= self.gamma
 
         # Calculate share of the mean in the gradient
         mean_share = grad.sum(axis=self._axes, keepdims=True)
+
         # Calculate share of the variance in the gradient
         var_share = self.norm * np.sum(grad * self.norm, axis=self._axes, keepdims=True)
 

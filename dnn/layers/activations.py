@@ -424,8 +424,8 @@ class Softmax(Activation):
         # has 1 - s_i in the i-th column and -s_i everywhere else
         grads = np.eye(categories, dtype=np.float32) - activations.T[..., None]
 
-        # RHS converts activations from c x batch_size to batch_size x 1 x c
-        # The operation, thus, broadcasts each 1 x c vector to c x c
+        # RHS converts activations from (c, batch_size) to (batch_size, 1, c)
+        # The operation, thus, broadcasts each (1, c) vector to (c, c)
         # This multiplies each row in the (c, c) matrices with [s_1, s_2, ..., s_c]
         grads *= activations[:, None, :].T
 

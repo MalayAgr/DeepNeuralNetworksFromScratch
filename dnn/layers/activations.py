@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -43,12 +43,14 @@ class Activation(BaseLayer):
     compute_activations(ip: Optional[np.ndarray] = None) -> np.ndarray
         Returns the computed activations for either the given input or the passed
         input when the class is used as a layer. In case both are available,
-        the given input takes precedence.
+        the given input takes precedence. This is the method that should be used
+        to do computations.
 
     compute_derivatives(ip: Optional[np.ndarray] = None) -> np.ndarray
         Returns the derivative of the activation function with respect to either the
         given input or the passed input when used as a layer. In case both are available,
-        the given input takes precedence.
+        the given input takes precedence. This is the method that should be used
+        to do computations.
 
     Interface
     ----------
@@ -121,6 +123,29 @@ class Activation(BaseLayer):
                 result.update({name: sub_cls})
         return result
 
+    def should_reshape(self, shape: Tuple) -> bool:
+        """Method to determine if the given shape requires reshaping.
+
+        By default, it returns False, implying no reshapping is required.
+
+        Arguments
+        ----------
+        shape: Shape that is should be considered for reshapping.
+        """
+        return False
+
+    @staticmethod
+    def reshape(array: np.ndarray) -> np.ndarray:
+        """Method to reshape the given NumPy array.
+
+        By default, the array is returned as is.
+
+        Arguments
+        ----------
+        array: Array to be reshapped.
+        """
+        return array
+
     @abstractmethod
     def activation_func(self, ip: np.ndarray) -> np.ndarray:
         """The formula used to calculate the activations.
@@ -186,7 +211,22 @@ class Activation(BaseLayer):
         if ip is None:
             ip = self.input()
 
-        return self.activation_func(ip).astype(np.float32)
+        # Init variable to store original shape
+        old_shape = None
+
+        # Reshape the input, if required
+        if self.should_reshape(ip.shape):
+            old_shape = ip.shape
+            ip = self.reshape(ip)
+
+        activations = self.activation_func(ip).astype(np.float32)
+
+        # Restore the old shape so that activations has same shape
+        # As the original input
+        if old_shape is not None:
+            activations.shape = old_shape
+
+        return activations
 
     def compute_derivatives(self, ip: Optional[np.ndarray] = None) -> np.ndarray:
         """Method to handle whether the input is being supplied externally or
@@ -203,6 +243,15 @@ class Activation(BaseLayer):
             ip = self.input()
             activations = self.activations
 
+        # Reshape the input and the activations, if required
+        if self.should_reshape(ip.shape):
+            ip = self.reshape(ip)
+
+            if activations is not None:
+                activations = self.reshape(activations)
+
+        # Unlike activations, the shape is not restored since it is not necessary
+        # That the derivative has the same shape as input
         return self.derivative_func(ip, activations=activations).astype(np.float32)
 
     def output(self) -> Optional[np.ndarray]:
@@ -363,9 +412,13 @@ class Softmax(Activation):
     where c is the number of dimensions in each vector and n is the number of vectors,
     then the derivative is (c, c, n), with one (c, c) matrix for each vector.
 
+    When the ip is (c, d1, d2, ..., n), it is reshaped into (c, d1 * d2 * .. * n).
+    The derivative is (c, c, d1 * d2 * ... * n).
+
     Input shape
     ----------
-    (c, batch_size), where c is the number of categories.
+    (c, ..., batch_size), where c is the number of categories and ...
+    represents any number of dimensions.
 
     Output shape
     ----------
@@ -405,6 +458,23 @@ class Softmax(Activation):
 
     name = "softmax"
 
+    def should_reshape(self, shape: Tuple) -> bool:
+        """Method to determine if the given shape requires reshaping.
+
+        Returns True if shape has more than two dimensions.
+
+        Arguments
+        ----------
+        shape: Shape that is should be considered for reshapping.
+        """
+        return len(shape) > 2
+
+    @staticmethod
+    def reshape(array: np.ndarray) -> np.ndarray:
+        categories = array.shape[0]
+        # Flatten everything except the category axis
+        return array.reshape(categories, -1)
+
     def activation_func(self, ip: np.ndarray) -> np.ndarray:
         # Subtract maximum to prevent under/overflow
         z = ip - np.max(ip, axis=0, keepdims=True)
@@ -433,9 +503,25 @@ class Softmax(Activation):
         return np.moveaxis(grads, 0, -1)
 
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
-        grad = super().backprop_inputs(grad, *args, **kwargs)
+        # Init variable to store old shape
+        old_shape = None
 
-        return np.sum(grad, axis=1)
+        # It maybe that the gradient has more than two dimensions
+        # This automatically implies that the input to softmax also had
+        # More than two dimensions. Thus, the gradient is reshaped to
+        # Account for the shape of the derivative of softmax
+        if self.should_reshape(grad.shape):
+            old_shape = grad.shape
+            grad = self.reshape(grad)
+
+        grad = super().backprop_inputs(grad, *args, **kwargs)
+        grad = np.sum(grad, axis=1)
+
+        # Restore old shape so that the correct shape is backpropagated
+        if old_shape is not None:
+            grad.shape = old_shape
+
+        return grad
 
 
 class Tanh(Activation):

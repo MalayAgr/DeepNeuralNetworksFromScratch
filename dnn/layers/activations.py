@@ -226,6 +226,10 @@ class Activation(BaseLayer):
 class Linear(Activation):
     """Linear activation (i.e. No activation).
 
+    Inherits from
+    ----------
+    Activation
+
     Definition
     ----------
     linear(ip) = ip
@@ -273,6 +277,10 @@ class Linear(Activation):
 
 class Sigmoid(Activation):
     """Sigmoid activation.
+
+    Inherits from
+    ----------
+    Activation
 
     Definition
     ----------
@@ -328,28 +336,32 @@ class Softmax(Activation):
     for vectors. It takes a vector as input and outputs another vector.
     Its derivative is a matrix.
 
+    Inherits from
+    ----------
+    Activation
+
     Definition
     ----------
     softmax(ip) = e^(ip) / sum(e^(ip)), where e is Euler's constant.
 
     Derivative
     ----------
-    Consider that ip is a c-dimensional column vector, [i_1, i_2, ..., i_c] and
-    softmax(ip) is another c-dimensional column vector, [s_1, s_2, ..., s_c]. Then,
-    the derivate is a c x c matrix where the entry in row i and column j is defined as:
+    Consider that ip is a c-dim column vector, [i_1, i_2, ..., i_c] and
+    softmax(ip) is another c-dim column vector, [s_1, s_2, ..., s_c]. Then,
+    the derivate is a (c, c) matrix where the entry in row i and column j is defined as:
         - s_i * (1 - s_i) if i = j
         - -(s_i * s_j) if i != j
 
     eg - If ip is 3-dimensional, then the derivative is a 3 x 3 matrix:
     >>> [
-    ...     [s_1 * (1 - s_1), -s_1 * s_2, -s_1 * s_3],
-    ...     [-s_2 * s_1, s_2 * (1 - s_2), -s_2 * s_3],
-    ...     [-s_3 * s_1, -s_3 * s_2, s_3 * (1 - s_3)],
+    ...     [(1 - s_1) * s_1, -s_1 * s_2, -s_1 * s_3],
+    ...     [-s_2 * s_1, (1 - s_2) * s_2, -s_2 * s_3],
+    ...     [-s_3 * s_1, -s_3 * s_2, (1 - s_3) * s_3],
     ... ]
 
-    When there is more than one vector, i.e. when ip is a c x n matrix,
+    When there is more than one vector, i.e. when ip is a (c, n) matrix,
     where c is the number of dimensions in each vector and n is the number of vectors,
-    then the derivative is c x c x n, with one c x c matrix for each vector.
+    then the derivative is (c, c, n), with one (c, c) matrix for each vector.
 
     Input shape
     ----------
@@ -394,6 +406,7 @@ class Softmax(Activation):
     name = "softmax"
 
     def activation_func(self, ip: np.ndarray) -> np.ndarray:
+        # Subtract maximum to prevent under/overflow
         z = ip - np.max(ip, axis=0, keepdims=True)
         z = np.exp(z)
         z /= np.sum(z, axis=0, keepdims=True)
@@ -407,9 +420,16 @@ class Softmax(Activation):
 
         categories = activations.shape[0]
 
+        # Create a (batch_size, c, c) array where each row i in the (c, c) matrices
+        # has 1 - s_i in the i-th column and -s_i everywhere else
         grads = np.eye(categories, dtype=np.float32) - activations.T[..., None]
+
+        # RHS converts activations from c x batch_size to batch_size x 1 x c
+        # The operation, thus, broadcasts each 1 x c vector to c x c
+        # This multiplies each row in the (c, c) matrices with [s_1, s_2, ..., s_c]
         grads *= activations[:, None, :].T
 
+        # Move the batch_size back to the end
         return np.moveaxis(grads, 0, -1)
 
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
@@ -420,6 +440,10 @@ class Softmax(Activation):
 
 class Tanh(Activation):
     """Tanh activation.
+
+    Inherits from
+    ----------
+    Activation
 
     Definition
     ----------
@@ -443,7 +467,7 @@ class Tanh(Activation):
     >>> import numpy as np
     >>> x = np.array([-2, -1, 0, 1, 2])
 
-    >>> tanh = tanh()
+    >>> tanh = Tanh()
 
     >>> tanh.compute_activations(x)
     array([-0.9640276, -0.7615942, 0., 0.7615942, 0.9640276], dtype=float32)
@@ -468,6 +492,47 @@ class Tanh(Activation):
 
 
 class ReLU(Activation):
+    """ReLU (Rectified Linear Unit) activation.
+
+    Inherits from
+    ----------
+    Activation
+
+    Definition
+    ----------
+    relu(ip) is:
+        - ip if ip > 0
+        - 0 if ip <= 0
+
+    Derivative
+    ----------
+    relu'(ip) is:
+        - 1 if ip > 0
+        - 0 if ip <= 0
+
+    Input shape
+    ----------
+    (..., batch_size), where ... represents any number of dimensions.
+
+    Output shape
+    ----------
+    Same as the input shape.
+
+    Example
+    ----------
+    >>> from dnn.layers.activations import ReLU
+    >>> import numpy as np
+    >>> x = np.array([-2, -1, 0, 1, 2])
+
+    >>> relu = ReLU()
+
+    >>> relu.compute_activations(x)
+    array([0., 0., 0., 1., 2.], dtype=float32)
+
+    >>> relu.compute_derivatives(x)
+    array([0., 0., 0., 1., 1.], dtype=float32)
+    """
+
     name = "relu"
 
     def activation_func(self, ip):
@@ -478,6 +543,57 @@ class ReLU(Activation):
 
 
 class LeakyReLU(Activation):
+    """LeakyReLU (Leaky Rectified Linear Unit) activation.
+
+    Inherits from
+    ----------
+    Activation
+
+    Attributes
+    ----------
+    alpha: float
+        Hyperparameter by which the input is multiplied for negative quantities.
+
+    default_alpha: float
+        Class attribute which is the alpha value that should be used when alpha
+        is not passed during instance creation. Defaults to 0.01.
+
+    Definition
+    ----------
+    lrelu(ip) is:
+        - ip if ip > 0
+        - alpha * ip if ip <= 0,
+    where alpha is a hyperparameter
+
+    Derivative
+    ----------
+    lrelu'(ip) is:
+        - 1 if ip > 0
+        - alpha if ip <= 0
+
+    Input shape
+    ----------
+    (..., batch_size), where ... represents any number of dimensions.
+
+    Output shape
+    ----------
+    Same as the input shape.
+
+    Example
+    ----------
+    >>> from dnn.layers.activations import LeakyReLU
+    >>> import numpy as np
+    >>> x = np.array([-2, -1, 0, 1, 2])
+
+    >>> lrelu = LeakyReLU()  # alpha = 0.01
+
+    >>> lrelu.compute_activations(x)
+    array([-0.02, -0.01, 0., 1., 2.], dtype=float32)
+
+    >>> lrelu.compute_derivatives(x)
+    array([0.01, 0.01, 0.01, 1., 1.], dtype=float32)
+    """
+
     name = "lrelu"
     default_alpha = 0.01
 
@@ -499,6 +615,57 @@ class LeakyReLU(Activation):
 
 
 class ELU(LeakyReLU):
+    """ELU (Exponential Linear Unit) activation.
+
+    Inherits from
+    ----------
+    LeakyReLU
+
+    Attributes
+    ----------
+    alpha: float
+        Hyperparameter by which the input is multiplied for negative quantities.
+
+    default_alpha: float
+        Class attribute which is the alpha value that should be used when alpha
+        is not passed during instance creation. Defaults to 1.0.
+
+    Definition
+    ----------
+    elu(ip) is:
+        - ip if ip > 0
+        - alpha * (e ^ ip - 1) if ip <= 0,
+    where alpha is a hyperparameter
+
+    Derivative
+    ----------
+    elu'(ip) is:
+        - 1 if ip > 0
+        - alpha * (e ^ ip) if ip <= 0
+
+    Input shape
+    ----------
+    (..., batch_size), where ... represents any number of dimensions.
+
+    Output shape
+    ----------
+    Same as the input shape.
+
+    Example
+    ----------
+    >>> from dnn.layers.activations import ELU
+    >>> import numpy as np
+    >>> x = np.array([-2, -1, 0, 1, 2])
+
+    >>> elu = ELU()  # alpha = 1.0
+
+    >>> elu.compute_activations(x)
+    array([-0.86466473, -0.63212055, 0., 1., 2.], dtype=float32)
+
+    >>> elu.compute_derivatives(x)
+    array([0.13533528, 0.36787945, 1. , 1., 1.], dtype=float32)
+    """
+
     name = "elu"
     default_alpha = 1.0
 

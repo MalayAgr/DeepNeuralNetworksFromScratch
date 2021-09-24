@@ -95,13 +95,10 @@ class Conv(BaseLayer):
         self.built = True
 
     def count_params(self) -> int:
-        if self.kernels is None:
-            raise TypeError("The layer has not been built yet.")
-
-        total = np.prod(self.kernels.shape)
+        total = self.ip_C * self.kernel_H * self.kernel_W * self.filters
 
         if self.use_bias:
-            total += self.biases.shape[0]
+            total += self.filters
 
         return total
 

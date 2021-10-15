@@ -16,9 +16,9 @@ class ExponentialDecay(LearningRateScheduler):
 
     def lr(self, iteration: int) -> float:
         exp = (
-            iteration / self.decay_steps
+            iteration // self.decay_steps
             if self.staircase
-            else iteration // self.decay_steps
+            else iteration / self.decay_steps
         )
 
         return self.lr0 * (self.decay_rate ** exp)

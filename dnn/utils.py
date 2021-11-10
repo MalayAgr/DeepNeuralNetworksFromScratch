@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import functools
-from typing import Generator, Tuple
+from typing import Callable, Generator, Tuple
 
 import numpy as np
 
 from dnn.loss import Loss
 
 
-def optional_jit(_func=None, *, nopython=True, forceobj=False):
+def optional_jit(
+    _func: Callable = None, *, nopython: bool = True, forceobj: bool = False
+) -> Callable:
     def decorator(_func):
         try:
             from numba import jit

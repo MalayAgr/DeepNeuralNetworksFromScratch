@@ -11,7 +11,7 @@ from dnn.loss import Loss
 def optional_jit(
     _func: Callable = None, *, nopython: bool = True, forceobj: bool = False
 ) -> Callable:
-    def decorator(_func):
+    def decorator(_func: Callable):
         try:
             from numba import jit
 

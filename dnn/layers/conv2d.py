@@ -9,7 +9,7 @@ from .utils import (
     backprop_kernel_conv2d,
     convolve2d,
     prepare_ip_for_conv,
-    vectorize_kernel_for_conv,
+    vectorize_kernel_for_conv_nr,
 )
 
 
@@ -22,7 +22,7 @@ class Conv2D(Conv):
             padding=(self.p_H, self.p_W),
         )
         ip = np.moveaxis(ip, -1, 0)
-        return ip, vectorize_kernel_for_conv(kernel=self.kernels)
+        return ip, vectorize_kernel_for_conv_nr(kernel=self.kernels)
 
     def conv_func(
         self,

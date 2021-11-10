@@ -4,7 +4,10 @@ from math import ceil
 
 import numpy as np
 
+from dnn.utils import optional_jit
 
+
+@optional_jit
 def compute_conv_padding(
     kernel_size: Tuple[int, int], mode: str = "valid"
 ) -> Tuple[int, int]:
@@ -14,6 +17,7 @@ def compute_conv_padding(
     return 0, 0
 
 
+@optional_jit
 def compute_conv_output_dim(n: int, f: int, p: int, s: int) -> int:
     return int((n - f + 2 * p) / s + 1)
 
@@ -51,13 +55,16 @@ def vectorize_ip_for_conv(
     return vectorized_ip
 
 
-def vectorize_kernel_for_conv(
-    kernel: np.ndarray, reshape: Tuple[int, ...] = ()
-) -> np.ndarray:
-    if not reshape:
-        filters = kernel.shape[-1]
-        reshape = (-1, filters)
-    return kernel.reshape(*reshape)
+@optional_jit
+def vectorize_kernel_for_conv_nr(kernel):
+    filters = kernel.shape[-1]
+    reshape = (-1, filters)
+    return kernel.reshape(reshape)
+
+
+@optional_jit
+def vectorize_kernel_for_conv_r(kernel: np.ndarray, reshape: Tuple[int, ...]):
+    return kernel.reshape(reshape)
 
 
 def prepare_ip_for_conv(
@@ -82,10 +89,11 @@ def prepare_ip_for_conv(
     return vectorize_ip_for_conv(X, (kH, kW), stride, (oH, oW), reshape=vec_reshape)
 
 
-def convolve(X, weights):
+def convolve(X: np.ndarray, weights: np.ndarray) -> np.ndarray:
     return np.matmul(X, weights[None, ...], dtype=np.float32)
 
 
+@optional_jit(nopython=False, forceobj=True)
 def convolve2d(
     X: np.ndarray, weights: np.ndarray, filters: int, op_area: Tuple[int, int]
 ) -> np.ndarray:

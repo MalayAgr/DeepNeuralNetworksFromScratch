@@ -8,6 +8,18 @@ import numpy as np
 from dnn.loss import Loss
 
 
+def optional_jit(_func=None, *, nopython=True, forceobj=False):
+    def decorator(_func):
+        try:
+            from numba import jit
+
+            return jit(_func, nopython=nopython, forceobj=forceobj)
+        except:
+            return _func
+
+    return decorator if _func is None else decorator(_func)
+
+
 def loss_factory(loss: str) -> Loss:
     registry = Loss.get_loss_classes()
     cls = registry.get(loss)

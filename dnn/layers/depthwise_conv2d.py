@@ -11,7 +11,7 @@ from .utils import (
     backprop_kernel_depthwise_conv2d,
     depthwise_convolve2d,
     prepare_ip_for_conv,
-    vectorize_kernel_for_conv,
+    vectorize_kernel_for_conv_r,
 )
 
 
@@ -80,7 +80,7 @@ class DepthwiseConv2D(Conv2D):
         ip = ip.transpose(-1, 1, 0, 2)
 
         shape = (self.ip_C, -1, self.multiplier)
-        return ip, vectorize_kernel_for_conv(self.kernels, reshape=shape)
+        return ip, vectorize_kernel_for_conv_r(self.kernels, reshape=shape)
 
     def conv_func(self) -> np.ndarray:
         return depthwise_convolve2d(

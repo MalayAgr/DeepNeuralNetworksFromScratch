@@ -12,6 +12,7 @@ from .conv_utils import (
     pad,
     vectorize_ip_for_conv,
     prepare_ip_for_conv,
-    vectorize_kernel_for_conv,
+    vectorize_kernel_for_conv_nr,
+    vectorize_kernel_for_conv_r,
 )
 from .generic_utils import add_activation

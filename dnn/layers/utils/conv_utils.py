@@ -83,7 +83,6 @@ def prepare_ip_for_conv(
 
 
 def convolve(X, weights):
-    print(weights.shape)
     return np.matmul(X, weights[None, ...], dtype=np.float32)
 
 
@@ -159,7 +158,7 @@ def backprop_bias_conv(
     grad: np.ndarray, axis: Tuple, reshape: Tuple[int, ...] = ()
 ) -> np.ndarray:
     grad = grad.sum(axis=axis)
-    if not reshape:
+    if reshape:
         grad = grad.reshape(-1, *reshape)
     return grad
 

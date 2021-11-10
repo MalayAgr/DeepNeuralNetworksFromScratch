@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Optional, Tuple, Type, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 
@@ -127,7 +127,7 @@ class Conv(BaseLayer):
         return ipH + 2 * self.p_H, ipW + 2 * self.p_W
 
     @abstractmethod
-    def prepare_input_and_kernel_for_conv(self):
+    def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
     @abstractmethod

@@ -5,7 +5,6 @@ import numpy as np
 
 from .activations import Activation
 from .base_layer import BaseLayer, LayerInput
-
 from .utils import (
     accumulate_dX_conv,
     add_activation,

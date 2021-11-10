@@ -16,7 +16,7 @@ def optional_jit(
             from numba import jit
 
             return jit(_func, nopython=nopython, forceobj=forceobj)
-        except:
+        except ImportError:
             return _func
 
     return decorator if _func is None else decorator(_func)

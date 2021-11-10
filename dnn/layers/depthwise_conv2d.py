@@ -109,9 +109,7 @@ class DepthwiseConv2D(Conv2D):
         )
 
     def _compute_dB(self, dZ: np.ndarray) -> np.ndarray:
-        return backprop_bias_conv(
-            grad=dZ, axis=(0, 2, 3), reshape=self.biases.shape[1:]
-        )
+        return backprop_bias_conv(grad=dZ, axis=(0, 2), reshape=self.biases.shape[1:])
 
     def _compute_dVec_Ip(self, dZ: np.ndarray) -> np.ndarray:
         return backprop_ip_depthwise_conv2d(grad=dZ, kernel=self._vec_kernel)

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, List, Optional, Tuple, Type, Union
+from typing import Any, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -127,14 +127,17 @@ class Conv(BaseLayer):
         return ipH + 2 * self.p_H, ipW + 2 * self.p_W
 
     @abstractmethod
-    def conv_func(
-        self,
-    ) -> Tuple[np.ndarray, Union[np.ndarray, None], Union[np.ndarray, None]]:
+    def prepare_input_and_kernel_for_conv(self):
+        pass
+
+    @abstractmethod
+    def conv_func(self) -> np.ndarray:
         """Method to compute the convolutional output of the layer."""
         pass
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
-        self.convolutions, self._vec_ip, self._vec_kernel = self.conv_func()
+        self._vec_ip, self._vec_kernel = self.prepare_input_and_kernel_for_conv()
+        self.convolutions = self.conv_func()
 
         if self.use_bias:
             self.convolutions += self.biases

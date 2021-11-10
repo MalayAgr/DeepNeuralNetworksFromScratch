@@ -1,4 +1,4 @@
-from typing import Generator, Optional, Tuple, Union
+from typing import Generator, Tuple
 
 from math import ceil
 
@@ -33,7 +33,7 @@ def vectorize_ip_for_conv(
     kernel_size: Tuple[int, int],
     stride: Tuple[int, int],
     output_size: Tuple[int, int],
-    reshape: Optional[Tuple] = None,
+    reshape: Tuple[int, ...] = (),
 ) -> np.ndarray:
     sH, sW = stride
     kH, kW = kernel_size
@@ -41,7 +41,7 @@ def vectorize_ip_for_conv(
 
     indices = slice_idx_generator(oH, oW, sH, sW)
 
-    if reshape is None:
+    if not reshape:
         reshape = (-1, X.shape[-1])
 
     vectorized_ip = np.array(
@@ -51,20 +51,22 @@ def vectorize_ip_for_conv(
     return vectorized_ip
 
 
-def vectorize_kernel_for_conv(kernel, reshape=None) -> np.ndarray:
-    if reshape is None:
+def vectorize_kernel_for_conv(
+    kernel: np.ndarray, reshape: Tuple[int, ...] = ()
+) -> np.ndarray:
+    if not reshape:
         filters = kernel.shape[-1]
         reshape = (-1, filters)
     return kernel.reshape(*reshape)
 
 
-def _prepare_ip_for_conv(
+def prepare_ip_for_conv(
     X: np.ndarray,
     kernel_size: Tuple[int, int],
     stride: Tuple[int, int] = (1, 1),
     padding: Tuple[int, int] = (0, 0),
-    vec_reshape: Optional[Tuple] = None,
-) -> Tuple[np.ndarray, int, int]:
+    vec_reshape: Tuple[int, ...] = (),
+) -> np.ndarray:
 
     ipH, ipW = X.shape[1:-1]
     kH, kW = kernel_size
@@ -77,91 +79,44 @@ def _prepare_ip_for_conv(
     if padding != (0, 0):
         X, _ = pad(X, pH, pW)
 
-    X = vectorize_ip_for_conv(X, (kH, kW), stride, (oH, oW), reshape=vec_reshape)
-
-    return X, oH, oW
+    return vectorize_ip_for_conv(X, (kH, kW), stride, (oH, oW), reshape=vec_reshape)
 
 
 def convolve(X, weights):
+    print(weights.shape)
     return np.matmul(X, weights[None, ...], dtype=np.float32)
 
 
 def convolve2d(
-    X: np.ndarray,
-    kernel: np.ndarray,
-    stride: Tuple[int, int] = (1, 1),
-    padding: Tuple[int, int] = (0, 0),
-    return_vec_ip: bool = False,
-    return_vec_kernel: bool = False,
-) -> Union[
-    Tuple[np.ndarray, np.ndarray, np.ndarray],
-    Tuple[np.ndarray, np.ndarray],
-    Tuple[np.ndarray],
-]:
-    kH, kW, filters = kernel.shape[1:]
-
-    X, oH, oW = _prepare_ip_for_conv(
-        X=X, kernel_size=(kH, kW), stride=stride, padding=padding
-    )
-
-    X = np.moveaxis(X, -1, 0)
-
-    weights = vectorize_kernel_for_conv(kernel)
+    X: np.ndarray, weights: np.ndarray, filters: int, op_area: Tuple[int, int]
+) -> np.ndarray:
+    oH, oW = op_area
 
     convolution = convolve(X, weights)
 
     shape = (filters, oH, oW, -1)
 
-    ret_val = (np.swapaxes(convolution, 0, 2).reshape(shape),)
+    convolution = np.swapaxes(convolution, 0, 2).reshape(shape)
 
-    if return_vec_ip is True:
-        ret_val += (X,)
-
-    if return_vec_kernel is True:
-        ret_val += (weights,)
-
-    return ret_val
+    return convolution
 
 
 def depthwise_convolve2d(
     X: np.ndarray,
-    kernel: np.ndarray,
-    stride: Tuple[int, int] = (1, 1),
-    padding: Tuple[int, int] = (0, 0),
-    return_vec_ip: bool = False,
-    return_vec_kernel: bool = False,
-) -> Union[
-    Tuple[np.ndarray, np.ndarray, np.ndarray],
-    Tuple[np.ndarray, np.ndarray],
-    Tuple[np.ndarray],
-]:
-    ipC, kH, kW, multiplier = kernel.shape
-
-    X, oH, oW = _prepare_ip_for_conv(
-        X=X,
-        kernel_size=(kH, kW),
-        stride=stride,
-        padding=padding,
-        vec_reshape=(ipC, (kH * kW), -1),
-    )
-
-    X = X.transpose(-1, 1, 0, 2)
-
-    weights = vectorize_kernel_for_conv(kernel, reshape=(ipC, -1, multiplier))
+    weights: np.ndarray,
+    multiplier: int,
+    ip_C: int,
+    op_area: Tuple[int, int],
+) -> np.ndarray:
+    oH, oW = op_area
 
     convolution = convolve(X, weights)
 
-    shape = (ipC * multiplier, oH, oW, -1)
+    shape = (multiplier * ip_C, oH, oW, -1)
 
-    ret_val = (np.moveaxis(convolution, [0, -1], [-1, 1]).reshape(shape),)
+    convolution = np.moveaxis(convolution, [0, -1], [-1, 1]).reshape(shape)
 
-    if return_vec_ip is True:
-        ret_val += (X,)
-
-    if return_vec_kernel is True:
-        ret_val += (weights,)
-
-    return ret_val
+    return convolution
 
 
 def _backprop_kernel_generic_conv(
@@ -169,7 +124,7 @@ def _backprop_kernel_generic_conv(
     grad: np.ndarray,
     kernel_size: Tuple[int, int],
     filters: int,
-    axis: Tuple = (0,),
+    axis: Tuple[int, ...] = (0,),
 ) -> np.ndarray:
     dW = np.matmul(ip, grad, dtype=np.float32)
     dW = dW.sum(axis=axis)
@@ -201,10 +156,10 @@ def backprop_kernel_depthwise_conv2d(
 
 
 def backprop_bias_conv(
-    grad: np.ndarray, axis: Tuple, reshape: Optional[Tuple] = None
+    grad: np.ndarray, axis: Tuple, reshape: Tuple[int, ...] = ()
 ) -> np.ndarray:
     grad = grad.sum(axis=axis)
-    if reshape is not None:
+    if not reshape:
         grad = grad.reshape(-1, *reshape)
     return grad
 
@@ -220,12 +175,12 @@ def backprop_ip_depthwise_conv2d(grad: np.ndarray, kernel: np.ndarray) -> np.nda
 
 
 def accumulate_dX_conv(
-    dX_shape: Tuple,
+    dX_shape: Tuple[int, ...],
     output_size: Tuple[int, int],
     dIp: np.ndarray,
     stride: Tuple[int, int],
     kernel_size: Tuple[int, int],
-    reshape: Tuple,
+    reshape: Tuple[int, ...],
     padding: Tuple[int, int] = (0, 0),
     moveaxis: bool = True,
 ) -> np.ndarray:

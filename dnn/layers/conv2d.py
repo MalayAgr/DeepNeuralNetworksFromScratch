@@ -8,20 +8,30 @@ from .utils import (
     backprop_ip_conv2d,
     backprop_kernel_conv2d,
     convolve2d,
+    prepare_ip_for_conv,
+    vectorize_kernel_for_conv,
 )
 
 
 class Conv2D(Conv):
-    def conv_func(
-        self,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        return convolve2d(
+    def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
+        ip = prepare_ip_for_conv(
             X=self.input(),
-            kernel=self.kernels,
+            kernel_size=self.kernel_size,
             stride=self.stride,
             padding=(self.p_H, self.p_W),
-            return_vec_ip=True,
-            return_vec_kernel=True,
+        )
+        ip = np.moveaxis(ip, -1, 0)
+        return ip, vectorize_kernel_for_conv(kernel=self.kernels)
+
+    def conv_func(
+        self,
+    ) -> np.ndarray:
+        return convolve2d(
+            X=self._vec_ip,
+            weights=self._vec_kernel,
+            filters=self.filters,
+            op_area=self.output_area(),
         )
 
     def _reshape_dZ(self, dZ: np.ndarray) -> np.ndarray:

@@ -11,5 +11,7 @@ from .conv_utils import (
     depthwise_convolve2d,
     pad,
     vectorize_ip_for_conv,
+    prepare_ip_for_conv,
+    vectorize_kernel_for_conv,
 )
 from .generic_utils import add_activation

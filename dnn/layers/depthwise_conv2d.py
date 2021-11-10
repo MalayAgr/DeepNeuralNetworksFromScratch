@@ -10,6 +10,8 @@ from .utils import (
     backprop_ip_depthwise_conv2d,
     backprop_kernel_depthwise_conv2d,
     depthwise_convolve2d,
+    prepare_ip_for_conv,
+    vectorize_kernel_for_conv,
 )
 
 
@@ -67,21 +69,26 @@ class DepthwiseConv2D(Conv2D):
 
         return c * self.ip_C, h, w, m
 
-    def conv_func(
-        self,
-    ) -> Union[
-        Tuple[np.ndarray, np.ndarray, np.ndarray],
-        Tuple[np.ndarray, np.ndarray, None],
-        Tuple[np.ndarray, None, np.ndarray],
-        Tuple[np.ndarray, None, None],
-    ]:
-        return depthwise_convolve2d(
+    def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
+        ip = prepare_ip_for_conv(
             X=self.input(),
-            kernel=self.kernels,
+            kernel_size=self.kernel_size,
             stride=self.stride,
             padding=(self.p_H, self.p_W),
-            return_vec_ip=True,
-            return_vec_kernel=True,
+            vec_reshape=(self.ip_C, self.kernel_H * self.kernel_W, -1),
+        )
+        ip = ip.transpose(-1, 1, 0, 2)
+
+        shape = (self.ip_C, -1, self.multiplier)
+        return ip, vectorize_kernel_for_conv(self.kernels, reshape=shape)
+
+    def conv_func(self) -> np.ndarray:
+        return depthwise_convolve2d(
+            X=self._vec_ip,
+            weights=self._vec_kernel,
+            multiplier=self.multiplier,
+            ip_C=self.ip_C,
+            op_area=self.output_area(),
         )
 
     def _reshape_dZ(self, dZ: np.ndarray) -> np.ndarray:
@@ -102,7 +109,9 @@ class DepthwiseConv2D(Conv2D):
         )
 
     def _compute_dB(self, dZ: np.ndarray) -> np.ndarray:
-        return backprop_bias_conv(grad=dZ, axis=(0,), reshape=self.biases.shape[1:])
+        return backprop_bias_conv(
+            grad=dZ, axis=(0, 2, 3), reshape=self.biases.shape[1:]
+        )
 
     def _compute_dVec_Ip(self, dZ: np.ndarray) -> np.ndarray:
         return backprop_ip_depthwise_conv2d(grad=dZ, kernel=self._vec_kernel)

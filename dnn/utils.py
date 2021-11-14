@@ -29,7 +29,7 @@ def loss_factory(loss: str) -> Loss:
         raise ValueError("Loss with this name does not exist")
     return cls()
 
-
+@optional_jit
 def generate_batches(
     X: np.ndarray, Y: np.ndarray, batch_size: int, shuffle: bool = True
 ) -> Generator[Tuple[np.ndarray, np.ndarray, int], None, None]:

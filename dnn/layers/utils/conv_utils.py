@@ -1,6 +1,5 @@
-from typing import Generator, Tuple
-
 from math import ceil
+from typing import Generator, Tuple
 
 import numpy as np
 
@@ -56,7 +55,7 @@ def vectorize_ip_for_conv(
 
 
 @optional_jit
-def vectorize_kernel_for_conv_nr(kernel):
+def vectorize_kernel_for_conv_nr(kernel: np.ndarray):
     filters = kernel.shape[-1]
     reshape = (-1, filters)
     return kernel.reshape(reshape)
@@ -108,6 +107,7 @@ def convolve2d(
     return convolution
 
 
+@optional_jit(nopython=False, forceobj=True)
 def depthwise_convolve2d(
     X: np.ndarray,
     weights: np.ndarray,

@@ -1,6 +1,7 @@
 from typing import Generator, List, Tuple
 
 import numpy as np
+
 from dnn import Input
 from dnn.layers import BaseLayer
 from dnn.layers.base_layer import MultiInputBaseLayer

@@ -91,25 +91,25 @@ class DepthwiseConv2D(Conv2D):
             op_area=self.output_area(),
         )
 
-    def _reshape_dZ(self, dZ: np.ndarray) -> np.ndarray:
-        shape = (dZ.shape[-1], -1, self.ip_C, self.multiplier)
+    def _reshape_output_gradient(self, grad: np.ndarray) -> np.ndarray:
+        shape = (grad.shape[-1], -1, self.ip_C, self.multiplier)
 
-        dZ = np.swapaxes(dZ, -1, 0).reshape(*shape)
+        grad = np.swapaxes(grad, -1, 0).reshape(*shape)
 
-        dZ = np.moveaxis(dZ, 1, 2)
+        grad = np.moveaxis(grad, 1, 2)
 
-        return dZ
+        return grad
 
-    def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
+    def _compute_kernel_gradient(self, grad: np.ndarray) -> np.ndarray:
         return backprop_kernel_depthwise_conv2d(
             ip=self._vec_ip,
-            grad=dZ,
+            grad=grad,
             kernel_size=self.kernel_size,
             multiplier=self.multiplier,
         )
 
-    def _compute_dB(self, dZ: np.ndarray) -> np.ndarray:
-        return backprop_bias_conv(grad=dZ, axis=(0, 2), reshape=self.biases.shape[1:])
+    def _compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
+        return backprop_bias_conv(grad=grad, axis=(0, 2), reshape=self.biases.shape[1:])
 
-    def _compute_dVec_Ip(self, dZ: np.ndarray) -> np.ndarray:
-        return backprop_ip_depthwise_conv2d(grad=dZ, kernel=self._vec_kernel)
+    def _compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
+        return backprop_ip_depthwise_conv2d(grad=grad, kernel=self._vec_kernel)

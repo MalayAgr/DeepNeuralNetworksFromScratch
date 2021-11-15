@@ -146,26 +146,26 @@ class Conv(BaseLayer):
         return self.activations
 
     @abstractmethod
-    def _reshape_dZ(self, dZ: np.ndarray) -> np.ndarray:
+    def _reshape_output_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to reshape the gradient of loss wrt convolutional output."""
         pass
 
     @abstractmethod
-    def _compute_dW(self, dZ: np.ndarray) -> np.ndarray:
+    def _compute_kernel_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to compute the gradient of the loss wrt kernel."""
         pass
 
     @abstractmethod
-    def _compute_dB(self, dZ: np.ndarray) -> np.ndarray:
+    def _compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to compute the gradient of the loss wrt biases."""
         pass
 
     @abstractmethod
-    def _compute_dVec_Ip(self, dZ: np.ndarray) -> np.ndarray:
+    def _compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to compute the derivative of loss wrt to the vectorized input."""
         pass
 
-    def _target_dX_shape(self) -> Tuple:
+    def _get_input_gradient_shape(self) -> Tuple:
         """Method to obtain the shape of the derivative of loss wrt to the input of the layer."""
         post_pad_H, post_pad_W = self.padded_shape()
         m = self.input().shape[-1]
@@ -174,26 +174,23 @@ class Conv(BaseLayer):
     def transform_backprop_gradient(
         self, grad: np.ndarray, *args, **kwargs
     ) -> np.ndarray:
-        dA = self.activation.backprop(grad, ip=self.convolutions)
-
-        return self._reshape_dZ(dA)  # pyright: reportGeneralTypeIssues=false
+        grad = self.activation.backprop(grad, ip=self.convolutions)
+        return self._reshape_output_gradient(grad)
 
     def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
-        dW = self._compute_dW(grad)
-
-        self.gradients["kernels"] = dW
+        self.gradients["kernels"] = self._compute_kernel_gradient(grad)
 
         if self.use_bias:
-            self.gradients["biases"] = self._compute_dB(grad)
+            self.gradients["biases"] = self._compute_bias_gradient(grad)
 
     def backprop_inputs(self, grad, *args, **kwargs) -> np.ndarray:
-        dX_shape = self._target_dX_shape()
-        dIp = self._compute_dVec_Ip(grad)
+        ip_gradient_shape = self._get_input_gradient_shape()
+        vec_ip_grad = self._compute_vec_ip_gradient(grad)
 
         return accumulate_dX_conv(
-            dX_shape=dX_shape,
+            dX_shape=ip_gradient_shape,
             output_size=self.output_area(),
-            dIp=dIp,
+            dIp=vec_ip_grad,
             stride=self.stride,
             kernel_size=self.kernel_size,
             reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Generator, List, Tuple, Union
 
 import numpy as np
+
 from dnn.layers import BaseLayer
 
 
@@ -91,10 +92,10 @@ class LayerNode(Node):
         return (self.layer.gradients[key] for key in keys)
 
     def forward(self) -> np.ndarray:
-        return self.layer._forward_step()
+        return self.layer.forward()
 
     def forward_output(self) -> np.ndarray:
         return self.layer.output()
 
     def backprop(self) -> Union[np.ndarray, Tuple[np.ndarray]]:
-        return self.layer._backprop_step(self.backprop_grad)
+        return self.layer.backprop(self.backprop_grad)

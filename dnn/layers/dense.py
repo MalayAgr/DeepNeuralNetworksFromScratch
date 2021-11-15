@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Optional, Tuple, Union
 
 import numpy as np
+
 from dnn.layers.activations import Activation
 
 from .base_layer import BaseLayer, LayerInput
@@ -164,7 +165,7 @@ class Dense(BaseLayer):
     def transform_backprop_gradient(
         self, grad: np.ndarray, *args, **kwargs
     ) -> np.ndarray:
-        return self.activation._backprop_step(grad, ip=self.linear)
+        return self.activation.backprop(grad, ip=self.linear)
 
     def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
         ip = self.input()

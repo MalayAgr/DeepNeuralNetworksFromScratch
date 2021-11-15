@@ -16,6 +16,7 @@ from itertools import count
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
+
 from dnn.input_layer import Input
 
 
@@ -341,7 +342,7 @@ class BaseLayer(ABC):
         Method to obtain the expected shape of the output of the layer.
         """
 
-    def _forward_step(self, *args, **kwargs) -> np.ndarray:
+    def forward(self, *args, **kwargs) -> np.ndarray:
         """Wrapper around forward_step() which builds the layer if it is not built."""
         if not self.built:
             self.build()
@@ -354,7 +355,7 @@ class BaseLayer(ABC):
         Method to carry out one step of forward propagation.
         """
 
-    def _backprop_step(self, grad: np.ndarray, *args, **kwargs) -> Optional[np.ndarray]:
+    def backprop(self, grad: np.ndarray, *args, **kwargs) -> Optional[np.ndarray]:
         """Method to carry out one complete backprop step.
 
         Arguments
@@ -545,10 +546,10 @@ class MultiInputBaseLayer(BaseLayer):
             for ip in self.ip_layer
         ]
 
-    def _backprop_step(
+    def backprop(
         self, grad: np.ndarray, *args, **kwargs
     ) -> Optional[Tuple[np.ndarray]]:
-        return super()._backprop_step(grad=grad, *args, **kwargs)
+        return super().backprop(grad=grad, *args, **kwargs)
 
     @abstractmethod
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple, Union
 from contextlib import ContextDecorator
+from typing import Any, List, Tuple, Union
 
 import numpy as np
+
 from dnn import Input
 from dnn.layers import BaseLayer
 from dnn.loss import Loss
@@ -96,7 +97,7 @@ class Model:
 
         raise ValueError("Specify either a name or an index to fetch a layer.")
 
-    def _forward_step(self, inputs: List[np.ndarray]) -> Tuple[np.ndarray]:
+    def _forward(self, inputs: List[np.ndarray]) -> Tuple[np.ndarray]:
         if not isinstance(inputs, List):
             raise TypeError("Expected a list of inputs.")
 
@@ -122,7 +123,7 @@ class Model:
             inputs = [inputs]
 
         with TrainingContext(self, training=training) as _:
-            op = self._forward_step(inputs=inputs)
+            op = self._forward(inputs=inputs)
 
             if len(self.outputs) == 1:
                 op = op[0]
@@ -147,7 +148,7 @@ class Model:
     def train_step(
         self, batch_X: List[np.ndarray], batch_Y: List[np.ndarray], sizes: List[int]
     ) -> float:
-        preds = self._forward_step(batch_X)
+        preds = self._forward(batch_X)
 
         cost, grads = 0, []
 
@@ -186,7 +187,7 @@ class Model:
         if verbosity not in [0, 1]:
             raise ValueError("Unexpected verbosity level. Can only be 0 or 1.")
 
-        history = []
+        history: List[float] = []
 
         with TrainingContext(self, training=True) as _:
             for epoch in range(epochs):

@@ -95,13 +95,10 @@ class SeparableConv2D(BaseLayer):
 
         return result
 
-    def _backprop_step(self, grad: np.ndarray, *args, **kwargs) -> Optional[np.ndarray]:
-        grad = self._pointwise._backprop_step(grad=grad)
-        super()._backprop_step(grad, *args, **kwargs)
-
     def transform_backprop_gradient(
         self, grad: np.ndarray, *args, **kwargs
     ) -> np.ndarray:
+        grad = self._pointwise.backprop(grad=grad)
         return self._depthwise.transform_backprop_gradient(grad, *args, **kwargs)
 
     def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:

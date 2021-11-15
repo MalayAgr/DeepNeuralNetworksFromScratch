@@ -174,7 +174,7 @@ class Conv(BaseLayer):
     def transform_backprop_gradient(
         self, grad: np.ndarray, *args, **kwargs
     ) -> np.ndarray:
-        dA = self.activation._backprop_step(grad, ip=self.convolutions)
+        dA = self.activation.backprop(grad, ip=self.convolutions)
 
         return self._reshape_dZ(dA)  # pyright: reportGeneralTypeIssues=false
 

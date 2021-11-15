@@ -53,7 +53,6 @@ class Conv(BaseLayer):
         self.stride_H, self.stride_W = stride
 
         self.padding = padding
-        self.p_H, self.p_W = compute_conv_padding(kernel_size, mode=padding)
 
         self.initializer = initializer
 
@@ -108,8 +107,9 @@ class Conv(BaseLayer):
         ip_shape = self.input_shape()
         ipH, ipW = ip_shape[1], ip_shape[2]
 
-        oH = compute_conv_output_dim(ipH, self.kernel_H, self.p_H, self.stride_H)
-        oW = compute_conv_output_dim(ipW, self.kernel_W, self.p_W, self.stride_W)
+        pH, pW = compute_conv_padding(self.kernel_size, mode=self.padding)
+        oH = compute_conv_output_dim(ipH, self.kernel_H, pH, self.stride_H)
+        oW = compute_conv_output_dim(ipW, self.kernel_W, pW, self.stride_W)
 
         return oH, oW
 
@@ -123,7 +123,8 @@ class Conv(BaseLayer):
 
     def padded_shape(self) -> Tuple[int, int]:
         ipH, ipW = self.input_shape()[1:-1]
-        return ipH + 2 * self.p_H, ipW + 2 * self.p_W
+        pH, pW = compute_conv_padding(self.kernel_size, mode=self.padding)
+        return ipH + 2 * pH, ipW + 2 * pW
 
     @abstractmethod
     def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
@@ -193,5 +194,5 @@ class Conv(BaseLayer):
             stride=self.stride,
             kernel_size=self.kernel_size,
             reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),
-            padding=(self.p_H, self.p_W),
+            padding=compute_conv_padding(self.kernel_size, mode=self.padding),
         )

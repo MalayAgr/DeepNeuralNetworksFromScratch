@@ -9,6 +9,7 @@ from .utils import (
     backprop_bias_conv,
     backprop_ip_depthwise_conv2d,
     backprop_kernel_depthwise_conv2d,
+    compute_conv_padding,
     depthwise_convolve2d,
     prepare_ip_for_conv,
     vectorize_kernel_for_conv_r,
@@ -74,7 +75,7 @@ class DepthwiseConv2D(Conv2D):
             X=self.input(),
             kernel_size=self.kernel_size,
             stride=self.stride,
-            padding=(self.p_H, self.p_W),
+            padding=compute_conv_padding(self.kernel_size, mode=self.padding),
             vec_reshape=(self.ip_C, self.kernel_H * self.kernel_W, -1),
         )
         ip = ip.transpose(-1, 1, 0, 2)

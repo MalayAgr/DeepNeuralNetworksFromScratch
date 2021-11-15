@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
 
@@ -7,6 +7,7 @@ from .utils import (
     backprop_bias_conv,
     backprop_ip_conv2d,
     backprop_kernel_conv2d,
+    compute_conv_padding,
     convolve2d,
     prepare_ip_for_conv,
     vectorize_kernel_for_conv_nr,
@@ -19,7 +20,7 @@ class Conv2D(Conv):
             X=self.input(),
             kernel_size=self.kernel_size,
             stride=self.stride,
-            padding=(self.p_H, self.p_W),
+            padding=compute_conv_padding(self.kernel_size, mode=self.padding),
         )
         ip = np.moveaxis(ip, -1, 0)
         return ip, vectorize_kernel_for_conv_nr(kernel=self.kernels)

@@ -6,7 +6,6 @@ from .activations import Activation
 from .base_layer import BaseLayer, LayerInput
 from .conv2d import Conv2D
 from .depthwise_conv2d import DepthwiseConv2D
-from .utils import compute_conv_padding
 
 
 class SeparableConv2D(BaseLayer):
@@ -64,7 +63,6 @@ class SeparableConv2D(BaseLayer):
         self.stride_H, self.stride_W = stride
 
         self.padding = padding
-        self.p_H, self.p_W = compute_conv_padding(kernel_size, mode=padding)
 
     def fans(self) -> Tuple[int, int]:
         return self._pointwise.fans()

@@ -1,8 +1,10 @@
-from typing import Any, Optional, Tuple, Union
+from __future__ import annotations
+
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
-from .activations import Activation
+from .activations import ActivationType
 from .base_layer import LayerInput
 from .conv2d import Conv2D
 from .utils import (
@@ -25,7 +27,7 @@ class DepthwiseConv2D(Conv2D):
         *args,
         kernel_size: Tuple[int, int],
         stride: Tuple[int, int] = (1, 1),
-        activation: Optional[Union[Activation, str]] = None,
+        activation: ActivationType = None,
         multiplier: int = 1,
         padding: str = "valid",
         initializer: str = "he",

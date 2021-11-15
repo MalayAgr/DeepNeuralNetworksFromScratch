@@ -1,8 +1,10 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from __future__ import annotations
+
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 
-from .activations import Activation
+from .activations import Activation, ActivationType
 from .base_layer import BaseLayer, LayerInput
 from .conv2d import Conv2D
 from .depthwise_conv2d import DepthwiseConv2D
@@ -15,7 +17,7 @@ class SeparableConv2D(BaseLayer):
         filters: int,
         kernel_size: Tuple[int, int],
         stride: Tuple[int, int] = (1, 1),
-        activation: Optional[Union[Activation, str]] = None,
+        activation: ActivationType = None,
         multiplier: int = 1,
         padding: str = "valid",
         depthwise_initializer: str = "he",

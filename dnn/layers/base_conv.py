@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
-from .activations import Activation
+from .activations import ActivationType
 from .base_layer import BaseLayer, LayerInput
 from .utils import (
     accumulate_dX_conv,
@@ -38,7 +40,7 @@ class Conv(BaseLayer):
         filters: int,
         kernel_size: Tuple[int, int],
         stride: Tuple[int, int] = (1, 1),
-        activation: Optional[Union[Activation, str]] = None,
+        activation: ActivationType = None,
         padding: str = "valid",
         initializer: str = "he",
         use_bias: bool = True,

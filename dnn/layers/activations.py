@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 
@@ -762,3 +762,6 @@ class ELU(LeakyReLU):
         self, ip: np.ndarray, activations: Optional[np.ndarray] = None
     ) -> np.ndarray:
         return np.where(ip > 0, 1.0, self.alpha * np.exp(ip))
+
+
+ActivationType = Optional[Union[Activation, str]]

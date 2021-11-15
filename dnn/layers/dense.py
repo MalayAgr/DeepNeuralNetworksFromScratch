@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
-from dnn.layers.activations import Activation
+from dnn.layers.activations import ActivationType
 
 from .base_layer import BaseLayer, LayerInput
 from .utils import add_activation
@@ -77,7 +77,7 @@ class Dense(BaseLayer):
         self,
         ip: LayerInput,
         units: int,
-        activation: Optional[Union[Activation, str]] = None,
+        activation: ActivationType = None,
         initializer: str = "he",
         use_bias: bool = True,
         name: str = None,

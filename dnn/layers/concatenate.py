@@ -121,7 +121,7 @@ class Concatenate(MultiInputBaseLayer):
         """
         shapes = self._get_axis_excluded_shapes(axis)
 
-        first_shape = next(shapes)
+        first_shape = next(shapes)  # skipcq: PTC-W0063
 
         if any(shape != first_shape for shape in shapes):
             msg = (

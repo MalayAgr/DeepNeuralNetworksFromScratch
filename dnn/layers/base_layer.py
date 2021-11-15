@@ -192,7 +192,7 @@ class BaseLayer(ABC):
     def _make_name(self) -> str:
         """Method to generate a name for the layer."""
         cls = self.__class__.__name__.lower()
-        _id = next(BaseLayer._id)
+        _id = next(BaseLayer._id)  # skipcq: PTC-W0063
         base = f"{cls}{_id}_"
 
         return base + "/".join(

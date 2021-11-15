@@ -145,47 +145,46 @@ class Conv(BaseLayer):
 
         return self.activations
 
-    @abstractmethod
-    def _reshape_output_gradient(self, grad: np.ndarray) -> np.ndarray:
+    def reshape_backprop_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to reshape the gradient of loss wrt convolutional output."""
-        pass
-
-    @abstractmethod
-    def _compute_kernel_gradient(self, grad: np.ndarray) -> np.ndarray:
-        """Method to compute the gradient of the loss wrt kernel."""
-        pass
-
-    @abstractmethod
-    def _compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
-        """Method to compute the gradient of the loss wrt biases."""
-        pass
-
-    @abstractmethod
-    def _compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
-        """Method to compute the derivative of loss wrt to the vectorized input."""
-        pass
-
-    def _get_input_gradient_shape(self) -> Tuple:
-        """Method to obtain the shape of the derivative of loss wrt to the input of the layer."""
-        post_pad_H, post_pad_W = self.padded_shape()
-        m = self.input().shape[-1]
-        return m, self.ip_C, post_pad_H, post_pad_W
+        return grad
 
     def transform_backprop_gradient(
         self, grad: np.ndarray, *args, **kwargs
     ) -> np.ndarray:
         grad = self.activation.backprop(grad, ip=self.convolutions)
-        return self._reshape_output_gradient(grad)
+        return self.reshape_backprop_gradient(grad)
+
+    @abstractmethod
+    def compute_kernel_gradient(self, grad: np.ndarray) -> np.ndarray:
+        """Method to compute the gradient of the loss wrt kernel."""
+        pass
+
+    @abstractmethod
+    def compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
+        """Method to compute the gradient of the loss wrt biases."""
+        pass
+
+    @abstractmethod
+    def compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
+        """Method to compute the derivative of loss wrt to the vectorized input."""
+        pass
+
+    def get_input_gradient_shape(self) -> Tuple:
+        """Method to obtain the shape of the derivative of loss wrt to the input of the layer."""
+        post_pad_H, post_pad_W = self.padded_shape()
+        m = self.input().shape[-1]
+        return m, self.ip_C, post_pad_H, post_pad_W
 
     def backprop_parameters(self, grad: np.ndarray, *args, **kwargs) -> None:
-        self.gradients["kernels"] = self._compute_kernel_gradient(grad)
+        self.gradients["kernels"] = self.compute_kernel_gradient(grad)
 
         if self.use_bias:
-            self.gradients["biases"] = self._compute_bias_gradient(grad)
+            self.gradients["biases"] = self.compute_bias_gradient(grad)
 
     def backprop_inputs(self, grad, *args, **kwargs) -> np.ndarray:
-        ip_gradient_shape = self._get_input_gradient_shape()
-        vec_ip_grad = self._compute_vec_ip_gradient(grad)
+        ip_gradient_shape = self.get_input_gradient_shape()
+        vec_ip_grad = self.compute_vec_ip_gradient(grad)
 
         return accumulate_dX_conv(
             dX_shape=ip_gradient_shape,

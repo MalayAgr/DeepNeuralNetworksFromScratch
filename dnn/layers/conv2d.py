@@ -34,10 +34,10 @@ class Conv2D(Conv):
             op_area=self.output_area(),
         )
 
-    def _reshape_output_gradient(self, grad: np.ndarray) -> np.ndarray:
+    def reshape_backprop_gradient(self, grad: np.ndarray) -> np.ndarray:
         return np.swapaxes(grad, 0, -1).reshape(grad.shape[-1], -1, self.filters)
 
-    def _compute_kernel_gradient(self, grad: np.ndarray) -> np.ndarray:
+    def compute_kernel_gradient(self, grad: np.ndarray) -> np.ndarray:
         return backprop_kernel_conv2d(
             ip=self._vec_ip,
             grad=grad,
@@ -45,8 +45,8 @@ class Conv2D(Conv):
             filters=self.filters,
         )
 
-    def _compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
+    def compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
         return backprop_bias_conv(grad=grad, axis=(0, 1), reshape=self.biases.shape[1:])
 
-    def _compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
+    def compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
         return backprop_ip_conv2d(grad=grad, kernel=self._vec_kernel)

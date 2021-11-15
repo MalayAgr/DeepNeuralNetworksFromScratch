@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Optional
 
-from dnn.layers.activations import Activation
+from dnn.layers.activations import Activation, ActivationType
 from dnn.layers.base_layer import LayerInput
 
 
@@ -16,7 +16,7 @@ def activation_factory(
     return cls(ip=ip, *args, **kwargs)
 
 
-def add_activation(activation: Union[Activation, str, None]) -> Activation:
+def add_activation(activation: ActivationType) -> Activation:
     if isinstance(activation, Activation):
         return activation
 

@@ -764,4 +764,4 @@ class ELU(LeakyReLU):
         return np.where(ip > 0, 1.0, self.alpha * np.exp(ip))
 
 
-ActivationType = Optional[Union[Activation, str]]
+ActivationType = Union[Activation, str, None]

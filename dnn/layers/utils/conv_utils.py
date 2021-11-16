@@ -1,5 +1,6 @@
+from collections.abc import Iterator
 from math import ceil
-from typing import Generator, Tuple
+from typing import Tuple
 
 import numpy as np
 
@@ -27,7 +28,7 @@ def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
 
 def slice_idx_generator(
     oH: int, oW: int, sH: int, sW: int
-) -> Generator[Tuple[int, int], None, None]:
+) -> Iterator[Tuple[int, int]]:
     return ((i * sH, j * sW) for i in range(oH) for j in range(oW))
 
 

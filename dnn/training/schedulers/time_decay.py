@@ -1,5 +1,6 @@
-from .base_scheduler import LearningRateScheduler
 from math import floor
+
+from .base_scheduler import LearningRateScheduler
 
 
 class TimeDecay(LearningRateScheduler):

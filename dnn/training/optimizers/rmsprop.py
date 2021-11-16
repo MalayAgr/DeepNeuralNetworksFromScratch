@@ -1,6 +1,7 @@
 from typing import List, Tuple, Union
 
 import numpy as np
+
 from dnn.training.schedulers import LearningRateScheduler
 
 from .base_optimizer import Optimizer

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Generator, List, Tuple, Union
+from collections.abc import Iterator
+from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -30,12 +31,12 @@ class Node(ABC):
         """Method to obtain a list of names of trainable weights of the node."""
 
     @abstractmethod
-    def get_trainable_weight_values(self) -> Generator[np.ndarray, None, None]:
+    def get_trainable_weight_values(self) -> Iterator[np.ndarray]:
         """Method to obtain a generator of the trainable weights of the node."""
 
     @property
     @abstractmethod
-    def gradients(self) -> Generator[np.ndarray, None, None]:
+    def gradients(self) -> Iterator[np.ndarray]:
         """Method to obtain the gradient of the loss wrt the trainable weights of the node."""
 
     @abstractmethod
@@ -82,12 +83,12 @@ class LayerNode(Node):
             return self.layer.param_keys
         return []
 
-    def get_trainable_weight_values(self) -> Generator[np.ndarray, None, None]:
+    def get_trainable_weight_values(self) -> Iterator[np.ndarray]:
         attrs = self.trainable_weights
         return (getattr(self.layer, attr) for attr in attrs)
 
     @property
-    def gradients(self) -> Generator[np.ndarray, None, None]:
+    def gradients(self) -> Iterator[np.ndarray]:
         keys = self.trainable_weights
         return (self.layer.gradients[key] for key in keys)
 

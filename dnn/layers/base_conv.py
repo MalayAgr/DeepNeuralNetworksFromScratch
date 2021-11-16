@@ -133,7 +133,6 @@ class Conv(BaseLayer):
     @abstractmethod
     def conv_func(self) -> np.ndarray:
         """Method to compute the convolutional output of the layer."""
-        pass
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
         self._vec_ip, self._vec_kernel = self.prepare_input_and_kernel_for_conv()
@@ -159,17 +158,14 @@ class Conv(BaseLayer):
     @abstractmethod
     def compute_kernel_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to compute the gradient of the loss wrt kernel."""
-        pass
 
     @abstractmethod
     def compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to compute the gradient of the loss wrt biases."""
-        pass
 
     @abstractmethod
     def compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to compute the derivative of loss wrt to the vectorized input."""
-        pass
 
     def get_input_gradient_shape(self) -> Tuple:
         """Method to obtain the shape of the derivative of loss wrt to the input of the layer."""

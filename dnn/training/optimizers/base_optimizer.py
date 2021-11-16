@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
+
 from dnn.training.graph.core import ComputationGraph
 from dnn.training.schedulers import LearningRateScheduler
 

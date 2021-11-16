@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import functools
-from typing import Callable, Generator, Tuple
+import math
+from collections.abc import Iterator
+from typing import Callable, Tuple
 
 import numpy as np
 
@@ -10,7 +12,7 @@ from dnn.loss import Loss
 
 def optional_jit(
     _func: Callable = None, *, nopython: bool = True, forceobj: bool = False
-) -> Callable:
+):
     @functools.wraps(_func)
     def decorator(_func: Callable):
         try:
@@ -34,15 +36,14 @@ def loss_factory(loss: str) -> Loss:
 @optional_jit
 def generate_batches(
     X: np.ndarray, Y: np.ndarray, batch_size: int, shuffle: bool = True
-) -> Generator[Tuple[np.ndarray, np.ndarray, int], None, None]:
+) -> Iterator[Tuple[np.ndarray, np.ndarray, int]]:
     num_samples = X.shape[-1]
 
     if batch_size > num_samples:
-        raise ValueError(
-            "The batch size is greater than the number of samples in the dataset"
-        )
+        msg = "The batch size is greater than the number of samples in the dataset."
+        raise ValueError(msg)
 
-    num_full_batches = int(np.floor(num_samples / batch_size))
+    num_full_batches = math.floor(num_samples / batch_size)
 
     if shuffle is True:
         perm = np.random.permutation(num_samples)

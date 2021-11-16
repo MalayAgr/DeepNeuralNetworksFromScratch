@@ -1,4 +1,5 @@
-from typing import Generator, List, Tuple
+from collections.abc import Iterator
+from typing import List, Tuple
 
 import numpy as np
 
@@ -10,10 +11,8 @@ from dnn.utils import generate_batches
 from .graph.core import ComputationGraph
 from .graph.nodes import LayerNode
 
-BatchGenerator = Generator[Tuple[np.ndarray, np.ndarray, int], None, None]
-UnpackReturnType = Generator[
-    Tuple[List[np.ndarray], List[np.ndarray], List[int]], None, None
-]
+BatchGenerator = Iterator[Tuple[np.ndarray, np.ndarray, int]]
+UnpackReturnType = Iterator[Tuple[List[np.ndarray], List[np.ndarray], List[int]]]
 
 
 def flatten_layers(

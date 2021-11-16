@@ -2,11 +2,10 @@ import math
 from typing import Tuple
 
 import numpy as np
+from numba import njit
 
-from dnn.utils import optional_jit
 
-
-@optional_jit
+@njit(cache=True)
 def compute_conv_padding(
     kernel_size: Tuple[int, int], mode: str = "valid"
 ) -> Tuple[int, int]:
@@ -24,7 +23,7 @@ def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
     return np.pad(X, ((0, 0), (pad_H, pad_H), (pad_W, pad_W), (0, 0)))
 
 
-@optional_jit
+@njit(cache=True)
 def slice_idx_generator(oH: int, oW: int, sH: int, sW: int) -> np.ndarray:
     indices = np.empty((oH * oW, 2), np.int16)
 
@@ -45,7 +44,7 @@ def slice_idx_generator(oH: int, oW: int, sH: int, sW: int) -> np.ndarray:
     return indices
 
 
-@optional_jit
+@njit(cache=True)
 def vectorize_ip_no_reshape(
     X: np.ndarray,
     kernel_size: Tuple[int, int],
@@ -72,7 +71,7 @@ def vectorize_ip_no_reshape(
     return areas
 
 
-@optional_jit
+@njit(cache=True)
 def vectorize_ip_reshape(
     X: np.ndarray,
     kernel_size: Tuple[int, int],
@@ -125,14 +124,14 @@ def prepare_ip_for_conv(
     )
 
 
-@optional_jit
+@njit(cache=True)
 def vectorize_kernel_no_reshape(kernel: np.ndarray) -> np.ndarray:
     filters = kernel.shape[-1]
     reshape = (-1, filters)
     return kernel.reshape(reshape)
 
 
-@optional_jit
+@njit(cache=True)
 def vectorize_kernel_reshape(
     kernel: np.ndarray, reshape: Tuple[int, ...]
 ) -> np.ndarray:
@@ -238,7 +237,7 @@ def backprop_ip_depthwise_conv2d(grad: np.ndarray, kernel: np.ndarray) -> np.nda
     return np.moveaxis(dIp, 2, 1)
 
 
-@optional_jit
+@njit(cache=True)
 def accumulate_dX_conv(
     grad_shape: Tuple[int, ...],
     output_size: Tuple[int, int],
@@ -272,3 +271,24 @@ def accumulate_dX_conv(
 
     axes = (1, 2, 3, 0)
     return np.transpose(grad, axes)
+
+
+@njit(cache=True)
+def maxpool2D(
+    X: np.ndarray, windows: int, output_size: Tuple[int, int]
+) -> Tuple[np.ndarray, np.ndarray]:
+    first_three = X.shape[:-1]
+
+    maximums = np.empty(first_three, np.float32)
+    mask = np.zeros_like(X, np.bool_)
+
+    for idx in np.ndindex(first_three):
+        pos = X[idx].argmax()
+        i, j, k = idx
+        maximums[i, j, k] = X[i, j, k, pos]
+        mask[i, j, k, pos] = True
+
+    shape = (-1, *output_size, windows)
+    maximums = maximums.reshape(shape)
+    maximums = np.transpose(maximums, (3, 1, 2, 0))
+    return maximums, mask

@@ -1,28 +1,13 @@
 from __future__ import annotations
 
-import functools
 import math
 from collections.abc import Iterator
-from typing import Callable, Tuple
+from typing import Tuple
 
 import numpy as np
+from numba import njit
 
 from dnn.loss import Loss
-
-
-def optional_jit(
-    _func: Callable = None, *, nopython: bool = True, forceobj: bool = False, cache=True
-):
-    @functools.wraps(_func)
-    def decorator(_func: Callable):
-        try:
-            from numba import jit
-
-            return jit(_func, nopython=nopython, forceobj=forceobj, cache=cache)
-        except ImportError:
-            return _func
-
-    return decorator if _func is None else decorator(_func)
 
 
 def loss_factory(loss: str) -> Loss:
@@ -33,7 +18,7 @@ def loss_factory(loss: str) -> Loss:
     return cls()
 
 
-@optional_jit(cache=False)
+@njit
 def generate_batches(
     X: np.ndarray, Y: np.ndarray, batch_size: int, shuffle: bool = True
 ) -> Iterator[Tuple[np.ndarray, np.ndarray, int]]:

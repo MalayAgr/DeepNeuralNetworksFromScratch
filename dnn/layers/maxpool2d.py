@@ -37,7 +37,7 @@ class MaxPooling2D(BaseLayer):
         self.windows = self.input_shape()[0]
 
         self.pooled = None
-        self._dX_share = None
+        self._gradient_mask = None
 
     def fans(self) -> Tuple[int, int]:
         return self.ip_C, self.ip_C
@@ -97,7 +97,9 @@ class MaxPooling2D(BaseLayer):
 
         X = np.moveaxis(X, -1, 0)
 
-        pooled, self._dX_share = self._get_pool_outputs(ip=X)
+        pooled, self._gradient_mask = cutils.maxpool2D(
+            X=X, windows=self.windows, output_size=self.output_area()
+        )
 
         return pooled
 
@@ -117,7 +119,7 @@ class MaxPooling2D(BaseLayer):
         return cutils.accumulate_dX_conv(
             grad_shape=(grad.shape[0], self.windows, *padded_shape),
             output_size=self.output_area(),
-            vec_ip_grad=self._dX_share * grad[..., None],
+            vec_ip_grad=self._gradient_mask * grad[..., None],
             stride=self.stride,
             kernel_size=self.pool_size,
             reshape=(-1, self.windows, self.pool_H, self.pool_W),

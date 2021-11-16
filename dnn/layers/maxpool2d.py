@@ -87,12 +87,12 @@ class MaxPooling2D(BaseLayer):
     def _pool(self, X: np.ndarray) -> np.ndarray:
         X = cutils.pad(X, self.p_H, self.p_W)
 
-        X = cutils.vectorize_ip_for_conv(
+        X = cutils.vectorize_ip_reshape(
             X=X,
             kernel_size=self.pool_size,
             stride=self.stride,
             output_size=self.output_area(),
-            reshape=(self.windows, self.pool_H * self.pool_W, X.shape[-1]),
+            reshape=(self.windows, self.pool_H * self.pool_W, -1),
         )
 
         X = np.moveaxis(X, -1, 0)

@@ -11,14 +11,14 @@ from dnn.loss import Loss
 
 
 def optional_jit(
-    _func: Callable = None, *, nopython: bool = True, forceobj: bool = False
+    _func: Callable = None, *, nopython: bool = True, forceobj: bool = False, cache=True
 ):
     @functools.wraps(_func)
     def decorator(_func: Callable):
         try:
             from numba import jit
 
-            return jit(_func, nopython=nopython, forceobj=forceobj)
+            return jit(_func, nopython=nopython, forceobj=forceobj, cache=cache)
         except ImportError:
             return _func
 
@@ -33,7 +33,7 @@ def loss_factory(loss: str) -> Loss:
     return cls()
 
 
-@optional_jit
+@optional_jit(cache=False)
 def generate_batches(
     X: np.ndarray, Y: np.ndarray, batch_size: int, shuffle: bool = True
 ) -> Iterator[Tuple[np.ndarray, np.ndarray, int]]:

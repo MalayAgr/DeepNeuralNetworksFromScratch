@@ -6,24 +6,6 @@ from numba import njit
 
 
 @njit(cache=True)
-def compute_conv_padding(
-    kernel_size: Tuple[int, int], mode: str = "valid"
-) -> Tuple[int, int]:
-    if mode == "same":
-        kH, kW = kernel_size
-        return math.ceil((kH - 1) / 2), math.ceil((kW - 1) / 2)
-    return 0, 0
-
-
-def compute_conv_output_dim(n: int, f: int, p: int, s: int) -> int:
-    return math.floor((n - f + 2 * p) / s + 1)
-
-
-def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
-    return np.pad(X, ((0, 0), (pad_H, pad_H), (pad_W, pad_W), (0, 0)))
-
-
-@njit(cache=True)
 def _slice_idx_generator(oH: int, oW: int, sH: int, sW: int) -> np.ndarray:
     indices = np.empty((oH * oW, 2), np.int16)
 
@@ -98,6 +80,51 @@ def _vectorize_ip_reshape(
     return areas
 
 
+@njit(cache=True)
+def _vectorize_kernel_no_reshape(kernel: np.ndarray) -> np.ndarray:
+    filters = kernel.shape[-1]
+    reshape = (-1, filters)
+    return kernel.reshape(reshape)
+
+
+@njit(cache=True)
+def _vectorize_kernel_reshape(
+    kernel: np.ndarray, reshape: Tuple[int, ...]
+) -> np.ndarray:
+    return kernel.reshape(reshape)
+
+
+def _backprop_kernel_generic_conv(
+    ip: np.ndarray,
+    grad: np.ndarray,
+    kernel_size: Tuple[int, int],
+    filters: int,
+    axis: Tuple[int, ...] = (0,),
+) -> np.ndarray:
+    dW = np.matmul(ip, grad, dtype=np.float32)
+    dW = dW.sum(axis=axis)
+    kH, kW = kernel_size
+    return dW.reshape(-1, kH, kW, filters)
+
+
+@njit(cache=True)
+def compute_conv_padding(
+    kernel_size: Tuple[int, int], mode: str = "valid"
+) -> Tuple[int, int]:
+    if mode == "same":
+        kH, kW = kernel_size
+        return math.ceil((kH - 1) / 2), math.ceil((kW - 1) / 2)
+    return 0, 0
+
+
+def compute_conv_output_dim(n: int, f: int, p: int, s: int) -> int:
+    return math.floor((n - f + 2 * p) / s + 1)
+
+
+def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
+    return np.pad(X, ((0, 0), (pad_H, pad_H), (pad_W, pad_W), (0, 0)))
+
+
 def prepare_ip(
     X: np.ndarray,
     kernel_size: Tuple[int, int],
@@ -124,20 +151,6 @@ def prepare_ip(
             X, kernel_size, stride, (oH, oW), reshape=vec_reshape
         )
     )
-
-
-@njit(cache=True)
-def _vectorize_kernel_no_reshape(kernel: np.ndarray) -> np.ndarray:
-    filters = kernel.shape[-1]
-    reshape = (-1, filters)
-    return kernel.reshape(reshape)
-
-
-@njit(cache=True)
-def _vectorize_kernel_reshape(
-    kernel: np.ndarray, reshape: Tuple[int, ...]
-) -> np.ndarray:
-    return kernel.reshape(reshape)
 
 
 def vectorize_kernel(kernel: np.ndarray, reshape: Tuple[int, ...] = ()) -> np.ndarray:
@@ -182,19 +195,6 @@ def depthwise_convolve2d(
     convolution = np.moveaxis(convolution, [0, -1], [-1, 1]).reshape(shape)
 
     return convolution
-
-
-def _backprop_kernel_generic_conv(
-    ip: np.ndarray,
-    grad: np.ndarray,
-    kernel_size: Tuple[int, int],
-    filters: int,
-    axis: Tuple[int, ...] = (0,),
-) -> np.ndarray:
-    dW = np.matmul(ip, grad, dtype=np.float32)
-    dW = dW.sum(axis=axis)
-    kH, kW = kernel_size
-    return dW.reshape(-1, kH, kW, filters)
 
 
 def backprop_kernel_conv2d(

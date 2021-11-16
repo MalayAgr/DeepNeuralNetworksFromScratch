@@ -1,5 +1,4 @@
-from collections.abc import Iterator
-from math import ceil
+import math
 from typing import Tuple
 
 import numpy as np
@@ -13,13 +12,12 @@ def compute_conv_padding(
 ) -> Tuple[int, int]:
     if mode == "same":
         kH, kW = kernel_size
-        return ceil((kH - 1) / 2), ceil((kW - 1) / 2)
+        return math.ceil((kH - 1) / 2), math.ceil((kW - 1) / 2)
     return 0, 0
 
 
-@optional_jit
 def compute_conv_output_dim(n: int, f: int, p: int, s: int) -> int:
-    return int((n - f + 2 * p) / s + 1)
+    return math.floor((n - f + 2 * p) / s + 1)
 
 
 def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
@@ -62,15 +60,16 @@ def vectorize_ip_no_reshape(
 
     indices = slice_idx_generator(oH, oW, sH, sW)
     n_indices = indices.shape[0]
-    arrays = np.empty((n_indices, filters, kH, kW, batch_size), np.float32)
+
+    areas = np.empty((n_indices, filters, kH, kW, batch_size), np.float32)
 
     idx = 0
     for i, j in indices:
-        arrays[idx, ...] = X[:, i : i + kH, j : j + kW]
+        areas[idx, ...] = X[:, i : i + kH, j : j + kW]
         idx += 1
 
-    arrays = arrays.reshape((n_indices, -1, batch_size))
-    return arrays
+    areas = areas.reshape((n_indices, -1, batch_size))
+    return areas
 
 
 @optional_jit
@@ -80,7 +79,7 @@ def vectorize_ip_reshape(
     stride: Tuple[int, int],
     output_size: Tuple[int, int],
     reshape: Tuple[int, ...],
-):
+) -> np.ndarray:
     sH, sW = stride
     kH, kW = kernel_size
     oH, oW = output_size
@@ -89,27 +88,15 @@ def vectorize_ip_reshape(
     indices = slice_idx_generator(oH, oW, sH, sW)
     n_indices = indices.shape[0]
 
-    arrays = np.empty((n_indices, reshape[0], kH, kW, batch_size), np.float32)
+    areas = np.empty((n_indices, reshape[0], kH, kW, batch_size), np.float32)
 
     idx = 0
     for i, j in indices:
-        arrays[idx, ...] = X[:, i : i + kH, j : j + kW]
+        areas[idx, ...] = X[:, i : i + kH, j : j + kW]
         idx += 1
 
-    arrays = arrays.reshape((n_indices, *reshape))
-    return arrays
-
-
-@optional_jit
-def vectorize_kernel_for_conv_nr(kernel: np.ndarray):
-    filters = kernel.shape[-1]
-    reshape = (-1, filters)
-    return kernel.reshape(reshape)
-
-
-@optional_jit
-def vectorize_kernel_for_conv_r(kernel: np.ndarray, reshape: Tuple[int, ...]):
-    return kernel.reshape(reshape)
+    areas = areas.reshape((n_indices, *reshape))
+    return areas
 
 
 def prepare_ip_for_conv(
@@ -135,6 +122,28 @@ def prepare_ip_for_conv(
         vectorize_ip_no_reshape(X, kernel_size, stride, (oH, oW))
         if not vec_reshape
         else vectorize_ip_reshape(X, kernel_size, stride, (oH, oW), reshape=vec_reshape)
+    )
+
+
+@optional_jit
+def vectorize_kernel_no_reshape(kernel: np.ndarray) -> np.ndarray:
+    filters = kernel.shape[-1]
+    reshape = (-1, filters)
+    return kernel.reshape(reshape)
+
+
+@optional_jit
+def vectorize_kernel_reshape(
+    kernel: np.ndarray, reshape: Tuple[int, ...]
+) -> np.ndarray:
+    return kernel.reshape(reshape)
+
+
+def vectorize_kernel(kernel: np.ndarray, reshape: Tuple[int, ...] = ()) -> np.ndarray:
+    return (
+        vectorize_kernel_no_reshape(kernel)
+        if not reshape
+        else vectorize_ip_reshape(kernel, reshape=reshape)
     )
 
 

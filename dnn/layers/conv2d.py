@@ -17,7 +17,7 @@ class Conv2D(Conv):
             padding=self.pad_area(),
         )
         ip = np.moveaxis(ip, -1, 0)
-        return ip, cutils.vectorize_kernel_for_conv_nr(kernel=self.kernels)
+        return ip, cutils.vectorize_kernel(kernel=self.kernels)
 
     def conv_func(
         self,

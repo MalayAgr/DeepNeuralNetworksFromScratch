@@ -75,7 +75,7 @@ class DepthwiseConv2D(Conv2D):
         ip = ip.transpose(-1, 1, 0, 2)
 
         shape = (self.ip_C, -1, self.multiplier)
-        return ip, cutils.vectorize_kernel_for_conv_r(self.kernels, reshape=shape)
+        return ip, cutils.vectorize_kernel(self.kernels, reshape=shape)
 
     def conv_func(self) -> np.ndarray:
         return cutils.depthwise_convolve2d(

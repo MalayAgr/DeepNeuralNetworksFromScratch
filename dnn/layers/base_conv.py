@@ -7,12 +7,8 @@ import numpy as np
 
 from .activations import ActivationType
 from .base_layer import BaseLayer, LayerInput
-from .utils import (
-    accumulate_dX_conv,
-    add_activation,
-    compute_conv_output_dim,
-    compute_conv_padding,
-)
+from .utils import add_activation
+from .utils import conv_utils as cutils
 
 
 class Conv(BaseLayer):
@@ -105,13 +101,16 @@ class Conv(BaseLayer):
     def output(self) -> Optional[np.ndarray]:
         return self.activations
 
+    def pad_area(self) -> Tuple[int, int]:
+        return cutils.compute_conv_padding(self.kernel_size, mode=self.padding)
+
     def output_area(self) -> Tuple[int, int]:
         ip_shape = self.input_shape()
         ipH, ipW = ip_shape[1], ip_shape[2]
 
-        pH, pW = compute_conv_padding(self.kernel_size, mode=self.padding)
-        oH = compute_conv_output_dim(ipH, self.kernel_H, pH, self.stride_H)
-        oW = compute_conv_output_dim(ipW, self.kernel_W, pW, self.stride_W)
+        pH, pW = self.pad_area()
+        oH = cutils.compute_conv_output_dim(ipH, self.kernel_H, pH, self.stride_H)
+        oW = cutils.compute_conv_output_dim(ipW, self.kernel_W, pW, self.stride_W)
 
         return oH, oW
 
@@ -125,12 +124,11 @@ class Conv(BaseLayer):
 
     def padded_shape(self) -> Tuple[int, int]:
         ipH, ipW = self.input_shape()[1:-1]
-        pH, pW = compute_conv_padding(self.kernel_size, mode=self.padding)
+        pH, pW = self.pad_area()
         return ipH + 2 * pH, ipW + 2 * pW
 
-    @abstractmethod
     def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
-        pass
+        return self.input(), self.kernels
 
     @abstractmethod
     def conv_func(self) -> np.ndarray:
@@ -189,12 +187,12 @@ class Conv(BaseLayer):
         ip_gradient_shape = self.get_input_gradient_shape()
         vec_ip_grad = self.compute_vec_ip_gradient(grad)
 
-        return accumulate_dX_conv(
+        return cutils.accumulate_dX_conv(
             dX_shape=ip_gradient_shape,
             output_size=self.output_area(),
             dIp=vec_ip_grad,
             stride=self.stride,
             kernel_size=self.kernel_size,
             reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),
-            padding=compute_conv_padding(self.kernel_size, mode=self.padding),
+            padding=self.pad_area(),
         )

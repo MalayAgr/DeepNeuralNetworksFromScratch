@@ -10,7 +10,7 @@ from .utils import conv_utils as cutils
 
 class Conv2D(Conv):
     def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
-        ip = cutils.prepare_ip_for_conv(
+        ip = cutils.prepare_ip(
             X=self.input(),
             kernel_size=self.kernel_size,
             stride=self.stride,

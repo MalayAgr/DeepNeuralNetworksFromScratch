@@ -65,7 +65,7 @@ class DepthwiseConv2D(Conv2D):
         return c * self.ip_C, h, w, m
 
     def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
-        ip = cutils.prepare_ip_for_conv(
+        ip = cutils.prepare_ip(
             X=self.input(),
             kernel_size=self.kernel_size,
             stride=self.stride,

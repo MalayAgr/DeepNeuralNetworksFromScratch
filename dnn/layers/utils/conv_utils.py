@@ -98,7 +98,7 @@ def vectorize_ip_reshape(
     return areas
 
 
-def prepare_ip_for_conv(
+def prepare_ip(
     X: np.ndarray,
     kernel_size: Tuple[int, int],
     stride: Tuple[int, int] = (1, 1),

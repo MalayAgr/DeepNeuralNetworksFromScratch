@@ -274,9 +274,8 @@ def maxpool2D(
     maximums = np.empty(first_three, np.float32)
     mask = np.zeros_like(X, np.bool_)
 
-    for idx in np.ndindex(first_three):
-        pos = X[idx].argmax()
-        i, j, k = idx
+    for i, j, k in np.ndindex(first_three):
+        pos = X[i, j, k, :].argmax()
         maximums[i, j, k] = X[i, j, k, pos]
         mask[i, j, k, pos] = True
 
@@ -284,3 +283,19 @@ def maxpool2D(
     maximums = maximums.reshape(shape)
     maximums = np.transpose(maximums, (3, 1, 2, 0))
     return maximums, mask
+
+
+def averagepool2D(
+    X: np.ndarray, windows: int, output_size: Tuple[int, int]
+) -> Tuple[np.ndarray, np.ndarray]:
+    shape = X.shape
+    pool_size = X.shape[-1]
+
+    averages = X.mean(axis=-1)
+
+    distributed = np.ones(shape=(1, 1, 1, pool_size), dtype=np.float32)
+    distributed /= pool_size
+
+    shape = (windows, *output_size, -1)
+
+    return np.swapaxes(averages, 0, -1).reshape(*shape), distributed

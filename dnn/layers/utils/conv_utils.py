@@ -143,7 +143,7 @@ def vectorize_kernel(kernel: np.ndarray, reshape: Tuple[int, ...] = ()) -> np.nd
     return (
         vectorize_kernel_no_reshape(kernel)
         if not reshape
-        else vectorize_ip_reshape(kernel, reshape=reshape)
+        else vectorize_kernel_reshape(kernel, reshape=reshape)
     )
 
 

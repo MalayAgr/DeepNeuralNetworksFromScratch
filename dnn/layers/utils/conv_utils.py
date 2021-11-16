@@ -134,7 +134,7 @@ def prepare_ip_for_conv(
     return (
         vectorize_ip_no_reshape(X, kernel_size, stride, (oH, oW))
         if not vec_reshape
-        else vectorize_ip_reshape(X, kernel_size, (oH, oW), reshape=vec_reshape)
+        else vectorize_ip_reshape(X, kernel_size, stride, (oH, oW), reshape=vec_reshape)
     )
 
 
@@ -229,10 +229,11 @@ def backprop_ip_depthwise_conv2d(grad: np.ndarray, kernel: np.ndarray) -> np.nda
     return np.moveaxis(dIp, 2, 1)
 
 
+@optional_jit
 def accumulate_dX_conv(
-    dX_shape: Tuple[int, ...],
+    grad_shape: Tuple[int, ...],
     output_size: Tuple[int, int],
-    dIp: np.ndarray,
+    vec_ip_grad: np.ndarray,
     stride: Tuple[int, int],
     kernel_size: Tuple[int, int],
     reshape: Tuple[int, ...],
@@ -242,19 +243,23 @@ def accumulate_dX_conv(
     kH, kW = kernel_size
     sH, sW = stride
 
-    dX = np.zeros(shape=dX_shape, dtype=np.float32)
+    grad = np.zeros(shape=grad_shape, dtype=np.float32)
 
     slice_idx = slice_idx_generator(output_size[0], output_size[1], sH, sW)
 
-    for idx, (start_r, start_c) in enumerate(slice_idx):
+    idx = 0
+    for start_r, start_c in slice_idx:
         end_r, end_c = start_r + kH, start_c + kW
-        dX[..., start_r:end_r, start_c:end_c] += dIp[:, idx, ...].reshape(*reshape)
+        vec_ip_grad_slice = vec_ip_grad[:, idx, ...].copy()
+        grad[..., start_r:end_r, start_c:end_c] += vec_ip_grad_slice.reshape((reshape))
+        idx += 1
 
     if padding != (0, 0):
         pH, pW = padding
-        dX = dX[..., pH:-pH, pW:-pW]
+        grad = grad[..., pH:-pH, pW:-pW]
 
     if moveaxis is False:
-        return dX
+        return grad
 
-    return np.moveaxis(dX, 0, -1)
+    axes = (1, 2, 3, 0)
+    return np.transpose(grad, axes)

@@ -184,9 +184,9 @@ class Conv(BaseLayer):
         vec_ip_grad = self.compute_vec_ip_gradient(grad)
 
         return cutils.accumulate_dX_conv(
-            dX_shape=ip_gradient_shape,
+            grad_shape=ip_gradient_shape,
             output_size=self.output_area(),
-            dIp=vec_ip_grad,
+            vec_ip_grad=vec_ip_grad,
             stride=self.stride,
             kernel_size=self.kernel_size,
             reshape=(-1, self.ip_C, self.kernel_H, self.kernel_W),

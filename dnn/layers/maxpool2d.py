@@ -115,9 +115,9 @@ class MaxPooling2D(BaseLayer):
         padded_shape = (ipH + 2 * self.p_H, ipW + 2 * self.p_W)
 
         return cutils.accumulate_dX_conv(
-            dX_shape=(grad.shape[0], self.windows, *padded_shape),
+            grad_shape=(grad.shape[0], self.windows, *padded_shape),
             output_size=self.output_area(),
-            dIp=self._dX_share * grad[..., None],
+            vec_ip_grad=self._dX_share * grad[..., None],
             stride=self.stride,
             kernel_size=self.pool_size,
             reshape=(-1, self.windows, self.pool_H, self.pool_W),

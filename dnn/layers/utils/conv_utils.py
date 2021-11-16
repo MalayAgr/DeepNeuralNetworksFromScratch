@@ -83,7 +83,7 @@ def prepare_ip_for_conv(
     oW = compute_conv_output_dim(ipW, kW, pW, sW)
 
     if padding != (0, 0):
-        X, _ = pad(X, pH, pW)
+        X = pad(X, pH, pW)
 
     return vectorize_ip_for_conv(X, (kH, kW), stride, (oH, oW), reshape=vec_reshape)
 

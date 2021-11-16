@@ -1,5 +1,6 @@
+from collections.abc import Iterator
 from math import ceil
-from typing import Generator, Tuple
+from typing import Tuple
 
 import numpy as np
 
@@ -25,33 +26,78 @@ def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
     return np.pad(X, ((0, 0), (pad_H, pad_H), (pad_W, pad_W), (0, 0)))
 
 
-def slice_idx_generator(
-    oH: int, oW: int, sH: int, sW: int
-) -> Generator[Tuple[int, int], None, None]:
-    return ((i * sH, j * sW) for i in range(oH) for j in range(oW))
+@optional_jit
+def slice_idx_generator(oH: int, oW: int, sH: int, sW: int) -> np.ndarray:
+    indices = np.empty((oH * oW, 2), np.int16)
+
+    ax = np.arange(oH)
+    ax *= sH
+    ax = np.repeat(ax, oW)
+
+    indices[:, 0] = ax
+
+    ax = np.arange(oW)
+    ax *= sW
+    ax = np.repeat(ax, oH)
+    ax = ax.reshape((oW, oH))
+    ax = ax.T.flatten()
+
+    indices[:, 1] = ax
+
+    return indices
 
 
-def vectorize_ip_for_conv(
+@optional_jit
+def vectorize_ip_no_reshape(
     X: np.ndarray,
     kernel_size: Tuple[int, int],
     stride: Tuple[int, int],
     output_size: Tuple[int, int],
-    reshape: Tuple[int, ...] = (),
 ) -> np.ndarray:
     sH, sW = stride
     kH, kW = kernel_size
     oH, oW = output_size
 
+    filters, batch_size = X.shape[0], X.shape[-1]
+
     indices = slice_idx_generator(oH, oW, sH, sW)
+    n_indices = indices.shape[0]
+    arrays = np.empty((n_indices, filters, kH, kW, batch_size), np.float32)
 
-    if not reshape:
-        reshape = (-1, X.shape[-1])
+    idx = 0
+    for i, j in indices:
+        arrays[idx, ...] = X[:, i : i + kH, j : j + kW]
+        idx += 1
 
-    vectorized_ip = np.array(
-        tuple(X[:, i : i + kH, j : j + kW].reshape(*reshape) for i, j in indices)
-    )
+    arrays = arrays.reshape((n_indices, -1, batch_size))
+    return arrays
 
-    return vectorized_ip
+
+@optional_jit
+def vectorize_ip_reshape(
+    X: np.ndarray,
+    kernel_size: Tuple[int, int],
+    stride: Tuple[int, int],
+    output_size: Tuple[int, int],
+    reshape: Tuple[int, ...],
+):
+    sH, sW = stride
+    kH, kW = kernel_size
+    oH, oW = output_size
+    batch_size = X.shape[-1]
+
+    indices = slice_idx_generator(oH, oW, sH, sW)
+    n_indices = indices.shape[0]
+
+    arrays = np.empty((n_indices, reshape[0], kH, kW, batch_size), np.float32)
+
+    idx = 0
+    for i, j in indices:
+        arrays[idx, ...] = X[:, i : i + kH, j : j + kW]
+        idx += 1
+
+    arrays = arrays.reshape((n_indices, *reshape))
+    return arrays
 
 
 @optional_jit
@@ -85,14 +131,17 @@ def prepare_ip_for_conv(
     if padding != (0, 0):
         X = pad(X, pH, pW)
 
-    return vectorize_ip_for_conv(X, (kH, kW), stride, (oH, oW), reshape=vec_reshape)
+    return (
+        vectorize_ip_no_reshape(X, kernel_size, stride, (oH, oW))
+        if not vec_reshape
+        else vectorize_ip_reshape(X, kernel_size, stride, (oH, oW), reshape=vec_reshape)
+    )
 
 
 def convolve(X: np.ndarray, weights: np.ndarray) -> np.ndarray:
     return np.matmul(X, weights[None, ...], dtype=np.float32)
 
 
-@optional_jit(nopython=False, forceobj=True)
 def convolve2d(
     X: np.ndarray, weights: np.ndarray, filters: int, op_area: Tuple[int, int]
 ) -> np.ndarray:
@@ -107,7 +156,6 @@ def convolve2d(
     return convolution
 
 
-@optional_jit(nopython=False, forceobj=True)
 def depthwise_convolve2d(
     X: np.ndarray,
     weights: np.ndarray,
@@ -181,10 +229,11 @@ def backprop_ip_depthwise_conv2d(grad: np.ndarray, kernel: np.ndarray) -> np.nda
     return np.moveaxis(dIp, 2, 1)
 
 
+@optional_jit
 def accumulate_dX_conv(
-    dX_shape: Tuple[int, ...],
+    grad_shape: Tuple[int, ...],
     output_size: Tuple[int, int],
-    dIp: np.ndarray,
+    vec_ip_grad: np.ndarray,
     stride: Tuple[int, int],
     kernel_size: Tuple[int, int],
     reshape: Tuple[int, ...],
@@ -194,19 +243,23 @@ def accumulate_dX_conv(
     kH, kW = kernel_size
     sH, sW = stride
 
-    dX = np.zeros(shape=dX_shape, dtype=np.float32)
+    grad = np.zeros(shape=grad_shape, dtype=np.float32)
 
     slice_idx = slice_idx_generator(output_size[0], output_size[1], sH, sW)
 
-    for idx, (start_r, start_c) in enumerate(slice_idx):
+    idx = 0
+    for start_r, start_c in slice_idx:
         end_r, end_c = start_r + kH, start_c + kW
-        dX[..., start_r:end_r, start_c:end_c] += dIp[:, idx, ...].reshape(*reshape)
+        vec_ip_grad_slice = vec_ip_grad[:, idx, ...].copy()
+        grad[..., start_r:end_r, start_c:end_c] += vec_ip_grad_slice.reshape((reshape))
+        idx += 1
 
     if padding != (0, 0):
         pH, pW = padding
-        dX = dX[..., pH:-pH, pW:-pW]
+        grad = grad[..., pH:-pH, pW:-pW]
 
     if moveaxis is False:
-        return dX
+        return grad
 
-    return np.moveaxis(dX, 0, -1)
+    axes = (1, 2, 3, 0)
+    return np.transpose(grad, axes)

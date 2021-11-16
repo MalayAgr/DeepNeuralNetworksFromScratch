@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import Dict, Generator, List, Tuple, Union
+from collections.abc import Iterator
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -56,7 +57,7 @@ class ComputationGraph:
 
         return self.nodes[idx]
 
-    def _sink_nodes(self) -> Generator[Tuple[str, Node], None, None]:
+    def _sink_nodes(self) -> Iterator[Tuple[str, Node]]:
         return ((node.name, node) for node in self.nodes if node.is_sink)
 
     def _reset_topological_order(self):

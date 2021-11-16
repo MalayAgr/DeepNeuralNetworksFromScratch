@@ -1,21 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
+from typing import Any, Tuple
 
 import numpy as np
 
 from .activations import ActivationType
 from .base_layer import LayerInput
 from .conv2d import Conv2D
-from .utils import (
-    backprop_bias_conv,
-    backprop_ip_depthwise_conv2d,
-    backprop_kernel_depthwise_conv2d,
-    compute_conv_padding,
-    depthwise_convolve2d,
-    prepare_ip_for_conv,
-    vectorize_kernel_for_conv_r,
-)
+from .utils import conv_utils as cutils
 
 
 class DepthwiseConv2D(Conv2D):
@@ -73,20 +65,20 @@ class DepthwiseConv2D(Conv2D):
         return c * self.ip_C, h, w, m
 
     def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
-        ip = prepare_ip_for_conv(
+        ip = cutils.prepare_ip_for_conv(
             X=self.input(),
             kernel_size=self.kernel_size,
             stride=self.stride,
-            padding=compute_conv_padding(self.kernel_size, mode=self.padding),
+            padding=self.pad_area(),
             vec_reshape=(self.ip_C, self.kernel_H * self.kernel_W, -1),
         )
         ip = ip.transpose(-1, 1, 0, 2)
 
         shape = (self.ip_C, -1, self.multiplier)
-        return ip, vectorize_kernel_for_conv_r(self.kernels, reshape=shape)
+        return ip, cutils.vectorize_kernel_for_conv_r(self.kernels, reshape=shape)
 
     def conv_func(self) -> np.ndarray:
-        return depthwise_convolve2d(
+        return cutils.depthwise_convolve2d(
             X=self._vec_ip,
             weights=self._vec_kernel,
             multiplier=self.multiplier,
@@ -104,7 +96,7 @@ class DepthwiseConv2D(Conv2D):
         return grad
 
     def compute_kernel_gradient(self, grad: np.ndarray) -> np.ndarray:
-        return backprop_kernel_depthwise_conv2d(
+        return cutils.backprop_kernel_depthwise_conv2d(
             ip=self._vec_ip,
             grad=grad,
             kernel_size=self.kernel_size,
@@ -112,7 +104,9 @@ class DepthwiseConv2D(Conv2D):
         )
 
     def compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
-        return backprop_bias_conv(grad=grad, axis=(0, 2), reshape=self.biases.shape[1:])
+        return cutils.backprop_bias_conv(
+            grad=grad, axis=(0, 2), reshape=self.biases.shape[1:]
+        )
 
     def compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
-        return backprop_ip_depthwise_conv2d(grad=grad, kernel=self._vec_kernel)
+        return cutils.backprop_ip_depthwise_conv2d(grad=grad, kernel=self._vec_kernel)

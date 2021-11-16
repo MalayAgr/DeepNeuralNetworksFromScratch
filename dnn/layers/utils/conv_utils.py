@@ -24,7 +24,7 @@ def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
 
 
 @njit(cache=True)
-def slice_idx_generator(oH: int, oW: int, sH: int, sW: int) -> np.ndarray:
+def _slice_idx_generator(oH: int, oW: int, sH: int, sW: int) -> np.ndarray:
     indices = np.empty((oH * oW, 2), np.int16)
 
     ax = np.arange(oH)
@@ -45,7 +45,7 @@ def slice_idx_generator(oH: int, oW: int, sH: int, sW: int) -> np.ndarray:
 
 
 @njit(cache=True)
-def vectorize_ip_no_reshape(
+def _vectorize_ip_no_reshape(
     X: np.ndarray,
     kernel_size: Tuple[int, int],
     stride: Tuple[int, int],
@@ -57,7 +57,7 @@ def vectorize_ip_no_reshape(
 
     filters, batch_size = X.shape[0], X.shape[-1]
 
-    indices = slice_idx_generator(oH, oW, sH, sW)
+    indices = _slice_idx_generator(oH, oW, sH, sW)
     n_indices = indices.shape[0]
 
     areas = np.empty((n_indices, filters, kH, kW, batch_size), np.float32)
@@ -72,7 +72,7 @@ def vectorize_ip_no_reshape(
 
 
 @njit(cache=True)
-def vectorize_ip_reshape(
+def _vectorize_ip_reshape(
     X: np.ndarray,
     kernel_size: Tuple[int, int],
     stride: Tuple[int, int],
@@ -84,7 +84,7 @@ def vectorize_ip_reshape(
     oH, oW = output_size
     batch_size = X.shape[-1]
 
-    indices = slice_idx_generator(oH, oW, sH, sW)
+    indices = _slice_idx_generator(oH, oW, sH, sW)
     n_indices = indices.shape[0]
 
     areas = np.empty((n_indices, reshape[0], kH, kW, batch_size), np.float32)
@@ -118,21 +118,23 @@ def prepare_ip(
         X = pad(X, pH, pW)
 
     return (
-        vectorize_ip_no_reshape(X, kernel_size, stride, (oH, oW))
+        _vectorize_ip_no_reshape(X, kernel_size, stride, (oH, oW))
         if not vec_reshape
-        else vectorize_ip_reshape(X, kernel_size, stride, (oH, oW), reshape=vec_reshape)
+        else _vectorize_ip_reshape(
+            X, kernel_size, stride, (oH, oW), reshape=vec_reshape
+        )
     )
 
 
 @njit(cache=True)
-def vectorize_kernel_no_reshape(kernel: np.ndarray) -> np.ndarray:
+def _vectorize_kernel_no_reshape(kernel: np.ndarray) -> np.ndarray:
     filters = kernel.shape[-1]
     reshape = (-1, filters)
     return kernel.reshape(reshape)
 
 
 @njit(cache=True)
-def vectorize_kernel_reshape(
+def _vectorize_kernel_reshape(
     kernel: np.ndarray, reshape: Tuple[int, ...]
 ) -> np.ndarray:
     return kernel.reshape(reshape)
@@ -140,9 +142,9 @@ def vectorize_kernel_reshape(
 
 def vectorize_kernel(kernel: np.ndarray, reshape: Tuple[int, ...] = ()) -> np.ndarray:
     return (
-        vectorize_kernel_no_reshape(kernel)
+        _vectorize_kernel_no_reshape(kernel)
         if not reshape
-        else vectorize_kernel_reshape(kernel, reshape=reshape)
+        else _vectorize_kernel_reshape(kernel, reshape=reshape)
     )
 
 
@@ -227,16 +229,6 @@ def backprop_bias_conv(
     return grad
 
 
-def backprop_ip_conv2d(grad: np.ndarray, kernel: np.ndarray) -> np.ndarray:
-    return np.matmul(grad, kernel.T, dtype=np.float32)
-
-
-def backprop_ip_depthwise_conv2d(grad: np.ndarray, kernel: np.ndarray) -> np.ndarray:
-    kernel = np.swapaxes(kernel, -1, -2)
-    dIp = np.matmul(grad, kernel, dtype=np.float32)
-    return np.moveaxis(dIp, 2, 1)
-
-
 @njit(cache=True)
 def accumulate_dX_conv(
     grad_shape: Tuple[int, ...],
@@ -253,13 +245,13 @@ def accumulate_dX_conv(
 
     grad = np.zeros(shape=grad_shape, dtype=np.float32)
 
-    slice_idx = slice_idx_generator(output_size[0], output_size[1], sH, sW)
+    slice_idx = _slice_idx_generator(output_size[0], output_size[1], sH, sW)
 
     idx = 0
     for start_r, start_c in slice_idx:
         end_r, end_c = start_r + kH, start_c + kW
-        vec_ip_grad_slice = vec_ip_grad[:, idx, ...].copy()
-        grad[..., start_r:end_r, start_c:end_c] += vec_ip_grad_slice.reshape((reshape))
+        area = vec_ip_grad[:, idx, ...].copy()
+        grad[..., start_r:end_r, start_c:end_c] += area.reshape((reshape))
         idx += 1
 
     if padding != (0, 0):

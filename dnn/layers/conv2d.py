@@ -48,4 +48,4 @@ class Conv2D(Conv):
         )
 
     def compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
-        return cutils.backprop_ip_conv2d(grad=grad, kernel=self._vec_kernel)
+        return np.matmul(grad, self._vec_kernel.T, dtype=np.float32)

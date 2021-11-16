@@ -109,4 +109,6 @@ class DepthwiseConv2D(Conv2D):
         )
 
     def compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
-        return cutils.backprop_ip_depthwise_conv2d(grad=grad, kernel=self._vec_kernel)
+        kernel = np.swapaxes(self._vec_kernel, -1, -2)
+        vec_ip_grad = np.matmul(grad, kernel, dtype=np.float32)
+        return np.moveaxis(vec_ip_grad, 2, 1)

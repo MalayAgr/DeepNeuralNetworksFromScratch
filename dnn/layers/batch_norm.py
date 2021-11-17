@@ -177,7 +177,7 @@ class BatchNorm(BaseLayer):
     def output(self) -> Optional[np.ndarray]:
         return self.scaled_norm
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         return self.input_shape()
 
     def _update_mva(self, mean: np.ndarray, std: np.ndarray) -> None:

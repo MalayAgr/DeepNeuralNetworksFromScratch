@@ -58,7 +58,7 @@ class Flatten(BaseLayer):
     def output(self) -> Optional[np.ndarray]:
         return self.flat
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         if self.flat is not None:
             return self.flat.shape
 

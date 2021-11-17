@@ -82,7 +82,7 @@ class Add(MultiInputBaseLayer):
     def output(self) -> Optional[np.ndarray]:
         return self.added
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         return self.input_shape()[0]
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:

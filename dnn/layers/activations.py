@@ -123,7 +123,7 @@ class Activation(BaseLayer):
                 result.update({name: sub_cls})
         return result
 
-    def should_reshape(self, shape: Tuple) -> bool:
+    def should_reshape(self, shape: Tuple[int, ...]) -> bool:
         """Method to determine if the given shape requires reshaping.
 
         By default, it returns False, implying no reshapping is required.
@@ -458,7 +458,7 @@ class Softmax(Activation):
 
     name = "softmax"
 
-    def should_reshape(self, shape: Tuple) -> bool:
+    def should_reshape(self, shape: Tuple[int, ...]) -> bool:
         """Method to determine if the given shape requires reshaping.
 
         Returns True if shape has more than two dimensions.

@@ -133,7 +133,7 @@ class Concatenate(MultiInputBaseLayer):
     def output(self) -> Optional[np.ndarray]:
         return self.concatenated
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         axis = self._axis
 
         shapes = self.input_shape()

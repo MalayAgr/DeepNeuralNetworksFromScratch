@@ -114,7 +114,7 @@ class Conv(BaseLayer):
 
         return oH, oW
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         if self.activations is not None:
             return self.activations.shape
 
@@ -167,7 +167,7 @@ class Conv(BaseLayer):
     def compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to compute the derivative of loss wrt to the vectorized input."""
 
-    def get_input_gradient_shape(self) -> Tuple:
+    def get_input_gradient_shape(self) -> Tuple[int, ...]:
         """Method to obtain the shape of the derivative of loss wrt to the input of the layer."""
         post_pad_H, post_pad_W = self.padded_shape()
         m = self.input().shape[-1]

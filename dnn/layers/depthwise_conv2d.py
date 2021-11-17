@@ -54,7 +54,7 @@ class DepthwiseConv2D(Conv2D):
             extra = self._add_param(shape=(remaining, 1, 1, 1), initializer="zeros")
             self.biases = np.concatenate((self.biases, extra))
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         shape = super().output_shape()
 
         if self.activations is not None:

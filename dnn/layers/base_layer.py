@@ -236,7 +236,7 @@ class BaseLayer(ABC):
             "xavier_uniform": 6 / (fan_in + fan_out),
         }[initializer]
 
-    def _add_param(self, shape: Tuple, initializer: str) -> np.ndarray:
+    def _add_param(self, shape: Tuple[int, ...], initializer: str) -> np.ndarray:
         """Helper method to initialize a parameter with the given shape and initializer.
 
         Arguments:
@@ -315,7 +315,7 @@ class BaseLayer(ABC):
 
         return ret_val
 
-    def input_shape(self) -> Tuple:
+    def input_shape(self) -> Tuple[int, ...]:
         """Method to obtain the expected shape of the input of the layer.
 
         Raises
@@ -337,7 +337,7 @@ class BaseLayer(ABC):
         """
 
     @abstractmethod
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         """
         Method to obtain the expected shape of the output of the layer.
         """
@@ -539,7 +539,7 @@ class MultiInputBaseLayer(BaseLayer):
 
         return ret_val
 
-    def input_shape(self) -> List[Tuple]:
+    def input_shape(self) -> List[Tuple[int, ...]]:
         """Method to obtain the expected shapes of the inputs of the layer."""
         return [
             ip.shape if isinstance(ip, Input) else ip.output_shape()

@@ -146,7 +146,7 @@ class Dense(BaseLayer):
     def output(self) -> Optional[np.ndarray]:
         return self.activations
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         if self.activations is not None:
             return self.activations.shape
 

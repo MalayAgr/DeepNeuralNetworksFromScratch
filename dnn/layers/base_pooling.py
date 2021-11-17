@@ -19,7 +19,7 @@ class BasePooling(BaseLayer):
     def __init__(
         self,
         ip: LayerInput,
-        pool_size: Tuple,
+        pool_size: Tuple[int, ...],
         stride: Tuple[int, int] = (2, 2),
         padding: str = "valid",
         name: str = None,
@@ -58,7 +58,7 @@ class BasePooling(BaseLayer):
     def pad_area(self) -> Tuple[int, int]:
         return cutils.compute_conv_padding(self.pool_size, mode=self.padding)
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         if self.pooled is not None:
             return self.pooled.shape
 

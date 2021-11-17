@@ -221,7 +221,7 @@ def backprop_kernel_depthwise_conv2d(
 
 
 def backprop_bias_conv(
-    grad: np.ndarray, axis: Tuple, reshape: Tuple[int, ...] = ()
+    grad: np.ndarray, axis: Tuple[int, ...], reshape: Tuple[int, ...] = ()
 ) -> np.ndarray:
     grad = grad.sum(axis=axis)
     if reshape:
@@ -258,11 +258,11 @@ def accumulate_dX_conv(
         pH, pW = padding
         grad = grad[..., pH:-pH, pW:-pW]
 
-    if moveaxis is False:
-        return grad
+    if moveaxis is True:
+        axes = (1, 2, 3, 0)
+        grad = np.transpose(grad, axes)
 
-    axes = (1, 2, 3, 0)
-    return np.transpose(grad, axes)
+    return grad
 
 
 @njit(cache=True)

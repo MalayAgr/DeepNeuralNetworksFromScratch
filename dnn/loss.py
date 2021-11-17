@@ -31,7 +31,7 @@ class Loss(ABC):
                 f"{self.__class__.__name__} expects at least {self.ndim}-dimensional inputs"
             )
 
-    def should_reshape(self, shape: Tuple) -> bool:
+    def should_reshape(self, shape: Tuple[int, ...]) -> bool:
         """Method to determine if the labels and predictions should be reshaped."""
         return False
 
@@ -105,7 +105,7 @@ class BinaryCrossEntropy(Loss):
     ndim = 2
     epsilon = 1e-15
 
-    def should_reshape(self, shape: Tuple) -> bool:
+    def should_reshape(self, shape: Tuple[int, ...]) -> bool:
         return len(shape) > self.ndim or shape[0] != 1
 
     @staticmethod

@@ -80,7 +80,7 @@ class Dropout(BaseLayer):
     def output(self) -> Optional[np.ndarray]:
         return self.dropped
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         return self.input_shape()
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:

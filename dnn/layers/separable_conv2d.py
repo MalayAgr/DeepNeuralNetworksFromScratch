@@ -80,13 +80,13 @@ class SeparableConv2D(BaseLayer):
     def input(self) -> np.ndarray:
         return self._depthwise.input()
 
-    def input_shape(self) -> Tuple:
+    def input_shape(self) -> Tuple[int, ...]:
         return self._depthwise.input_shape()
 
     def output(self) -> Optional[np.ndarray]:
         return self._pointwise.output()
 
-    def output_shape(self) -> Tuple:
+    def output_shape(self) -> Tuple[int, ...]:
         return self._pointwise.output_shape()
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:

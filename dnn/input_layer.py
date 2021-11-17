@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 
@@ -26,7 +26,7 @@ class Input:
         The last dimension refers to the batch size. Initially, it is None.
     """
 
-    def __init__(self, shape: Tuple, *args, **kwargs) -> None:
+    def __init__(self, shape: Tuple[int, ...], *args, **kwargs) -> None:
         """
         Initializes an Input instance with the given input shape.
 
@@ -50,7 +50,7 @@ class Input:
         return self.__str__()
 
     @property
-    def shape(self) -> Tuple:
+    def shape(self) -> Tuple[int, ...]:
         """
         The shape of the input of the layer.
         """

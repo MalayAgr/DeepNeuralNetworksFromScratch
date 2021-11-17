@@ -7,7 +7,7 @@ import numpy as np
 
 
 class Loss(ABC):
-    name: List = None
+    name: List[str] = None
     ndim: int = None
 
     @classmethod

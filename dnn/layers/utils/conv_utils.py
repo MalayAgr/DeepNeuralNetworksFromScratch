@@ -250,7 +250,7 @@ def accumulate_dX_conv(
     idx = 0
     for start_r, start_c in slice_idx:
         end_r, end_c = start_r + kH, start_c + kW
-        area = vec_ip_grad[:, idx, ...].copy()
+        area = np.ascontiguousarray(vec_ip_grad[:, idx, ...])
         grad[..., start_r:end_r, start_c:end_c] += area.reshape((reshape))
         idx += 1
 

@@ -4,8 +4,33 @@ from abc import abstractmethod
 from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
+from numba import njit
 
 from .base_layer import BaseLayer, LayerInput
+
+
+@njit(cache=True, parallel=True)
+def _relu(ip: np.ndarray) -> np.ndarray:
+    return np.maximum(0, ip)
+
+
+@njit(cache=True)
+def _softmax_derivative(activations: np.ndarray) -> np.ndarray:
+    categories = activations.shape[0]
+
+    # Create a (batch_size, c, c) array where each row i in the (c, c) matrices
+    # has 1 - s_i in the i-th column and -s_i everywhere else
+    grads = np.eye(categories).astype(np.float32) - np.expand_dims(activations.T, -1)
+
+    # RHS converts activations from (c, batch_size) to (batch_size, 1, c)
+    # The operation, thus, broadcasts each (1, c) vector to (c, c)
+    # This multiplies each row in the (c, c) matrices with [s_1, s_2, ..., s_c]
+    grads *= np.expand_dims(activations, 1).T
+
+    # Move the batch_size back to the end
+    axes = (1, 2, 0)
+    grads = np.transpose(grads, axes=axes)
+    return grads
 
 
 class Activation(BaseLayer):
@@ -365,8 +390,9 @@ class Sigmoid(Activation):
     name = "sigmoid"
 
     def activation_func(self, ip: np.ndarray) -> np.ndarray:
-        z = 1.0
-        z /= np.exp(-ip) + 1
+        z = np.exp(-ip)
+        z += 1
+        z = np.reciprocal(z)
         return z
 
     def derivative_func(
@@ -487,6 +513,8 @@ class Softmax(Activation):
     ) -> np.ndarray:
         if activations is None:
             activations = self.activation_func(ip)
+
+        return _softmax_derivative(activations)
 
         categories = activations.shape[0]
 
@@ -622,7 +650,7 @@ class ReLU(Activation):
     name = "relu"
 
     def activation_func(self, ip):
-        return np.maximum(0, ip)
+        return _relu(ip)
 
     def derivative_func(self, ip, activations=None):
         return np.where(ip > 0, 1.0, 0)

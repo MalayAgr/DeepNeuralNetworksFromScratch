@@ -41,7 +41,7 @@ class Conv2D(Conv):
         )
 
     def compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
-        return cutils.backprop_bias_conv(
+        return cutils.backprop_bias(
             grad=grad,
             axis=(0, 1),
             reshape=self.biases.shape[1:],

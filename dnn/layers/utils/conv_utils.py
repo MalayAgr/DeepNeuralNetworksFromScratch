@@ -94,7 +94,7 @@ def _vectorize_kernel_reshape(
     return kernel.reshape(reshape)
 
 
-def _backprop_kernel_generic_conv(
+def _backprop_kernel(
     ip: np.ndarray,
     grad: np.ndarray,
     kernel_size: Tuple[int, int],
@@ -200,7 +200,7 @@ def depthwise_convolve2d(
 def backprop_kernel_conv2d(
     ip: np.ndarray, grad: np.ndarray, kernel_size: Tuple[int, int], filters: int
 ) -> np.ndarray:
-    return _backprop_kernel_generic_conv(
+    return _backprop_kernel(
         ip=ip[..., None],
         grad=grad[..., None, :],
         kernel_size=kernel_size,
@@ -212,7 +212,7 @@ def backprop_kernel_conv2d(
 def backprop_kernel_depthwise_conv2d(
     ip: np.ndarray, grad: np.ndarray, kernel_size: Tuple[int, int], multiplier: int
 ) -> np.ndarray:
-    return _backprop_kernel_generic_conv(
+    return _backprop_kernel(
         ip=np.swapaxes(ip, -1, -2),
         grad=grad,
         kernel_size=kernel_size,
@@ -220,12 +220,11 @@ def backprop_kernel_depthwise_conv2d(
     )
 
 
-def backprop_bias_conv(
-    grad: np.ndarray, axis: Tuple[int, ...], reshape: Tuple[int, ...] = ()
+def backprop_bias(
+    grad: np.ndarray, axis: Tuple[int, ...], reshape: Tuple[int, ...]
 ) -> np.ndarray:
     grad = grad.sum(axis=axis)
-    if reshape:
-        grad = grad.reshape(-1, *reshape)
+    grad = grad.reshape((-1, *reshape))
     return grad
 
 

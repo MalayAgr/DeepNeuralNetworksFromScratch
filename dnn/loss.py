@@ -4,6 +4,39 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Type
 
 import numpy as np
+from numba import njit
+
+
+@njit(cache=True)
+def _clip(a: np.ndarray, epsilon: float) -> np.ndarray:
+    if ((a == 1) | (a <= 0)).any():
+        a = np.maximum(a, epsilon).astype(np.float32)
+        a = np.minimum(1 - epsilon, a).astype(np.float32)
+    return a
+
+
+@njit(cache=True)
+def _binary_crossentropy(
+    labels: np.ndarray, preds: np.ndarray, epsilon: float
+) -> float:
+    preds = _clip(preds, epsilon)
+    loss = labels * np.log(preds)
+    loss += (1 - labels) * np.log(1 - preds)
+    loss = np.sum(-loss)
+    loss /= labels.shape[-1]
+    return loss
+
+
+@njit(cache=True)
+def _binary_crossentropy_derivative(
+    labels: np.ndarray, preds: np.ndarray, epsilon: float
+) -> np.ndarray:
+    preds = _clip(preds, epsilon)
+    grad = 1 - labels
+    grad /= 1 - preds
+    grad -= labels / preds
+    grad /= labels.shape[-1]
+    return grad
 
 
 class Loss(ABC):
@@ -110,25 +143,14 @@ class BinaryCrossEntropy(Loss):
         return labels.reshape(1, -1), preds.reshape(1, -1)
 
     def loss_func(self, labels: np.ndarray, preds: np.ndarray) -> float:
-        if 1.0 in preds or (preds <= 0).any():
-            preds = np.clip(preds, self.epsilon, 1.0 - self.epsilon)
-
-        loss = labels * np.log(preds)
-        loss += (1 - labels) * np.log(1 - preds)
-        loss = np.sum(-loss)
-
-        loss = np.squeeze(loss) / labels.shape[-1]
-
-        return loss
+        return _binary_crossentropy(labels=labels, preds=preds, epsilon=self.epsilon)
 
     def loss_derivative(self, labels: np.ndarray, preds: np.ndarray) -> np.ndarray:
-        if 1.0 in preds or (preds <= 0).any():
-            preds = np.clip(preds, self.epsilon, 1.0 - self.epsilon)
-
-        grad = (1 - labels) / (1 - preds)
-        grad -= labels / preds
-        grad /= labels.shape[-1]
-        return grad
+        return _binary_crossentropy_derivative(
+            labels=labels,
+            preds=preds,
+            epsilon=self.epsilon,
+        )
 
 
 class MeanSquaredError(Loss):

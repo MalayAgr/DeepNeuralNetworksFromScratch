@@ -11,11 +11,24 @@ from .base_layer import BaseLayer, LayerInput
 
 @njit(cache=True, parallel=True)
 def _relu(ip: np.ndarray) -> np.ndarray:
+    """JIT function to compute the ReLU activation function.
+
+    Arguments
+    ----------
+    ip: Input for which the activations are to be computed.
+    """
     return np.maximum(0, ip)
 
 
 @njit(cache=True)
 def _softmax_derivative(activations: np.ndarray) -> np.ndarray:
+    """JIT function to compute the derivative of softmax with
+    respect to its input.
+
+    Arguments
+    ----------
+    activations: Output of softmax for the input.
+    """
     categories = activations.shape[0]
 
     # Create a (batch_size, c, c) array where each row i in the (c, c) matrices
@@ -77,6 +90,12 @@ class Activation(BaseLayer):
         the given input takes precedence. This is the method that should be used
         to do computations.
 
+    should_reshape(shape: Tuple[int, ...]) -> bool
+        Returns True if the an array with the given shape should be reshaped.
+
+    reshape(array: np.ndarray) -> np.ndarray
+        Static method which reshapes the given array.
+
     Interface
     ----------
     Subclasses must implement the following methods:
@@ -88,7 +107,12 @@ class Activation(BaseLayer):
     reset = ("activations",)
 
     def __init__(
-        self, *args, ip: Optional[LayerInput] = None, name: str = None, **kwargs
+        self,
+        *args,
+        ip: Optional[LayerInput] = None,
+        name: str = None,
+        trainable=False,
+        **kwargs
     ) -> None:
         """
         Arguments
@@ -99,8 +123,11 @@ class Activation(BaseLayer):
         name: Name of the layer (used in computation graphs). The name should be unique
         wrt all other layers in the same model. When None, a name is automatically created.
         Defaults to None.
+
+        trainable: Indicates whether the layer is trainable or not. It is useful for
+        activation functions like Maxout. Defaults to False.
         """
-        super().__init__(ip=ip, trainable=False, name=name)
+        super().__init__(ip=ip, trainable=trainable, name=name)
 
         self.activations = None
 
@@ -180,7 +207,7 @@ class Activation(BaseLayer):
 
         Arguments
         ----------
-        ip (Numpy-array): The input for the function.
+        ip: The input for the function.
 
         Example
         ----------
@@ -392,7 +419,7 @@ class Sigmoid(Activation):
     def activation_func(self, ip: np.ndarray) -> np.ndarray:
         z = np.exp(-ip)
         z += 1
-        z = np.reciprocal(z)
+        z = 1.0 / z
         return z
 
     def derivative_func(
@@ -421,9 +448,9 @@ class Softmax(Activation):
 
     Derivative
     ----------
-    Consider that ip is a c-dim column vector, [i_1, i_2, ..., i_c] and
-    softmax(ip) is another c-dim column vector, [s_1, s_2, ..., s_c]. Then,
-    the derivate is a (c, c) matrix where the entry in row i and column j is defined as:
+    Consider that ip is a c-dim column vector. Then softmax(ip) is another c-dim column
+    vector, [s_1, s_2, ..., s_c]. The derivate is a (c, c) matrix where the entry in
+    row i and column j is defined as:
         - s_i * (1 - s_i) if i = j
         - -(s_i * s_j) if i != j
 
@@ -491,7 +518,7 @@ class Softmax(Activation):
 
         Arguments
         ----------
-        shape: Shape that is should be considered for reshapping.
+        shape: Shape that should be considered for reshapping.
         """
         return len(shape) > 2
 
@@ -778,4 +805,5 @@ class ELU(LeakyReLU):
         return np.where(ip > 0, 1.0, self.alpha * np.exp(ip))
 
 
+# Type alias that can be used by layers to annonate activations
 ActivationType = Union[Activation, str, None]

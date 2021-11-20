@@ -64,7 +64,7 @@ class Activation(BaseLayer):
     name: str
         Common name for the activation. Defaults to None.
         Overriding this and setting it to a non-None value will
-        ensure that the subclass is registered in the REGISTRY.
+        ensure that the subclass is registered in the registry.
 
     REGISTRY: dict of (str, subclass of Activation)
         Registry of all subclasses (at any depth).

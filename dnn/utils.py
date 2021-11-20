@@ -11,7 +11,7 @@ from dnn.loss import Loss
 
 
 def loss_factory(loss: str) -> Loss:
-    registry = Loss.get_loss_classes()
+    registry = Loss.REGISTRY
     cls = registry.get(loss)
     if cls is None:
         raise ValueError("Loss with this name does not exist")

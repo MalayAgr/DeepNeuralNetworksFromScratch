@@ -1,24 +1,19 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import Dict, List, Tuple, Type
 
 import numpy as np
 
 
 class Loss(ABC):
-    name: List[str] = None
+    names: List[str] = None
+    REGISTRY: Dict[str, Type[Loss]] = {}
     ndim: int = None
 
-    @classmethod
-    def get_loss_classes(cls) -> dict:
-        result = {}
-
-        for sub_cls in cls.__subclasses__():
-            result.update(sub_cls.get_loss_classes())
-            if sub_cls.name is not None:
-                result.update({name: sub_cls for name in sub_cls.name})
-        return result
+    def __init_subclass__(cls, **kwargs) -> None:
+        if (names := cls.names) is not None:
+            Loss.REGISTRY.update({name: cls for name in names})
 
     def validate_input(self, labels: np.ndarray, preds: np.ndarray) -> None:
         if labels.shape != preds.shape:
@@ -101,7 +96,7 @@ class Loss(ABC):
 
 
 class BinaryCrossEntropy(Loss):
-    name = ["binary_crossentropy", "bce"]
+    names = ["binary_crossentropy", "bce"]
     ndim = 2
     epsilon = 1e-15
 
@@ -137,7 +132,7 @@ class BinaryCrossEntropy(Loss):
 
 
 class MeanSquaredError(Loss):
-    name = ["mean_squared_error", "mse"]
+    names = ["mean_squared_error", "mse"]
     ndim = 2
 
     def should_reshape(self, shape: Tuple) -> bool:
@@ -165,7 +160,7 @@ class MeanSquaredError(Loss):
 
 
 class CategoricalCrossEntropy(Loss):
-    name = ["categorial_crossentropy", "cce"]
+    names = ["categorial_crossentropy", "cce"]
     ndim = 2
 
     def should_reshape(self, shape: Tuple) -> bool:

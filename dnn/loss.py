@@ -39,6 +39,27 @@ def _binary_crossentropy_derivative(
     return grad
 
 
+@njit(cache=True)
+def _categorial_crossentropy(labels: np.ndarray, preds: np.ndarray) -> float:
+    prod = labels * np.log(preds)
+    bs = labels.shape[-1]
+    loss = 0.0
+    for idx in np.arange(bs):
+        loss += -prod[..., idx].sum()
+    loss /= bs
+    return loss
+
+
+@njit(cache=True)
+def _categorial_crossentropy_derivative(
+    labels: np.ndarray, preds: np.ndarray
+) -> np.ndarray:
+    grad = -labels
+    grad /= preds
+    grad /= labels.shape[-1]
+    return grad
+
+
 class Loss(ABC):
     names: List[str] = None
     REGISTRY: Dict[str, Type[Loss]] = {}
@@ -109,7 +130,7 @@ class Loss(ABC):
         if self.should_reshape(labels.shape):
             labels, preds = self.reshape_labels_and_preds(labels, preds)
 
-        return self.loss_func(labels, preds).astype(np.float32)
+        return self.loss_func(labels, preds)
 
     def compute_derivatives(self, labels: np.ndarray, preds: np.ndarray) -> np.ndarray:
         self.validate_input(labels, preds)
@@ -196,12 +217,7 @@ class CategoricalCrossEntropy(Loss):
         return labels.reshape(classes, -1), preds.reshape(classes, -1)
 
     def loss_func(self, labels: np.ndarray, preds: np.ndarray) -> float:
-        loss = -np.sum(labels * np.log(preds), axis=0, keepdims=True)
-        loss = np.sum(loss) / labels.shape[-1]
-        return np.squeeze(loss)
+        return _categorial_crossentropy(labels=labels, preds=preds)
 
     def loss_derivative(self, labels: np.ndarray, preds: np.ndarray) -> np.ndarray:
-        grad = -labels
-        grad /= preds
-        grad /= labels.shape[-1]
-        return grad
+        return _categorial_crossentropy_derivative(labels=labels, preds=preds)

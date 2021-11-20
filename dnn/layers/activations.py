@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import Dict, Optional, Tuple, Union
+import functools
+from abc import ABCMeta, abstractmethod
+from typing import Dict, Optional, Tuple, Type, Union
 
 import numpy as np
 from numba import njit
@@ -61,17 +62,15 @@ class Activation(BaseLayer):
         Calculated activations for the given input.
 
     name: str
-        Class attribute used to identify an activation class uniquely
-        and to discover user-defined activations automatically. Note:
-        It is different from the name attribute inherited from BaseLayer.
+        Common name for the activation. Defaults to None.
+        Overriding this and setting it to a non-None value will
+        ensure that the subclass is registered in the REGISTRY.
+
+    REGISTRY: dict of (str, subclass of Activation)
+        Registry of all subclasses (at any depth).
 
     Methods
     ---------
-    get_activation_classes() -> dict
-        Class method which returns a dictionary containing the class attribute name
-        as the key and an instance of Activation as the value. Essentially acts as
-        a registry for activations.
-
     activation_func(ip: np.ndarray) -> np.ndarray
         Returns the computed activations for the given input.
 
@@ -103,7 +102,8 @@ class Activation(BaseLayer):
         - derivative_func(ip, activations)
     """
 
-    name = None
+    name: str = None
+    REGISTRY: Dict[str, Type[Activation]] = {}
     reset = ("activations",)
 
     def __init__(
@@ -112,7 +112,7 @@ class Activation(BaseLayer):
         ip: Optional[LayerInput] = None,
         name: str = None,
         trainable=False,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Arguments
@@ -131,49 +131,9 @@ class Activation(BaseLayer):
 
         self.activations = None
 
-    @classmethod
-    def get_activation_classes(cls) -> Dict[str, Activation]:
-        """Class method to obtain a registry of all subclasses of Activation.
-
-        This allows users to refer to activations by a string name
-        instead of importing a class. The registry is a dictionary.
-        Each value in the dictionary is a subclass of Activation and
-        the key is the corresponding value of the class attribute name
-        of the subclass.
-
-        Example
-        ----------
-        Consider the following user-defined subclass.
-        Assume necessary methods have been implemented:
-
-        >>> class UserActivation(Activation):
-        ...     name = 'user_activation'
-
-        Then, using the method:
-
-        >>> Activation.get_activation_classes()
-        {'linear': dnn.layers.activations.Linear,
-        'sigmoid': dnn.layers.activations.Sigmoid,
-        ...
-        'user_activation': __main__.UserActivation}
-
-        To initialize:
-
-        >>> registry = Activation.get_activation_classes()
-        >>> cls = registry['user_activation']
-        >>> act = cls()
-        >>> type(act)
-        __main__.UserActivation
-        """
-        result = {}
-
-        for sub_cls in cls.__subclasses__():
-            name = sub_cls.name
-            # Find subclasses of subclasses
-            result.update(sub_cls.get_activation_classes())
-            if name is not None and name not in result:
-                result.update({name: sub_cls})
-        return result
+    def __init_subclass__(cls, **kwargs) -> None:
+        if (name := cls.name) is not None:
+            Activation.REGISTRY[name] = cls
 
     def should_reshape(self, shape: Tuple[int, ...]) -> bool:
         """Method to determine if the given shape requires reshaping.

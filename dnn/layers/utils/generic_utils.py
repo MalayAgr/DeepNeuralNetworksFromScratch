@@ -9,7 +9,7 @@ from dnn.layers.base_layer import LayerInput
 def activation_factory(
     activation: str, *args, ip: Optional[LayerInput] = None, **kwargs
 ) -> Activation:
-    registry = Activation.get_activation_classes()
+    registry = Activation.REGISTRY
     cls = registry.get(activation)
     if cls is None:
         raise ValueError("Activation with this name does not exist.")

@@ -20,6 +20,8 @@ _LOG_MSGS = {
     1: "\r  Step {step}: Train loss = {cost: .5f}",
 }
 
+LossType = Union[str, Loss, List[Union[str, Loss]]]
+
 
 class Model:
     def __init__(
@@ -101,10 +103,11 @@ class Model:
             raise TypeError("Expected a list of inputs.")
 
         if len(inputs) != len(self.inputs):
-            raise ValueError(
+            msg = (
                 "Unexpected number of inputs passed to the model. "
                 f"It expected {len(self.inputs)} but got {len(inputs)}."
             )
+            raise ValueError(msg)
 
         if not self.built:
             self.build()
@@ -128,15 +131,13 @@ class Model:
                 op = op[0]
         return op
 
-    def compile(
-        self, opt: Optimizer, loss: Union[str, Loss, List[Union[str, Loss]]]
-    ) -> None:
+    def compile(self, opt: Optimizer, loss: LossType) -> None:
         if not isinstance(opt, Optimizer):
             msg = f"Expected an instance of Optimizer but got {type(opt)} instead."
             raise TypeError(msg)
 
         if not isinstance(loss, List):
-            loss = [loss]
+            loss = [loss] * len(self.inputs)
 
         self.opt = opt
         self.losses = [loss_factory(l) if isinstance(l, str) else l for l in loss]
@@ -151,10 +152,8 @@ class Model:
         cost = 0.0
         grads: List[np.ndarray] = []
 
-        num_losses = len(self.losses)
-
         for idx, (y, pred) in enumerate(zip(batch_Y, preds)):
-            loss = self.losses[0] if num_losses == 1 else self.losses[idx]
+            loss = self.losses[idx]
             cost += loss.compute_loss(y, pred)
             grads.append(loss.compute_derivatives(y, pred))
 
@@ -212,7 +211,8 @@ class Model:
         mutils.validate_labels_against_outputs(Y, self.outputs)
 
         if verbosity not in [0, 1]:
-            raise ValueError("Unexpected verbosity level. Can only be 0 or 1.")
+            msg = f"Unexpected verbosity level. Can only be 0 or 1 but got {verbosity}."
+            raise ValueError(msg)
 
         with TrainingContext(self, training=True) as _:
             history = self.train_loop(

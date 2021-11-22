@@ -4,7 +4,7 @@ from typing import Dict, List
 import numpy as np
 
 from dnn import Input
-from dnn.layers.base_layer import BaseLayerType, MultiInputBaseLayer
+from dnn.layers.base_layer import BaseLayerType
 
 from .graph.core import ComputationGraph
 from .graph.nodes import LayerNode
@@ -20,11 +20,9 @@ def discover_layers(
     while queue:
         layer = queue.popleft()
 
-        ips = (
-            [layer.ip_layer]
-            if not isinstance(layer, MultiInputBaseLayer)
-            else layer.ip_layer
-        )
+        ips = layer.ip_layer
+        if not isinstance(ips, list):
+            ips = [ips]
 
         queue.extend(ip for ip in ips if ip not in inputs)
 
@@ -35,9 +33,10 @@ def discover_layers(
 
 
 def is_a_source_layer(layer: BaseLayerType, inputs: List[Input]) -> bool:
-    if isinstance(layer, MultiInputBaseLayer):
-        return all(ip in inputs for ip in layer.ip_layer)
-    return layer.ip_layer in inputs
+    ips = layer.ip_layer
+    if isinstance(ips, list):
+        return all(ip in inputs for ip in ips)
+    return ips in inputs
 
 
 def build_graph_for_model(

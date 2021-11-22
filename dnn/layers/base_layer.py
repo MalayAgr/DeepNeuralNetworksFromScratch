@@ -561,3 +561,6 @@ class MultiInputBaseLayer(BaseLayer):
         ----------
         grad: Backpropagated gradient *after* transformation using transform_backprop_gradient().
         """
+
+
+BaseLayerType = Union[BaseLayer, MultiInputBaseLayer]

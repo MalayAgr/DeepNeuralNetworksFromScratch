@@ -1,31 +1,30 @@
 from collections import deque
-from collections.abc import Iterator
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List
 
 import numpy as np
 
 from dnn import Input
-from dnn.layers import BaseLayer
-from dnn.layers.base_layer import MultiInputBaseLayer
+from dnn.layers.base_layer import BaseLayerType, MultiInputBaseLayer
 
 from .graph.core import ComputationGraph
 from .graph.nodes import LayerNode
 
 
-
 def discover_layers(
-    inputs: List[Input], outputs: List[BaseLayer]
-) -> Dict[str, BaseLayer]:
+    inputs: List[Input], outputs: List[BaseLayerType]
+) -> Dict[str, BaseLayerType]:
     queue = deque(outputs)
 
-    layers = {}
+    layers: Dict[str, BaseLayerType] = {}
 
     while queue:
         layer = queue.popleft()
 
-        ips = layer.ip_layer
-        if not isinstance(layer, MultiInputBaseLayer):
-            ips = [ips]
+        ips = (
+            [layer.ip_layer]
+            if not isinstance(layer, MultiInputBaseLayer)
+            else layer.ip_layer
+        )
 
         queue.extend(ip for ip in ips if ip not in inputs)
 
@@ -35,18 +34,16 @@ def discover_layers(
     return layers
 
 
-def is_a_source_layer(
-    layer: Union[BaseLayer, MultiInputBaseLayer], inputs: List[Input]
-) -> bool:
+def is_a_source_layer(layer: BaseLayerType, inputs: List[Input]) -> bool:
     if isinstance(layer, MultiInputBaseLayer):
         return all(ip in inputs for ip in layer.ip_layer)
     return layer.ip_layer in inputs
 
 
 def build_graph_for_model(
-    layers: List[BaseLayer],
+    layers: List[BaseLayerType],
     inputs: List[Input],
-    outputs: List[BaseLayer],
+    outputs: List[BaseLayerType],
     graph: ComputationGraph = None,
 ) -> ComputationGraph:
     graph = ComputationGraph() if graph is None else graph
@@ -60,18 +57,17 @@ def build_graph_for_model(
     return graph
 
 
-def validate_labels_against_outputs(labels: List[np.ndarray], outputs: List[BaseLayer]):
+def validate_labels_against_outputs(
+    labels: List[np.ndarray], outputs: List[BaseLayerType]
+) -> None:
     if any(y.shape[:-1] != op.output_shape()[:-1] for y, op in zip(labels, outputs)):
-        raise ValueError(
-            "Each set of labels should have the same "
-            "dimensions as the respective output layer."
-        )
+        msg = "Each set of labels should have the same dimensions as the respective output layer."
+        raise ValueError(msg)
 
 
 def validate_labels_against_samples(
     samples: List[np.ndarray], labels: List[np.ndarray]
-):
+) -> None:
     if any(x.shape[-1] != y.shape[-1] for x, y in zip(samples, labels)):
-        raise ValueError(
-            "There should be an equal number of training examples in each X, Y pair."
-        )
+        msg = "There should be an equal number of training examples in each X, Y pair."
+        raise ValueError(msg)

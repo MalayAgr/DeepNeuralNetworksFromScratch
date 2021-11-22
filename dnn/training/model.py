@@ -7,6 +7,7 @@ import numpy as np
 
 from dnn import Input
 from dnn.layers import BaseLayer
+from dnn.layers.base_layer import BaseLayerType
 from dnn.loss import Loss
 from dnn.utils import get_data_generator, loss_factory
 
@@ -14,12 +15,17 @@ from . import model_utils as mutils
 from .graph.core import ComputationGraph
 from .optimizers import Optimizer
 
+_LOG_MSGS = {
+    0: "\r  Train loss = {cost: .5f}",
+    1: "\r  Step {step}: Train loss = {cost: .5f}",
+}
+
 
 class Model:
     def __init__(
         self,
         inputs: Union[List[Input], Input],
-        outputs: Union[List[BaseLayer], BaseLayer],
+        outputs: Union[List[BaseLayerType], BaseLayerType],
         *args,
         graph: ComputationGraph = None,
         **kwargs,
@@ -126,9 +132,8 @@ class Model:
         self, opt: Optimizer, loss: Union[str, Loss, List[Union[str, Loss]]]
     ) -> None:
         if not isinstance(opt, Optimizer):
-            raise TypeError(
-                f"Expected an instance of Optimizer but got {type(opt)} instead."
-            )
+            msg = f"Expected an instance of Optimizer but got {type(opt)} instead."
+            raise TypeError(msg)
 
         if not isinstance(loss, List):
             loss = [loss]
@@ -143,7 +148,8 @@ class Model:
     ) -> float:
         preds = self._forward(batch_X)
 
-        cost, grads = 0, []
+        cost = 0.0
+        grads: List[np.ndarray] = []
 
         num_losses = len(self.losses)
 
@@ -168,24 +174,20 @@ class Model:
         history: List[float] = []
 
         for epoch in range(epochs):
-            batches = get_data_generator(X, Y, batch_size=batch_size, shuffle=shuffle)
-
-            cost = 0
-
             print(f"Epoch {epoch + 1}/{epochs}:")
+
+            cost, log_msg = 0.0, _LOG_MSGS[verbosity]
+
+            batches = get_data_generator(X, Y, batch_size=batch_size, shuffle=shuffle)
 
             for step, (batch_X, batch_Y, sizes) in enumerate(batches):
                 cost = self.train_step(batch_X, batch_Y, sizes)
+                msg = log_msg.format(step=step + 1, cost=cost)
+                print(msg, end="", flush=True)
 
-                log_msg = (
-                    f"\r  Step {step + 1}: Train loss = {cost: .5f}"
-                    if verbosity == 1
-                    else f"\r  Train loss = {cost: .5f}"
-                )
-                print(log_msg, end="", flush=True)
-
-            print()
             history.append(cost)
+            print()
+
         return history
 
     def train(

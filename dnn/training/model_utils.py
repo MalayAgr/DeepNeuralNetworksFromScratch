@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -57,7 +57,7 @@ def build_graph_for_model(
 
 
 def validate_labels_against_outputs(
-    labels: List[np.ndarray], outputs: List[BaseLayerType]
+    labels: Tuple[np.ndarray], outputs: Tuple[BaseLayerType]
 ) -> None:
     if any(y.shape[:-1] != op.output_shape()[:-1] for y, op in zip(labels, outputs)):
         msg = "Each set of labels should have the same dimensions as the respective output layer."
@@ -65,7 +65,7 @@ def validate_labels_against_outputs(
 
 
 def validate_labels_against_samples(
-    samples: List[np.ndarray], labels: List[np.ndarray]
+    samples: Tuple[np.ndarray], labels: Tuple[np.ndarray]
 ) -> None:
     if any(x.shape[-1] != y.shape[-1] for x, y in zip(samples, labels)):
         msg = "There should be an equal number of training examples in each X, Y pair."

@@ -9,8 +9,8 @@ from numba import njit
 
 from dnn.loss import Loss
 
-BatchGenerator = Iterator[Tuple[np.ndarray, np.ndarray, int]]
-UnpackReturnType = Iterator[Tuple[List[np.ndarray], List[np.ndarray], List[int]]]
+BatchIterator = Iterator[Tuple[np.ndarray, np.ndarray, int]]
+DatasetIterator = Iterator[Tuple[List[np.ndarray], List[np.ndarray], List[int]]]
 
 
 def loss_factory(loss: str) -> Loss:
@@ -24,7 +24,7 @@ def loss_factory(loss: str) -> Loss:
 @njit
 def generate_batches(
     X: np.ndarray, Y: np.ndarray, batch_size: int, shuffle: bool = True
-) -> BatchGenerator:
+) -> BatchIterator:
     num_samples = X.shape[-1]
 
     if batch_size > num_samples:
@@ -51,7 +51,7 @@ def generate_batches(
         yield X[..., start:], Y[..., start:], num_samples - start
 
 
-def _unpack_data_generators(generators: Tuple[BatchGenerator]) -> UnpackReturnType:
+def _unpack_data_generators(generators: Tuple[BatchIterator]) -> DatasetIterator:
     for input_batches in zip(*generators):
         batch_X, batch_Y, sizes = [], [], []
         for X, Y, size in input_batches:
@@ -63,7 +63,7 @@ def _unpack_data_generators(generators: Tuple[BatchGenerator]) -> UnpackReturnTy
 
 def get_data_generator(
     X: List[np.ndarray], Y: List[np.ndarray], batch_size: int, shuffle: bool = True
-) -> UnpackReturnType:
+) -> DatasetIterator:
     generators = tuple(
         generate_batches(x, y, batch_size=batch_size, shuffle=shuffle)
         for x, y in zip(X, Y)

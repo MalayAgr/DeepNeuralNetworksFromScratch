@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Iterator
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Set, Tuple, Union
 
 import numpy as np
 
@@ -10,13 +10,12 @@ from .nodes import Node
 class ComputationGraph:
     def __init__(self) -> None:
         self.nodes: Dict[str, Node] = {}
-        self.adj: Dict[str, List[str]] = defaultdict(list)
+        self.adj: Dict[str, Set[str]] = defaultdict(set)
 
-        self._ordering: List[str] = []
+        self._order: List[str] = []
 
     def __str__(self) -> str:
-        num_nodes = len(self.nodes)
-        return f"{self.__class__.__name__}(num_nodes={num_nodes})"
+        return f"{self.__class__.__name__}(num_nodes={len(self.nodes)})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -26,10 +25,6 @@ class ComputationGraph:
             key = key.name
         return key in self.nodes
 
-    @property
-    def topological_order(self) -> List[str]:
-        return self._ordering
-
     def add_node(self, node: Node) -> None:
         if node in self:
             return
@@ -37,16 +32,13 @@ class ComputationGraph:
         name = node.name
 
         self.nodes[name] = node
-
-        name = node.name
-
         parents = node.parents
 
         if parents is None:
             return
 
         for parent in parents:
-            self.adj[parent].append(name)
+            self.adj[parent].add(name)
 
     def fetch_node(self, name: str) -> Node:
         node = self.nodes.get(name, None)
@@ -57,37 +49,33 @@ class ComputationGraph:
     def _sink_nodes(self) -> Iterator[Tuple[str, Node]]:
         return ((name, node) for name, node in self.nodes.items() if node.is_sink)
 
-    def _reset_topological_order(self):
-        self._ordering = []
+    def _topological_sort(self):
+        adj = self.adj
+        seen = set()
+        stack, order = [], []
+        q = [node.name for node in self.nodes.values() if node.is_source is True]
 
-        for node in self.nodes.values():
-            node.visited = False
+        while q:
+            v = q.pop()
+            if v not in seen:
+                seen.add(v)
+                q.extend(adj[v])
 
-    def _dfs_visit_node(self, u):
-        for name in self.adj[u.name]:
-            v = self.fetch_node(name)
-            if v.visited is False:
-                self._dfs_visit_node(v)
+                while stack and v not in adj[stack[-1]]:
+                    order.append(stack.pop())
 
-        u.visited = True
-        self._ordering.append(u.name)
+                stack.append(v)
 
-    def _topological_sort(self, reset=True):
-        if reset is True:
-            self._reset_topological_order()
+        self._order = stack + order[::-1]
 
-        for node in self.nodes.values():
-            if node.visited is False:
-                self._dfs_visit_node(node)
-
-        self._ordering.reverse()
+    @property
+    def topological_order(self) -> List[str]:
+        if not self._order:
+            self._topological_sort()
+        return self._order
 
     def forward_propagation(self) -> Tuple[np.ndarray]:
         topological_order = self.topological_order
-
-        if not topological_order:
-            self._topological_sort(reset=False)
-            topological_order = self.topological_order
 
         for name in topological_order:
             node = self.fetch_node(name)
@@ -138,6 +126,7 @@ class ComputationGraph:
             )
 
         sink_nodes = tuple(name for name, _ in self._sink_nodes())
+        print(sink_nodes)
 
         if len(grads) != len(sink_nodes):
             raise ValueError(

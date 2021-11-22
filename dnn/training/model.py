@@ -8,16 +8,10 @@ import numpy as np
 from dnn import Input
 from dnn.layers import BaseLayer
 from dnn.loss import Loss
-from dnn.utils import loss_factory
+from dnn.utils import get_data_generator, loss_factory
 
+from . import model_utils as mutils
 from .graph.core import ComputationGraph
-from .model_utils import (
-    build_graph_for_model,
-    flatten_layers,
-    get_data_generator,
-    validate_labels_against_outputs,
-    validate_labels_against_samples,
-)
 from .optimizers import Optimizer
 
 
@@ -39,9 +33,9 @@ class Model:
         self.inputs = inputs
         self.outputs = outputs
 
-        layers: List[BaseLayer] = []
-        flatten_layers(inputs=inputs, outputs=outputs, accumulator=layers)
+        layers = mutils.discover_layers(inputs=inputs, outputs=outputs)
         self.layers = layers
+        self._list_layers = list(layers.values())
 
         self._graph = graph
 
@@ -63,8 +57,8 @@ class Model:
         self._built = value
 
     def build(self) -> Any:
-        self._graph = build_graph_for_model(
-            layers=self.layers,
+        self._graph = mutils.build_graph_for_model(
+            layers=self._list_layers,
             inputs=self.inputs,
             outputs=self.outputs,
             graph=self._graph,
@@ -72,28 +66,27 @@ class Model:
         self.built = True
 
     def count_params(self):
-        return sum(layer.count_params() for layer in self.layers)
+        return sum(layer.count_params() for layer in self._list_layers)
 
     def fetch_layer(self, name: str = None, idx: int = None) -> BaseLayer:
-        num_layers = len(self.layers)
-
         if name is not None and idx is not None:
             raise ValueError("Specify only one of name or idx at a time.")
 
         if idx is not None:
-            if num_layers <= idx:
+            num_layers = len(self.layers)
+            if not 0 <= idx < num_layers:
                 raise ValueError(
                     f"{idx} is out of bounds since the model "
                     f"has only {num_layers} layers."
                 )
 
-            return self.layers[idx]
+            return self._list_layers[idx]
 
         if name is not None:
-            for layer in self.layers:
-                if layer.name == name:
-                    return layer
-            raise ValueError(f"No layer with name {name} exists in the model.")
+            layer = self.layers.get(name, None)
+            if layer is None:
+                raise ValueError(f"No layer with name {name} exists in the model.")
+            return layer
 
         raise ValueError("Specify either a name or an index to fetch a layer.")
 
@@ -163,6 +156,38 @@ class Model:
 
         return cost
 
+    def train_loop(
+        self,
+        X: List[np.ndarray],
+        Y: List[np.ndarray],
+        epochs: int,
+        batch_size: int,
+        shuffle: bool,
+        verbosity: int,
+    ) -> List[float]:
+        history: List[float] = []
+
+        for epoch in range(epochs):
+            batches = get_data_generator(X, Y, batch_size=batch_size, shuffle=shuffle)
+
+            cost = 0
+
+            print(f"Epoch {epoch + 1}/{epochs}:")
+
+            for step, (batch_X, batch_Y, sizes) in enumerate(batches):
+                cost = self.train_step(batch_X, batch_Y, sizes)
+
+                log_msg = (
+                    f"\r  Step {step + 1}: Train loss = {cost: .5f}"
+                    if verbosity == 1
+                    else f"\r  Train loss = {cost: .5f}"
+                )
+                print(log_msg, end="", flush=True)
+
+            print()
+            history.append(cost)
+        return history
+
     def train(
         self,
         X: Union[List[np.ndarray], np.ndarray],
@@ -181,36 +206,21 @@ class Model:
         if not isinstance(Y, List):
             Y = [Y]
 
-        validate_labels_against_samples(X, Y)
-        validate_labels_against_outputs(Y, self.outputs)
+        mutils.validate_labels_against_samples(X, Y)
+        mutils.validate_labels_against_outputs(Y, self.outputs)
 
         if verbosity not in [0, 1]:
             raise ValueError("Unexpected verbosity level. Can only be 0 or 1.")
 
-        history: List[float] = []
-
         with TrainingContext(self, training=True) as _:
-            for epoch in range(epochs):
-                batches = get_data_generator(
-                    X, Y, batch_size=batch_size, shuffle=shuffle
-                )
-
-                cost = 0
-
-                print(f"Epoch {epoch + 1}/{epochs}:")
-
-                for step, (batch_X, batch_Y, sizes) in enumerate(batches):
-                    cost = self.train_step(batch_X, batch_Y, sizes)
-
-                    log_msg = (
-                        f"\r  Step {step + 1}: Train loss = {cost: .5f}"
-                        if verbosity == 1
-                        else f"\r  Train loss = {cost: .5f}"
-                    )
-                    print(log_msg, end="", flush=True)
-
-                print()
-                history.append(cost)
+            history = self.train_loop(
+                X=X,
+                Y=Y,
+                epochs=epochs,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                verbosity=verbosity,
+            )
 
         return history
 
@@ -225,7 +235,7 @@ class TrainingContext(ContextDecorator):
 
         if model.is_training is not training:
             model.is_training = training
-            for layer in model.layers:
+            for layer in model.layers.values():
                 layer.is_training = training
 
     def __enter__(self):

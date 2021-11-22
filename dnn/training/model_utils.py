@@ -1,42 +1,46 @@
+from collections import deque
 from collections.abc import Iterator
-from typing import List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
 from dnn import Input
 from dnn.layers import BaseLayer
 from dnn.layers.base_layer import MultiInputBaseLayer
-from dnn.utils import generate_batches
 
 from .graph.core import ComputationGraph
 from .graph.nodes import LayerNode
 
-BatchGenerator = Iterator[Tuple[np.ndarray, np.ndarray, int]]
-UnpackReturnType = Iterator[Tuple[List[np.ndarray], List[np.ndarray], List[int]]]
 
 
-def flatten_layers(
-    inputs: List[Input], outputs: List[BaseLayer], accumulator: List
-) -> None:
-    for layer in outputs:
-        if layer in inputs:
-            return
+def discover_layers(
+    inputs: List[Input], outputs: List[BaseLayer]
+) -> Dict[str, BaseLayer]:
+    queue = deque(outputs)
+
+    layers = {}
+
+    while queue:
+        layer = queue.popleft()
 
         ips = layer.ip_layer
         if not isinstance(layer, MultiInputBaseLayer):
             ips = [ips]
 
-        flatten_layers(inputs=inputs, outputs=ips, accumulator=accumulator)
+        queue.extend(ip for ip in ips if ip not in inputs)
 
-        if layer not in accumulator:
-            accumulator.append(layer)
+        if layer not in layers:
+            layers[layer.name] = layer
+
+    return layers
 
 
-def is_a_source_layer(layer: BaseLayer, inputs: List[Input]) -> bool:
-    ips = layer.ip_layer
+def is_a_source_layer(
+    layer: Union[BaseLayer, MultiInputBaseLayer], inputs: List[Input]
+) -> bool:
     if isinstance(layer, MultiInputBaseLayer):
-        return all(ip in inputs for ip in ips)
-    return ips in inputs
+        return all(ip in inputs for ip in layer.ip_layer)
+    return layer.ip_layer in inputs
 
 
 def build_graph_for_model(
@@ -71,23 +75,3 @@ def validate_labels_against_samples(
         raise ValueError(
             "There should be an equal number of training examples in each X, Y pair."
         )
-
-
-def _unpack_data_generators(generators: Tuple[BatchGenerator]) -> UnpackReturnType:
-    for input_batches in zip(*generators):
-        batch_X, batch_Y, sizes = [], [], []
-        for input_batch in input_batches:
-            batch_X.append(input_batch[0])
-            batch_Y.append(input_batch[1])
-            sizes.append(input_batch[2])
-        yield batch_X, batch_Y, sizes
-
-
-def get_data_generator(
-    X: List[np.ndarray], Y: List[np.ndarray], batch_size: int, shuffle: bool = True
-):
-    generators = tuple(
-        generate_batches(x, y, batch_size=batch_size, shuffle=shuffle)
-        for x, y in zip(X, Y)
-    )
-    return _unpack_data_generators(generators=generators)

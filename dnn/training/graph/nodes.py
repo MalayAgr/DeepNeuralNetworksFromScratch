@@ -5,6 +5,7 @@ from typing import List, Tuple, Union
 import numpy as np
 
 from dnn.layers import BaseLayer
+from dnn.layers.base_layer import MultiInputBaseLayer
 
 
 class Node(ABC):
@@ -60,7 +61,10 @@ class Node(ABC):
 
 class LayerNode(Node):
     def __init__(
-        self, layer: BaseLayer, source: bool = False, sink: bool = False
+        self,
+        layer: Union[BaseLayer, MultiInputBaseLayer],
+        source: bool = False,
+        sink: bool = False,
     ) -> None:
         self.layer = layer
         super().__init__(name=layer.name, source=source, sink=sink)

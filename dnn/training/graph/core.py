@@ -9,14 +9,13 @@ from .nodes import Node
 
 class ComputationGraph:
     def __init__(self) -> None:
-        self.nodes: List[Node] = []
-        self._node_names: List[str] = []
+        self.nodes: Dict[str, Node] = {}
         self.adj: Dict[str, List[str]] = defaultdict(list)
 
         self._ordering: List[str] = []
 
     def __str__(self) -> str:
-        num_nodes = len(self._node_names)
+        num_nodes = len(self.nodes)
         return f"{self.__class__.__name__}(num_nodes={num_nodes})"
 
     def __repr__(self) -> str:
@@ -24,8 +23,8 @@ class ComputationGraph:
 
     def __contains__(self, key: Union[Node, str]) -> bool:
         if isinstance(key, Node):
-            return key.name in self._node_names
-        return key in self._node_names
+            key = key.name
+        return key in self.nodes
 
     @property
     def topological_order(self) -> List[str]:
@@ -35,11 +34,11 @@ class ComputationGraph:
         if node in self:
             return
 
-        self.nodes.append(node)
-
         name = node.name
 
-        self._node_names.append(name)
+        self.nodes[name] = node
+
+        name = node.name
 
         parents = node.parents
 
@@ -50,20 +49,18 @@ class ComputationGraph:
             self.adj[parent].append(name)
 
     def fetch_node(self, name: str) -> Node:
-        try:
-            idx = self._node_names.index(name)
-        except ValueError:
+        node = self.nodes.get(name, None)
+        if node is None:
             raise ValueError("No node with the given name found in the graph.")
-
-        return self.nodes[idx]
+        return node
 
     def _sink_nodes(self) -> Iterator[Tuple[str, Node]]:
-        return ((node.name, node) for node in self.nodes if node.is_sink)
+        return ((name, node) for name, node in self.nodes.items() if node.is_sink)
 
     def _reset_topological_order(self):
         self._ordering = []
 
-        for node in self.nodes:
+        for node in self.nodes.values():
             node.visited = False
 
     def _dfs_visit_node(self, u):
@@ -79,7 +76,7 @@ class ComputationGraph:
         if reset is True:
             self._reset_topological_order()
 
-        for node in self.nodes:
+        for node in self.nodes.values():
             if node.visited is False:
                 self._dfs_visit_node(node)
 
@@ -89,7 +86,7 @@ class ComputationGraph:
         topological_order = self.topological_order
 
         if not topological_order:
-            self._topological_sort()
+            self._topological_sort(reset=False)
             topological_order = self.topological_order
 
         for name in topological_order:

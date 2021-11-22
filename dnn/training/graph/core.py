@@ -126,7 +126,6 @@ class ComputationGraph:
             )
 
         sink_nodes = tuple(name for name, _ in self._sink_nodes())
-        print(sink_nodes)
 
         if len(grads) != len(sink_nodes):
             raise ValueError(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Iterator
 from contextlib import ContextDecorator
 from typing import Any, List, Tuple, Union
 
@@ -9,7 +10,7 @@ from dnn import Input
 from dnn.layers import BaseLayer
 from dnn.layers.base_layer import BaseLayerType
 from dnn.loss import Loss
-from dnn.utils import get_data_generator, loss_factory
+from dnn.utils import get_batch_generator, loss_factory
 
 from . import model_utils as mutils
 from .graph.core import ComputationGraph
@@ -98,9 +99,9 @@ class Model:
 
         raise ValueError("Specify either a name or an index to fetch a layer.")
 
-    def _forward(self, inputs: List[np.ndarray]) -> Tuple[np.ndarray]:
-        if not isinstance(inputs, List):
-            raise TypeError("Expected a list of inputs.")
+    def _forward(self, inputs: Tuple[np.ndarray]) -> Tuple[np.ndarray]:
+        if not isinstance(inputs, Tuple):
+            raise TypeError("Expected a tuple of inputs.")
 
         if len(inputs) != len(self.inputs):
             msg = (
@@ -118,11 +119,11 @@ class Model:
         return self._graph.forward_propagation()
 
     def predict(
-        self, inputs: Union[np.ndarray, List[np.ndarray]], training: bool = False
+        self, inputs: Union[np.ndarray, Tuple[np.ndarray]], training: bool = False
     ) -> Union[np.ndarray, Tuple[np.ndarray]]:
 
-        if not isinstance(inputs, List):
-            inputs = [inputs]
+        if not isinstance(inputs, Tuple):
+            inputs = (inputs,)
 
         with TrainingContext(self, training=training) as _:
             op = self._forward(inputs=inputs)
@@ -145,7 +146,7 @@ class Model:
         self._compiled = True
 
     def train_step(
-        self, batch_X: List[np.ndarray], batch_Y: List[np.ndarray], sizes: List[int]
+        self, batch_X: Tuple[np.ndarray], batch_Y: Tuple[np.ndarray], size: int
     ) -> float:
         preds = self._forward(batch_X)
 
@@ -163,8 +164,8 @@ class Model:
 
     def train_loop(
         self,
-        X: List[np.ndarray],
-        Y: List[np.ndarray],
+        X: Tuple[np.ndarray],
+        Y: Tuple[np.ndarray],
         epochs: int,
         batch_size: int,
         shuffle: bool,
@@ -177,10 +178,10 @@ class Model:
 
             cost, log_msg = 0.0, _LOG_MSGS[verbosity]
 
-            batches = get_data_generator(X, Y, batch_size=batch_size, shuffle=shuffle)
+            batches = get_batch_generator(X, Y, batch_size=batch_size, shuffle=shuffle)
 
-            for step, (batch_X, batch_Y, sizes) in enumerate(batches):
-                cost = self.train_step(batch_X, batch_Y, sizes)
+            for step, (batch_X, batch_Y, size) in enumerate(batches):
+                cost = self.train_step(batch_X, batch_Y, size)
                 msg = log_msg.format(step=step + 1, cost=cost)
                 print(msg, end="", flush=True)
 
@@ -191,8 +192,8 @@ class Model:
 
     def train(
         self,
-        X: Union[List[np.ndarray], np.ndarray],
-        Y: Union[List[np.ndarray], np.ndarray],
+        X: Union[Tuple[np.ndarray], np.ndarray],
+        Y: Union[Tuple[np.ndarray], np.ndarray],
         batch_size: int,
         epochs: int,
         shuffle: bool = True,
@@ -201,11 +202,11 @@ class Model:
         if not self._compiled:
             raise RuntimeError("Compile the model before training it.")
 
-        if not isinstance(X, List):
-            X = [X]
+        if not isinstance(X, Tuple):
+            X = (X,)
 
-        if not isinstance(Y, List):
-            Y = [Y]
+        if not isinstance(Y, Tuple):
+            Y = (Y,)
 
         mutils.validate_labels_against_samples(X, Y)
         mutils.validate_labels_against_outputs(Y, self.outputs)

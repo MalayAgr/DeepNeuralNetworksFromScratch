@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import functools
+import itertools
 import math
 from collections.abc import Iterator
 from typing import List, Tuple
@@ -9,8 +11,8 @@ from numba import njit
 
 from dnn.loss import Loss
 
-BatchIterator = Iterator[Tuple[np.ndarray, np.ndarray, int]]
-DatasetIterator = Iterator[Tuple[List[np.ndarray], List[np.ndarray], List[int]]]
+BatchIterator = Iterator[np.ndarray]
+DatasetIterator = Iterator[Tuple[Tuple[np.ndarray], Tuple[np.ndarray], int]]
 
 
 def loss_factory(loss: str) -> Loss:
@@ -22,50 +24,57 @@ def loss_factory(loss: str) -> Loss:
 
 
 @njit
-def generate_batches(
-    X: np.ndarray, Y: np.ndarray, batch_size: int, shuffle: bool = True
+def _batches_without_permutation(
+    X: np.ndarray,
+    batch_size: int,
 ) -> BatchIterator:
     num_samples = X.shape[-1]
 
-    if batch_size > num_samples:
-        msg = "The batch size is greater than the number of samples in the dataset."
-        raise ValueError(msg)
-
     num_full_batches = math.floor(num_samples / batch_size)
 
-    if shuffle is True:
-        perm = np.random.permutation(num_samples)
-        X, Y = X[..., perm], Y[..., perm]
-
     if num_full_batches == 1:
-        yield X, Y, num_samples
+        yield X
         return
 
     for idx in range(num_full_batches):
         start = idx * batch_size
         end = (idx + 1) * batch_size
-        yield X[..., start:end], Y[..., start:end], batch_size
+        yield X[..., start:end]
 
     if num_samples % batch_size != 0:
         start = batch_size * num_full_batches
-        yield X[..., start:], Y[..., start:], num_samples - start
+        yield X[..., start:]
 
 
-def _unpack_data_generators(generators: Tuple[BatchIterator]) -> DatasetIterator:
-    for input_batches in zip(*generators):
-        batch_X, batch_Y, sizes = [], [], []
-        for X, Y, size in input_batches:
-            batch_X.append(X)
-            batch_Y.append(Y)
-            sizes.append(size)
-        yield batch_X, batch_Y, sizes
+@njit
+def _batches_with_permutation(
+    X: np.ndarray, batch_size: int, perm: np.ndarray
+) -> BatchIterator:
+    X = X[..., perm]
+    return _batches_without_permutation(X, batch_size)
 
 
-def get_data_generator(
-    X: List[np.ndarray], Y: List[np.ndarray], batch_size: int, shuffle: bool = True
+def get_batch_generator(
+    X: Tuple[np.ndarray], Y: Tuple[np.ndarray], batch_size: int, shuffle: bool = True
 ) -> DatasetIterator:
-    generators = tuple(
-        generate_batches(x, y, batch_size=batch_size, shuffle=shuffle)
-        for x, y in zip(X, Y)
-    )
-    return _unpack_data_generators(generators=generators)
+    num_samples = X[0].shape[-1]
+
+    if batch_size > num_samples:
+        msg = "The batch size is greater than the number of samples in the dataset."
+        raise ValueError(msg)
+
+    if shuffle is True:
+        perm = np.random.permutation(num_samples)
+        func = functools.partial(
+            _batches_with_permutation, batch_size=batch_size, perm=perm
+        )
+    else:
+        func = functools.partial(_batches_without_permutation, batch_size=batch_size)
+
+    gens = tuple(func(X=array) for array in itertools.chain(X, Y))
+
+    X_len = len(X)
+
+    for batches in zip(*gens):
+        size = batches[0].shape[-1]
+        yield batches[:X_len], batches[X_len:], size

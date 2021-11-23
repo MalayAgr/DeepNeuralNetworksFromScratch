@@ -3,8 +3,59 @@ from __future__ import annotations
 from typing import Any, Optional, Tuple
 
 import numpy as np
+from numba import njit
 
 from .base_layer import BaseLayer, LayerInput
+
+
+@njit(cache=True)
+def _batch_norm(
+    ip: np.ndarray,
+    mean: np.ndarray,
+    std: np.ndarray,
+    gamma: np.ndarray,
+    beta: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    norm = ip - mean
+    norm /= std
+
+    scaled_norm = gamma * norm
+    scaled_norm += beta
+
+    return norm, scaled_norm
+
+
+@njit(cache=True)
+def _update_mva(
+    mean: np.ndarray,
+    std: np.ndarray,
+    mean_mva: np.ndarray,
+    std_mva: np.ndarray,
+    momentum: float,
+) -> None:
+    one_minus_mom = 1 - momentum
+
+    mean_mva *= momentum
+    mean_mva += one_minus_mom * mean
+
+    std_mva *= momentum
+    std_mva += one_minus_mom * std
+
+
+@njit(cache=True)
+def _backprop_inputs_final_step(
+    scale: float,
+    grad: np.ndarray,
+    mean_share: np.ndarray,
+    var_share: np.ndarray,
+    std: np.ndarray,
+) -> np.ndarray:
+    grad = scale * grad
+    grad -= mean_share
+    grad -= var_share
+    grad /= std
+    grad /= scale
+    return grad
 
 
 class BatchNorm(BaseLayer):
@@ -161,7 +212,9 @@ class BatchNorm(BaseLayer):
         # The position of x_dim depends on the value of axis
         # Eg - If axis = 0 and the input is 4D, shape should be (x_dim, 1, 1, 1)
         # But if axis = -1, the shape should be (1, 1, 1, x_dim)
-        shape = tuple(x_dim if ax == self._axis else 1 for ax in range(self._ndims))
+        shape = [1] * self._ndims
+        shape[self._axis] = x_dim
+        shape = tuple(shape)
 
         self.gamma = self._add_param(shape=shape, initializer="ones")
 
@@ -181,13 +234,7 @@ class BatchNorm(BaseLayer):
         return self.input_shape()
 
     def _update_mva(self, mean: np.ndarray, std: np.ndarray) -> None:
-        mom, one_minus_mom = self.momentum, 1 - self.momentum
-
-        self.mean_mva *= mom
-        self.mean_mva += one_minus_mom * mean
-
-        self.std_mva *= mom
-        self.std_mva += one_minus_mom * std
+        _update_mva(mean, std, self.mean_mva, self.std_mva, self.momentum)
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
         ip = self.input()
@@ -205,10 +252,7 @@ class BatchNorm(BaseLayer):
         else:
             mean, std = self.mean_mva, self.std_mva
 
-        self.norm = ip - mean
-        self.norm /= std
-
-        self.scaled_norm = self.gamma * self.norm + self.beta
+        self.norm, self.scaled_norm = _batch_norm(ip, mean, std, self.gamma, self.beta)
 
         return self.scaled_norm
 
@@ -231,4 +275,12 @@ class BatchNorm(BaseLayer):
         # The gradient should be scaled by the product of all dimensions except the axis
         scale = grad.size / self.x_dim()
 
-        return (scale * grad - mean_share - var_share) / (scale * self.std)
+        grad = _backprop_inputs_final_step(
+            scale=scale,
+            grad=grad,
+            mean_share=mean_share,
+            var_share=var_share,
+            std=self.std,
+        )
+
+        return grad

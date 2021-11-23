@@ -71,7 +71,7 @@ def get_batch_generator(
     else:
         func = functools.partial(_batches_without_permutation, batch_size=batch_size)
 
-    gens = tuple(func(X=array) for array in itertools.chain(X, Y))
+    gens = (func(X=array) for array in itertools.chain(X, Y))
 
     X_len = len(X)
 

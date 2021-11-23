@@ -252,7 +252,8 @@ class Activation(BaseLayer):
 
         if ip is None:
             ip = self.input()
-            activations = self.activations
+
+        activations = self.activations
 
         # Reshape the input and the activations, if required
         if self.should_reshape(ip.shape):

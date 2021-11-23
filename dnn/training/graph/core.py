@@ -1,5 +1,4 @@
-from collections import defaultdict
-from collections.abc import Iterator
+from collections import Iterator, defaultdict
 from typing import Dict, List, Set, Tuple, Union
 
 import numpy as np
@@ -13,6 +12,7 @@ class ComputationGraph:
         self.adj: Dict[str, Set[str]] = defaultdict(set)
 
         self._order: List[str] = []
+        self._sink_nodes: Dict[str, Node] = None
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(num_nodes={len(self.nodes)})"
@@ -43,11 +43,16 @@ class ComputationGraph:
     def fetch_node(self, name: str) -> Node:
         node = self.nodes.get(name)
         if node is None:
-            raise ValueError("No node with the given name found in the graph.")
+            raise ValueError(f"No node with the name {name!r} found in the graph.")
         return node
 
-    def _sink_nodes(self) -> Iterator[Tuple[str, Node]]:
-        return ((name, node) for name, node in self.nodes.items() if node.is_sink)
+    @property
+    def sink_nodes(self) -> Dict[str, Node]:
+        if self._sink_nodes is None:
+            self._sink_nodes = {
+                name: node for name, node in self.nodes.items() if node.is_sink
+            }
+        return self._sink_nodes
 
     def _topological_sort(self):
         adj = self.adj
@@ -81,7 +86,7 @@ class ComputationGraph:
             node = self.fetch_node(name)
             node.forward()
 
-        return tuple(node.forward_output() for _, node in self._sink_nodes())
+        return tuple(node.forward_output() for node in self.sink_nodes.values())
 
     def _pass_gradients_to_parents(
         self, node: Node, grads: Union[np.ndarray, Tuple[np.ndarray]]
@@ -101,7 +106,9 @@ class ComputationGraph:
             parent = self.fetch_node(name)
             parent.backprop_grad += grad
 
-    def _backprop_single_node(self, name: str, backprop_grad: np.ndarray = None):
+    def _backprop_single_node(
+        self, name: str, backprop_grad: np.ndarray = None
+    ) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
         node = self.fetch_node(name)
 
         if backprop_grad is not None:
@@ -125,7 +132,7 @@ class ComputationGraph:
                 "You must run forward propagation before running backpropagation."
             )
 
-        sink_nodes = tuple(name for name, _ in self._sink_nodes())
+        sink_nodes = self.sink_nodes
 
         if len(grads) != len(sink_nodes):
             raise ValueError(
@@ -139,8 +146,9 @@ class ComputationGraph:
             if name in sink_nodes:
                 node_w_and_g = self._backprop_single_node(name, grads[sink_count])
                 sink_count += 1
-            else:
-                node_w_and_g = self._backprop_single_node(name)
+                continue
+
+            node_w_and_g = self._backprop_single_node(name)
 
             weights_and_grads.extend(node_w_and_g)
 

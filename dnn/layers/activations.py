@@ -230,7 +230,11 @@ class Activation(BaseLayer):
             old_shape = ip.shape
             ip = self.reshape(ip)
 
-        activations = self.activation_func(ip).astype(np.float32)
+        activations = self.activation_func(ip)
+
+        # Coerce only if necessary
+        if activations.dtype != np.float32:
+            activations = activations.astype(np.float32)
 
         # Restore the old shape so that activations has same shape
         # As the original input
@@ -264,7 +268,13 @@ class Activation(BaseLayer):
 
         # Unlike activations, the shape is not restored since it is not necessary
         # That the derivative has the same shape as input
-        return self.derivative_func(ip, activations=activations).astype(np.float32)
+        derivatives = self.derivative_func(ip, activations=activations)
+
+        # Coerce only if necessary
+        if derivatives.dtype != np.float32:
+            derivatives = derivatives.astype(np.float32)
+
+        return derivatives
 
     def output(self) -> Optional[np.ndarray]:
         return self.activations

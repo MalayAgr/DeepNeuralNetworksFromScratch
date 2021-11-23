@@ -146,9 +146,8 @@ class ComputationGraph:
             if name in sink_nodes:
                 node_w_and_g = self._backprop_single_node(name, grads[sink_count])
                 sink_count += 1
-                continue
-
-            node_w_and_g = self._backprop_single_node(name)
+            else:
+                node_w_and_g = self._backprop_single_node(name)
 
             weights_and_grads.extend(node_w_and_g)
 

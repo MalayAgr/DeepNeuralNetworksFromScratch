@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import Iterator, defaultdict
 from typing import Dict, List, Set, Tuple, Union
 

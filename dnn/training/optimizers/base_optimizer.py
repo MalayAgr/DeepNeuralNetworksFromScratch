@@ -17,6 +17,12 @@ class Optimizer(ABC):
         self._scheduler = isinstance(learning_rate, LearningRateScheduler)
         self._state["lr_t"] = None if self._scheduler else learning_rate
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}()"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
     @property
     def state(self) -> Dict:
         """The current state of the optimizer."""

@@ -194,7 +194,7 @@ class BatchNorm(BaseLayer):
 
         # If in training mode, the mean and std are calculated for the current batch
         # and the moving averages updated
-        if self.is_training:
+        if self.training:
             mean = ip.mean(axis=self._axes, keepdims=True)
             std = np.sqrt(ip.var(axis=self._axes, keepdims=True) + self.epsilon)
 

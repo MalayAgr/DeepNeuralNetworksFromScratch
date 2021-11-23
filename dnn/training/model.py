@@ -52,10 +52,18 @@ class Model:
 
         self._compiled = False
 
-        self.is_training = False
+        self.training = False
 
         self.opt: Optimizer = None
         self.losses: List[Loss] = None
+
+    def __str__(self) -> str:
+        attrs = ("opt", "training")
+        attrs = ", ".join(f"{attr}={getattr(self, attr)}" for attr in attrs)
+        return f"{self.__class__.__name__}({attrs})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     @property
     def built(self) -> bool:
@@ -180,9 +188,9 @@ class Model:
 
             batches = get_batch_generator(X, Y, batch_size=batch_size, shuffle=shuffle)
 
-            for step, (batch_X, batch_Y, size) in enumerate(batches):
+            for step, (batch_X, batch_Y, size) in enumerate(batches, 1):
                 cost = self.train_step(batch_X, batch_Y, size)
-                msg = log_msg.format(step=step + 1, cost=cost)
+                msg = log_msg.format(step=step, cost=cost)
                 print(msg, end="", flush=True)
 
             history.append(cost)
@@ -236,10 +244,10 @@ class TrainingContext(ContextDecorator):
     def _set_operation_mode(self, training: bool = False) -> None:
         model = self.model
 
-        if model.is_training is not training:
-            model.is_training = training
+        if model.training is not training:
+            model.training = training
             for layer in model.layers.values():
-                layer.is_training = training
+                layer.training = training
 
     def __enter__(self):
         self._set_operation_mode(training=self.training)

@@ -44,7 +44,7 @@ class Input:
         self._ip = None
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}(shape={self._shape})"
+        return f"{self.__class__.__name__}(shape={self.shape})"
 
     def __repr__(self) -> str:
         return self.__str__()

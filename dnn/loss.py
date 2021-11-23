@@ -69,6 +69,12 @@ class Loss(ABC):
         if (names := cls.names) is not None:
             Loss.REGISTRY.update({name: cls for name in names})
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}()"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def validate_input(self, labels: np.ndarray, preds: np.ndarray) -> None:
         if labels.shape != preds.shape:
             raise AttributeError(

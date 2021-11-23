@@ -37,7 +37,7 @@ class BaseLayer(ABC):
         Indicates whether or not the layer is trainable, i.e. it has parameters
         that are updated during training.
 
-    is_training: bool
+    training: bool
         Indicates whether or not the layer is currently being trained.
 
     param_keys: list of str
@@ -161,7 +161,7 @@ class BaseLayer(ABC):
 
         self.trainable = trainable
 
-        self.is_training = False
+        self.training = False
 
         self._built = False
 

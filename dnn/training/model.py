@@ -15,7 +15,7 @@ from . import model_utils as mutils
 from .graph.core import ComputationGraph
 from .optimizers import Optimizer
 
-_LOG_MSGS = {
+_STEP_MSGS = {
     0: "\r  Train loss = {cost: .5f}",
     1: "\r  Step {step}: Train loss = {cost: .5f}",
 }
@@ -132,7 +132,7 @@ class Model:
         if not isinstance(inputs, Tuple):
             inputs = (inputs,)
 
-        with TrainingContext(self, training=training) as _:
+        with TrainingContext(self, training=training):
             op = self._forward(inputs=inputs)
 
             if len(self.outputs) == 1:
@@ -180,16 +180,19 @@ class Model:
     ) -> List[float]:
         history: List[float] = []
 
-        for epoch in range(epochs):
-            print(f"Epoch {epoch + 1}/{epochs}:")
+        epoch_msg = f"Epoch {{epoch}}/{epochs}:"
+        step_msg = _STEP_MSGS[verbosity]
 
-            cost, log_msg = 0.0, _LOG_MSGS[verbosity]
+        for epoch in range(1, epochs + 1):
+            print(epoch_msg.format(epoch=epoch))
+
+            cost = 0.0
 
             batches = get_batch_generator(X, Y, batch_size=batch_size, shuffle=shuffle)
 
             for step, (batch_X, batch_Y, size) in enumerate(batches, 1):
                 cost = self.train_step(batch_X, batch_Y, size)
-                msg = log_msg.format(step=step, cost=cost)
+                msg = step_msg.format(step=step, cost=cost)
                 print(msg, end="", flush=True)
 
             history.append(cost)
@@ -222,7 +225,7 @@ class Model:
             msg = f"Unexpected verbosity level. Can only be 0 or 1 but got {verbosity}."
             raise ValueError(msg)
 
-        with TrainingContext(self, training=True) as _:
+        with TrainingContext(self, training=True):
             history = self.train_loop(
                 X=X,
                 Y=Y,

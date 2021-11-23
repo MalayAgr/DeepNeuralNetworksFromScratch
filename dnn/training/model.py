@@ -15,11 +15,6 @@ from . import model_utils as mutils
 from .graph.core import ComputationGraph
 from .optimizers import Optimizer
 
-_STEP_MSGS = {
-    0: "\r  Train loss = {cost: .5f}",
-    1: "\r  Step {step}: Train loss = {cost: .5f}",
-}
-
 LossType = Union[str, Loss, List[Union[str, Loss]]]
 
 
@@ -180,11 +175,8 @@ class Model:
     ) -> List[float]:
         history: List[float] = []
 
-        epoch_msg = f"Epoch {{epoch}}/{epochs}:"
-        step_msg = _STEP_MSGS[verbosity]
-
         for epoch in range(1, epochs + 1):
-            print(epoch_msg.format(epoch=epoch))
+            print(f"Epoch {epoch}/{epochs}:")
 
             cost = 0.0
 
@@ -192,7 +184,11 @@ class Model:
 
             for step, (batch_X, batch_Y, size) in enumerate(batches, 1):
                 cost = self.train_step(batch_X, batch_Y, size)
-                msg = step_msg.format(step=step, cost=cost)
+                msg = (
+                    f"\r  Step {step}: Train loss = {cost: .5f}"
+                    if verbosity == 1
+                    else f"\r  Train loss = {cost: .5f}"
+                )
                 print(msg, end="", flush=True)
 
             history.append(cost)

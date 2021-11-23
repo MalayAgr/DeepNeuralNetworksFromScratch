@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import Iterator
 from contextlib import ContextDecorator
 from typing import Any, List, Tuple, Union
 

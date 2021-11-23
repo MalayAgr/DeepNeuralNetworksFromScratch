@@ -99,7 +99,7 @@ class Model:
             return self._list_layers[idx]
 
         if name is not None:
-            layer = self.layers.get(name, None)
+            layer = self.layers.get(name)
             if layer is None:
                 raise ValueError(f"No layer with name {name} exists in the model.")
             return layer

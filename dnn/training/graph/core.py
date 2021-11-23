@@ -41,7 +41,7 @@ class ComputationGraph:
             self.adj[parent].add(name)
 
     def fetch_node(self, name: str) -> Node:
-        node = self.nodes.get(name, None)
+        node = self.nodes.get(name)
         if node is None:
             raise ValueError("No node with the given name found in the graph.")
         return node

@@ -110,9 +110,7 @@ def _backprop_kernel(
 
 
 @njit(cache=True)
-def padding(
-    kernel_size: Tuple[int, int], mode: str = "valid"
-) -> Tuple[int, int]:
+def padding(kernel_size: Tuple[int, int], mode: str = "valid") -> Tuple[int, int]:
     if mode == "same":
         kH, kW = kernel_size
         return math.ceil((kH - 1) / 2), math.ceil((kW - 1) / 2)
@@ -123,7 +121,7 @@ def convolution_output_dim(n: int, f: int, p: int, s: int) -> int:
     return math.floor((n - f + 2 * p) / s + 1)
 
 
-def deconvolution_output_dim(n: int, s: int, f: int, p: int) -> int:
+def deconvolution_output_dim(n: int, f: int, p: int, s: int) -> int:
     return (n - 1) * s + f - 2 * p
 
 

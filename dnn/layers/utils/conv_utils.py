@@ -110,7 +110,7 @@ def _backprop_kernel(
 
 
 @njit(cache=True)
-def compute_conv_padding(
+def padding(
     kernel_size: Tuple[int, int], mode: str = "valid"
 ) -> Tuple[int, int]:
     if mode == "same":
@@ -119,8 +119,12 @@ def compute_conv_padding(
     return 0, 0
 
 
-def compute_conv_output_dim(n: int, f: int, p: int, s: int) -> int:
+def convolution_output_dim(n: int, f: int, p: int, s: int) -> int:
     return math.floor((n - f + 2 * p) / s + 1)
+
+
+def deconvolution_output_dim(n: int, s: int, f: int, p: int) -> int:
+    return (n - 1) * s + f - 2 * p
 
 
 def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
@@ -140,8 +144,8 @@ def prepare_ip(
     sH, sW = stride
     pH, pW = padding
 
-    oH = compute_conv_output_dim(ipH, kH, pH, sH)
-    oW = compute_conv_output_dim(ipW, kW, pW, sW)
+    oH = convolution_output_dim(ipH, kH, pH, sH)
+    oW = convolution_output_dim(ipW, kW, pW, sW)
 
     if padding != (0, 0):
         X = pad(X, pH, pW)

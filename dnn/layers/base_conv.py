@@ -102,15 +102,15 @@ class BaseConv(BaseLayer):
         return self.activations
 
     def pad_area(self) -> Tuple[int, int]:
-        return cutils.compute_conv_padding(self.kernel_size, mode=self.padding)
+        return cutils.padding(self.kernel_size, mode=self.padding)
 
     def output_area(self) -> Tuple[int, int]:
         ip_shape = self.input_shape()
         ipH, ipW = ip_shape[1], ip_shape[2]
 
         pH, pW = self.pad_area()
-        oH = cutils.compute_conv_output_dim(ipH, self.kernel_H, pH, self.stride_H)
-        oW = cutils.compute_conv_output_dim(ipW, self.kernel_W, pW, self.stride_W)
+        oH = cutils.convolution_output_dim(ipH, self.kernel_H, pH, self.stride_H)
+        oW = cutils.convolution_output_dim(ipW, self.kernel_W, pW, self.stride_W)
 
         return oH, oW
 

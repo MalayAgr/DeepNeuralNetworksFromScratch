@@ -50,13 +50,13 @@ class BasePooling(BaseLayer):
         ipH, ipW = ip_shape[1], ip_shape[2]
 
         pH, pW = self.pad_area()
-        oH = cutils.compute_conv_output_dim(ipH, self.pool_H, pH, self.stride_H)
-        oW = cutils.compute_conv_output_dim(ipW, self.pool_W, pW, self.stride_W)
+        oH = cutils.convolution_output_dim(ipH, self.pool_H, pH, self.stride_H)
+        oW = cutils.convolution_output_dim(ipW, self.pool_W, pW, self.stride_W)
 
         return oH, oW
 
     def pad_area(self) -> Tuple[int, int]:
-        return cutils.compute_conv_padding(self.pool_size, mode=self.padding)
+        return cutils.padding(self.pool_size, mode=self.padding)
 
     def output_shape(self) -> Tuple[int, ...]:
         if self.pooled is not None:

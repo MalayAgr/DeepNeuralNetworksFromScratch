@@ -79,8 +79,11 @@ class BaseConv(BaseLayer):
         fan_in = self.ip_C * receptive_field_size
         return fan_in, receptive_field_size * self.filters
 
+    def kernel_shape(self) -> Tuple[int, ...]:
+        return (self.ip_C, *self.kernel_size, self.filters)
+
     def build(self) -> Any:
-        shape = (self.ip_C, *self.kernel_size, self.filters)
+        shape = self.kernel_shape()
 
         self.kernels = self._add_param(shape=shape, initializer=self.initializer)
 
@@ -122,7 +125,7 @@ class BaseConv(BaseLayer):
 
         return self.filters, oH, oW, None
 
-    def padded_shape(self) -> Tuple[int, int]:
+    def _padded_shape(self) -> Tuple[int, int]:
         ipH, ipW = self.input_shape()[1:-1]
         pH, pW = self.pad_area()
         return ipH + 2 * pH, ipW + 2 * pW
@@ -169,7 +172,7 @@ class BaseConv(BaseLayer):
 
     def get_input_gradient_shape(self) -> Tuple[int, ...]:
         """Method to obtain the shape of the derivative of loss wrt to the input of the layer."""
-        post_pad_H, post_pad_W = self.padded_shape()
+        post_pad_H, post_pad_W = self._padded_shape()
         m = self.input().shape[-1]
         return m, self.ip_C, post_pad_H, post_pad_W
 

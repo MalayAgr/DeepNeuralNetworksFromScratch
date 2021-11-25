@@ -66,7 +66,7 @@ class BasePooling(BaseLayer):
 
         return self.windows, oH, oW, None
 
-    def padded_shape(self) -> Tuple[int, int]:
+    def _padded_shape(self) -> Tuple[int, int]:
         ipH, ipW = self.input_shape()[1:-1]
         pH, pW = self.pad_area()
         return ipH + 2 * pH, ipW + 2 * pW
@@ -99,7 +99,7 @@ class BasePooling(BaseLayer):
         return np.swapaxes(grad, 0, -1).reshape(grad.shape[-1], -1, self.windows)
 
     def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
-        post_pad_H, post_pad_W = self.padded_shape()
+        post_pad_H, post_pad_W = self._padded_shape()
         grad_shape = (grad.shape[0], self.windows, post_pad_H, post_pad_W)
         reshape = (-1, self.windows, self.pool_H, self.pool_W)
 

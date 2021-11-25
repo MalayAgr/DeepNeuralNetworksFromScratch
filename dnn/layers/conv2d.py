@@ -4,11 +4,11 @@ from typing import Tuple
 
 import numpy as np
 
-from .base_conv import Conv
+from .base_conv import BaseConv
 from .utils import conv_utils as cutils
 
 
-class Conv2D(Conv):
+class Conv2D(BaseConv):
     def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
         ip = cutils.prepare_ip(
             X=self.input(),

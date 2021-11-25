@@ -11,7 +11,7 @@ from .utils import add_activation
 from .utils import conv_utils as cutils
 
 
-class Conv(BaseLayer):
+class BaseConv(BaseLayer):
     reset = (
         "convolutions",
         "activations",

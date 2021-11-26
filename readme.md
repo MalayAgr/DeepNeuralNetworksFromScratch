@@ -9,13 +9,14 @@ Currently, the following things are supported:
 - Layers:
   - `Dense`
   - `Conv2D`
+  - `DepthwiseConv2D`
+  - `SeparableConv2D`
+  - `Conv2DTranspose`
   - `MaxPooling2D`
   - `AveragePooling2D`
   - `BatchNorm`
   - `Dropout`
   - `Flatten`
-  - `DepthwiseConv2D`
-  - `SeparableConv2D`
   - `Add`
   - `Concatenate`
 - Activations:

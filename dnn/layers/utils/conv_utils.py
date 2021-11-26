@@ -204,6 +204,10 @@ def accumulate_dX_conv(
 
     return grad
 
+
+def backprop_kernel_conv2d(
+    ip: np.ndarray, grad: np.ndarray, kernel_size: Tuple[int, int], filters: int
+) -> np.ndarray:
     return _backprop_kernel(
         ip=ip[..., None],
         grad=grad[..., None, :],

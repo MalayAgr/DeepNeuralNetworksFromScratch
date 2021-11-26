@@ -5,6 +5,8 @@ from typing import Optional, Tuple
 
 import numpy as np
 
+from dnn.utils import HeightWidthAttribute
+
 from .base_layer import BaseLayer, LayerInput
 from .utils import conv_utils as cutils
 
@@ -15,6 +17,9 @@ class BasePooling(BaseLayer):
     str_attrs = ("pool_size", "stride", "padding")
 
     __slots__ = ("pooled", "gradient_mask")
+
+    pool_size = HeightWidthAttribute("pool_H", "pool_W")
+    stride = HeightWidthAttribute()
 
     def __init__(
         self,

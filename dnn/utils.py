@@ -78,3 +78,22 @@ def get_batch_generator(
     for batches in zip(*gens):
         size = batches[0].shape[-1]
         yield batches[:X_len], batches[X_len:], size
+
+
+class HeightWidthAttribute:
+    def __init__(self, height_attr="", width_attr="") -> None:
+        self.height_attr = height_attr
+        self.width_attr = width_attr
+
+    def __set_name__(self, owner, name: str):
+        self.private_name = "_" + name
+        self.height_attr = self.height_attr if self.height_attr else f"{name}_H"
+        self.width_attr = self.width_attr if self.width_attr else f"{name}_W"
+
+    def __get__(self, obj, klass=None):
+        return getattr(obj, self.private_name)
+
+    def __set__(self, obj, value: Tuple[int, int]):
+        setattr(obj, self.private_name, value)
+        setattr(obj, self.height_attr, value[0])
+        setattr(obj, self.width_attr, value[1])

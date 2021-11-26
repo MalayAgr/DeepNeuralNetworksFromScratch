@@ -34,19 +34,17 @@ class Conv2DTranspose(BaseConv):
 
     def conv_func(self) -> np.ndarray:
         ipH, ipW, m = self.input_shape()[1:]
-        post_pad_H, post_pad_W = self._padded_shape()
-        shape = (m, self.filters, post_pad_H, post_pad_W)
+        shape = (m, self.filters, *self._padded_shape())
 
-        areas = np.matmul(self._vec_ip, self._vec_kernel.T, dtype=np.float32)
-
-        return cutils.accumulate_dX_conv(
-            grad_shape=shape,
-            output_size=(ipH, ipW),
-            vec_ip_grad=areas,
-            stride=self.stride,
+        return cutils.transpose_convolve2d(
+            X=self._vec_ip,
+            weights=self._vec_kernel,
+            shape=shape,
+            filters=self.filters,
+            ip_area=(ipH, ipW),
             kernel_size=self.kernel_size,
+            stride=self.stride,
             padding=self.pad_area(),
-            reshape=(-1, self.filters, self.kernel_H, self.kernel_W),
         )
 
     def compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:

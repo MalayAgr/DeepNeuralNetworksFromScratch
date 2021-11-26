@@ -47,11 +47,47 @@ class Conv2DTranspose(BaseConv):
             padding=self.pad_area(),
         )
 
+    def reshape_backprop_gradient(self, grad: np.ndarray) -> np.ndarray:
+        grad = cutils.prepare_ip(
+            grad,
+            kernel_size=self.kernel_size,
+            stride=self.stride,
+            padding=self.pad_area(),
+        )
+
+        grad = np.moveaxis(grad, -1, 0)
+
+        return grad
+
     def compute_bias_gradient(self, grad: np.ndarray) -> np.ndarray:
-        pass
+        shape = self.biases.shape
+
+        grad = cutils.backprop_bias(
+            grad=grad,
+            axis=(0, 1),
+            reshape=shape[1:],
+        )
+
+        grad = grad.reshape(self.filters, -1)
+        grad = grad.sum(axis=-1)
+        grad = grad.reshape(shape)
+
+        return grad
 
     def compute_kernel_gradient(self, grad: np.ndarray) -> np.ndarray:
-        pass
+        return cutils.backprop_kernel_conv2d(
+            ip=grad,
+            grad=self._vec_ip,
+            kernel_size=self.kernel_size,
+            filters=self.ip_C,
+        )
 
     def compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
-        pass
+        # Not required
+        ...
+
+    def backprop_inputs(self, grad, *args, **kwargs) -> np.ndarray:
+        ipH, ipW = self.input_shape()[1:-1]
+        return cutils.convolve2d(
+            X=grad, weights=self._vec_kernel, filters=self.ip_C, op_area=(ipH, ipW)
+        )

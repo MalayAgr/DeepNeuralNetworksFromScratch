@@ -7,7 +7,7 @@ import numpy as np
 from .activations import Activation, ActivationType
 from .base_layer import BaseLayer, LayerInput
 from .conv2d import Conv2D
-from .depthwise_conv2d import DepthwiseConv2D
+from .conv2d_depthwise import DepthwiseConv2D
 
 
 class SeparableConv2D(BaseLayer):

@@ -4,7 +4,7 @@ from typing import Tuple
 
 import numpy as np
 
-from .base_conv import BaseConv
+from .base_layer_conv import BaseConv
 from .utils import conv_utils as cutils
 
 

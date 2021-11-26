@@ -4,7 +4,7 @@ from typing import Tuple
 
 import numpy as np
 
-from .base_pooling import BasePooling
+from .base_layer_pooling import BasePooling
 from .utils import conv_utils as cutils
 
 

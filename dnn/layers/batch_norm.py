@@ -228,8 +228,7 @@ class BatchNorm(BaseLayer):
         mean_share = grad.sum(axis=self._axes, keepdims=True)
 
         # Calculate share of the variance in the gradient
-        var_share = np.sum(grad * self.norm, axis=self._axes, keepdims=True)
-        var_share *= self.norm
+        var_share = self.norm * np.sum(grad * self.norm, axis=self._axes, keepdims=True)
 
         # Since mean and std are calculated across all dimensions except axis,
         # The gradient should be scaled by the product of all dimensions except the axis

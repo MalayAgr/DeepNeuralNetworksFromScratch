@@ -161,7 +161,9 @@ class BatchNorm(BaseLayer):
         # The position of x_dim depends on the value of axis
         # Eg - If axis = 0 and the input is 4D, shape should be (x_dim, 1, 1, 1)
         # But if axis = -1, the shape should be (1, 1, 1, x_dim)
-        shape = tuple(x_dim if ax == self._axis else 1 for ax in range(self._ndims))
+        shape = [1] * self._ndims
+        shape[self._axis] = x_dim
+        shape = tuple(shape)
 
         self.gamma = self._add_param(shape=shape, initializer="ones")
 
@@ -208,7 +210,8 @@ class BatchNorm(BaseLayer):
         self.norm = ip - mean
         self.norm /= std
 
-        self.scaled_norm = self.gamma * self.norm + self.beta
+        self.scaled_norm = self.gamma * self.norm
+        self.scaled_norm += self.beta
 
         return self.scaled_norm
 
@@ -225,10 +228,17 @@ class BatchNorm(BaseLayer):
         mean_share = grad.sum(axis=self._axes, keepdims=True)
 
         # Calculate share of the variance in the gradient
-        var_share = self.norm * np.sum(grad * self.norm, axis=self._axes, keepdims=True)
+        var_share = np.sum(grad * self.norm, axis=self._axes, keepdims=True)
+        var_share *= self.norm
 
         # Since mean and std are calculated across all dimensions except axis,
         # The gradient should be scaled by the product of all dimensions except the axis
         scale = grad.size / self.x_dim()
 
-        return (scale * grad - mean_share - var_share) / (scale * self.std)
+        grad = scale * grad
+        grad -= mean_share
+        grad -= var_share
+        grad /= self.std
+        grad /= scale
+
+        return grad

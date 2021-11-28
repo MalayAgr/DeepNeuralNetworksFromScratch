@@ -3,10 +3,31 @@ from __future__ import annotations
 from typing import List, Tuple, Union
 
 import numpy as np
+from numba import njit
 
 from dnn.training.schedulers import LearningRateScheduler
 
 from .base_optimizer import Optimizer
+
+
+@njit(cache=True, parallel=True)
+def _update_first_moment(moment, grad, beta1):
+    moment = np.multiply(moment, beta1)
+    moment = np.add(moment, np.multiply(grad, 1 - beta1))
+    return moment
+
+
+@njit(cache=True, parallel=True)
+def _update_second_moment(moment, grad, beta2):
+    grad = np.square(grad)
+    moment = np.multiply(moment, beta2)
+    moment = np.add(moment, np.multiply(grad, 1 - beta2))
+    return moment
+
+
+@njit(cache=True, parallel=True)
+def _maximum(x, y):
+    return np.maximum(x, y)
 
 
 class Adam(Optimizer):
@@ -52,43 +73,21 @@ class Adam(Optimizer):
                 first_moments.append(np.zeros_like(weight))
                 second_moments.append(np.zeros_like(weight))
 
-            self.add_or_update_state_variable("first_moments", first_moments)
-            self.add_or_update_state_variable("second_moments", second_moments)
+            self._first_moments, self._second_moments = first_moments, second_moments
 
-    def _update_first_moment(self, grad: np.ndarray, moment: np.ndarray) -> np.ndarray:
-        beta_1 = self.beta_1
-        one_minus = 1 - beta_1
+    def _compute_update(self, grad: np.ndarray, idx: int) -> np.ndarray:
+        first_moms = self._first_moments
+        second_moms = self._second_moments
 
-        moment *= beta_1
-        moment += one_minus * grad
+        m1 = _update_first_moment(first_moms[idx], grad, self.beta_1)
+        first_moms[idx] = m1
 
-        return moment
-
-    def _update_second_moment(
-        self, grad: np.ndarray, moment: np.ndarray, make_copy: bool = False
-    ) -> Tuple[np.ndarray, Union[np.ndarray, None]]:
-
-        copy = moment.copy() if make_copy else None
-
-        beta_2 = self.beta_2
-        one_minus = 1 - beta_2
-
-        moment *= beta_2
-        moment += one_minus * np.square(grad)
-
-        return moment, copy
-
-    def _compute_update(
-        self, grad: np.ndarray, m1: np.ndarray, m2: np.ndarray
-    ) -> np.ndarray:
-
-        m1 = self._update_first_moment(grad, m1)
-
-        m2, m2_copy = self._update_second_moment(grad, m2, make_copy=self.amsgrad)
+        current_m2 = second_moms[idx]
+        m2 = _update_second_moment(current_m2, grad, self.beta_2)
+        second_moms[idx] = m2
 
         if self.amsgrad:
-            m2 = np.maximum(m2, m2_copy)
-            m2_copy = None
+            m2 = _maximum(m2, current_m2)
 
         if self.bias_correction:
             m1 = np.divide(m1, 1 - self._beta1t)
@@ -102,11 +101,6 @@ class Adam(Optimizer):
     def _apply_gradient(
         self, weight: np.ndarray, gradient: np.ndarray, grad_idx: int
     ) -> None:
-        first_moms = self.fetch_state_variable("first_moments")
-        second_moms = self.fetch_state_variable("second_moments")
-
-        update = self._compute_update(
-            gradient, first_moms[grad_idx], second_moms[grad_idx]
-        )
+        update = self._compute_update(gradient, grad_idx)
 
         weight -= self.lr * update

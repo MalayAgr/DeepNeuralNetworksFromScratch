@@ -345,6 +345,10 @@ class Linear(Activation):
     ) -> np.ndarray:
         return np.ones_like(ip, dtype=np.float32)
 
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray:
+        # Just return the gradient as is
+        return grad
+
 
 class Sigmoid(Activation):
     """Sigmoid activation.

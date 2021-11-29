@@ -4,7 +4,7 @@ from typing import List, Tuple, Union
 
 import numpy as np
 
-from dnn.training.schedulers import LearningRateScheduler
+from dnn.training.schedulers import LearningRateType
 
 from .base_optimizer import Optimizer, WeightsGradientsType
 
@@ -12,8 +12,8 @@ from .base_optimizer import Optimizer, WeightsGradientsType
 class RMSProp(Optimizer):
     def __init__(
         self,
-        learning_rate: Union[float, LearningRateScheduler] = 1e-2,
-        rho=0.9,
+        learning_rate: LearningRateType = 1e-2,
+        rho: float = 0.9,
         epsilon: float = 1e-7,
     ) -> None:
 

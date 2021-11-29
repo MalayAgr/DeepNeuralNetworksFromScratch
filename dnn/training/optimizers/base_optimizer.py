@@ -5,15 +5,13 @@ from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
-from dnn.training.schedulers import LearningRateScheduler
+from dnn.training.schedulers import LearningRateScheduler, LearningRateType
 
 WeightsGradientsType = List[Tuple[np.ndarray, np.ndarray]]
 
 
 class Optimizer(ABC):
-    def __init__(
-        self, learning_rate: Union[float, LearningRateScheduler] = 1e-2
-    ) -> None:
+    def __init__(self, learning_rate: LearningRateType = 1e-2) -> None:
         self._state = {}
         self._state["iterations"] = 0
         self._state["lr"] = learning_rate

@@ -5,7 +5,7 @@ from typing import List, Tuple, Union
 import numpy as np
 from numba import njit
 
-from dnn.training.schedulers import LearningRateScheduler
+from dnn.training.schedulers import LearningRateType
 
 from .base_optimizer import Optimizer, WeightsGradientsType
 
@@ -39,7 +39,7 @@ def _maximum(
 class Adam(Optimizer):
     def __init__(
         self,
-        learning_rate: Union[float, LearningRateScheduler] = 1e-2,
+        learning_rate: LearningRateType = 1e-2,
         beta_1: float = 0.9,
         beta_2: float = 0.999,
         epsilon: float = 1e-8,

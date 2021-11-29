@@ -4,16 +4,14 @@ from typing import List, Tuple, Union
 
 import numpy as np
 
-from dnn.training.schedulers import LearningRateScheduler
+from dnn.training.schedulers import LearningRateType
 
 from .base_optimizer import Optimizer, WeightsGradientsType
 
 
 class SGD(Optimizer):
     def __init__(
-        self,
-        learning_rate: Union[float, LearningRateScheduler] = 1e-2,
-        momentum=0.0,
+        self, learning_rate: LearningRateType = 1e-2, momentum: float = 0.0
     ) -> None:
 
         super().__init__(learning_rate=learning_rate)

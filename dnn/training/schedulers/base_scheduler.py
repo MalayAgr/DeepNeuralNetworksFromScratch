@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Union
 
 
 class LearningRateScheduler(ABC):
@@ -11,3 +12,6 @@ class LearningRateScheduler(ABC):
     @abstractmethod
     def lr(self, iteration: int) -> float:
         """Method to calculate the learning rate for the current iteration."""
+
+
+LearningRateType = Union[float, LearningRateScheduler]

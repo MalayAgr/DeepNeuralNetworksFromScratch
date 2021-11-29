@@ -11,14 +11,18 @@ from .base_optimizer import Optimizer
 
 
 @njit(cache=True, parallel=True)
-def _update_first_moment(moment, grad, beta1):
+def _update_first_moment(
+    moment: np.ndarray, grad: np.ndarray, beta1: float
+) -> np.ndarray:
     moment = np.multiply(moment, beta1)
     moment = np.add(moment, np.multiply(grad, 1 - beta1))
     return moment
 
 
 @njit(cache=True, parallel=True)
-def _update_second_moment(moment, grad, beta2):
+def _update_second_moment(
+    moment: np.ndarray, grad: np.ndarray, beta2: float
+) -> np.ndarray:
     grad = np.square(grad)
     moment = np.multiply(moment, beta2)
     moment = np.add(moment, np.multiply(grad, 1 - beta2))
@@ -26,7 +30,9 @@ def _update_second_moment(moment, grad, beta2):
 
 
 @njit(cache=True, parallel=True)
-def _maximum(x, y):
+def _maximum(
+    x: Union[np.ndarray, float], y: Union[np.ndarray, float]
+) -> Union[np.ndarray, float]:
     return np.maximum(x, y)
 
 
@@ -51,6 +57,8 @@ class Adam(Optimizer):
 
         self._beta1t = beta_1
         self._beta2t = beta_2
+        self._first_moments: List[np.ndarray] = None
+        self._second_moments: List[np.ndarray] = None
 
     @property
     def beta_1(self):

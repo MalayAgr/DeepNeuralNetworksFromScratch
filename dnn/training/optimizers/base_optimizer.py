@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import UserDict
-from typing import Any, Dict, List, Tuple
+from typing import List, Tuple
 
 import numpy as np
 
-from dnn.training.schedulers import LearningRateScheduler, LearningRateType
+from dnn.training.schedulers import LearningRateType
 
 WeightsGradientsType = List[Tuple[np.ndarray, np.ndarray]]
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections import UserDict
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
@@ -10,46 +11,51 @@ from dnn.training.schedulers import LearningRateScheduler, LearningRateType
 WeightsGradientsType = List[Tuple[np.ndarray, np.ndarray]]
 
 
+class StateVariable:
+    state_var = "state"
+
+    def __init__(self, default=None) -> None:
+        self.default = default
+
+    def __set_name__(self, owner, name: str):
+        self.public_name = name
+        self.private_name = "_" + name
+
+    def __get__(self, obj, klass=None):
+        return getattr(obj, self.private_name, self.default)
+
+    def __set__(self, obj, value):
+        setattr(obj, self.private_name, value)
+        if (state := getattr(obj, self.state_var, None)) is not None:
+            state[self.public_name] = value
+
+
 class Optimizer(ABC):
+    iterations = StateVariable()
+    scheduler = StateVariable()
+    lr = StateVariable()
+
     def __init__(self, learning_rate: LearningRateType = 1e-2) -> None:
-        self._state = {}
-        self._state["iterations"] = 0
-        self._state["lr"] = learning_rate
-        self._scheduler = isinstance(learning_rate, LearningRateScheduler)
-        self._state["lr_t"] = None if self._scheduler else learning_rate
+        self.state = {}
+        self.iterations = 0
+
+        self.lr = learning_rate
+
+        if not isinstance(learning_rate, float):
+            self.scheduler = learning_rate
+            self.lr = 0.0
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}()"
+        attrs = ", ".join(f"{name}={value}" for name, value in self.state.items())
+        return f"{self.__class__.__name__}({attrs})"
 
     def __repr__(self) -> str:
         return self.__str__()
 
     @property
-    def state(self) -> Dict:
-        """The current state of the optimizer."""
-        return self._state
-
-    @property
     def state_variables(self) -> List[str]:
         """The state variables in the optimizer."""
-        return list(self._state.keys())
-
-    @property
-    def lr(self) -> float:
-        """The current learing rate of the optimizer."""
-        return self._state["lr_t"]
-
-    @property
-    def iterations(self) -> int:
-        """The number of minimization iterations run so far."""
-        return self._state["iterations"]
-
-    def fetch_state_variable(self, state_var: str) -> Any:
-        return self._state[state_var]
-
-    def add_or_update_state_variable(self, state_var: str, value: Any) -> None:
-        """Method to add a new state variable."""
-        self._state[state_var] = value
+        return list(self.state.keys())
 
     def pre_iteration_state(self, grads: WeightsGradientsType) -> None:
         """
@@ -60,9 +66,8 @@ class Optimizer(ABC):
         If child classes override this method, they MUST call super()
         to ensure the optimizer works as expected.
         """
-        if self._scheduler is True:
-            scheduler: LearningRateScheduler = self._state["lr"]
-            self._state["lr_t"] = scheduler.lr(self.iterations)
+        if self.scheduler is not None:
+            self.lr = self.scheduler.lr(self.iterations)
 
     def post_iteration_state(self, grads: WeightsGradientsType) -> None:
         """
@@ -70,7 +75,7 @@ class Optimizer(ABC):
 
         By default, it increments the iteration count.
         """
-        self._state["iterations"] += 1
+        self.iterations += 1
 
     def minimize(self, weights_and_grads: WeightsGradientsType) -> None:
         self.pre_iteration_state(grads=weights_and_grads)

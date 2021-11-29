@@ -6,10 +6,12 @@ import numpy as np
 
 from dnn.training.schedulers import LearningRateType
 
-from .base_optimizer import Optimizer, WeightsGradientsType
+from .base_optimizer import Optimizer, StateVariable, WeightsGradientsType
 
 
 class SGD(Optimizer):
+    momentum = StateVariable()
+
     def __init__(
         self, learning_rate: LearningRateType = 1e-2, momentum: float = 0.0
     ) -> None:
@@ -21,13 +23,9 @@ class SGD(Optimizer):
 
         self._momentum = momentum > 0.0
 
-        self.add_or_update_state_variable("momentum", momentum)
+        self.momentum = momentum
 
         self._velocities: List[np.ndarray] = None
-
-    @property
-    def momentum(self):
-        return self.fetch_state_variable("momentum")
 
     def _update_velocity(self, grad: np.ndarray, velocity: np.ndarray) -> np.ndarray:
         mom = self.momentum

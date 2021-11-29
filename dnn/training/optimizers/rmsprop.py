@@ -6,10 +6,13 @@ import numpy as np
 
 from dnn.training.schedulers import LearningRateType
 
-from .base_optimizer import Optimizer, WeightsGradientsType
+from .base_optimizer import Optimizer, StateVariable, WeightsGradientsType
 
 
 class RMSProp(Optimizer):
+    rho = StateVariable()
+    epsilon = StateVariable()
+
     def __init__(
         self,
         learning_rate: LearningRateType = 1e-2,
@@ -22,18 +25,11 @@ class RMSProp(Optimizer):
 
         super().__init__(learning_rate=learning_rate)
 
-        self.add_or_update_state_variable("epsilon", epsilon)
-        self.add_or_update_state_variable("rho", rho)
+        self.epsilon = epsilon
+
+        self.rho = rho
 
         self._root_mean_sqs: List[np.ndarray] = None
-
-    @property
-    def rho(self):
-        return self.fetch_state_variable("rho")
-
-    @property
-    def epsilon(self):
-        return self.fetch_state_variable("epsilon")
 
     def pre_iteration_state(self, grads: WeightsGradientsType) -> None:
         super().pre_iteration_state(grads=grads)

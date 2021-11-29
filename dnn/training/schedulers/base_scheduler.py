@@ -9,6 +9,9 @@ class LearningRateScheduler(ABC):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(lr0={self.lr0})"
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
     @abstractmethod
     def lr(self, iteration: int) -> float:
         """Method to calculate the learning rate for the current iteration."""

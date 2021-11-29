@@ -7,7 +7,7 @@ from numba import njit
 
 from dnn.training.schedulers import LearningRateType
 
-from .base_optimizer import Optimizer, WeightsGradientsType
+from .base_optimizer import Optimizer, StateVariable, WeightsGradientsType
 
 
 @njit(cache=True, parallel=True)
@@ -37,6 +37,10 @@ def _maximum(
 
 
 class Adam(Optimizer):
+    beta_1 = StateVariable()
+    beta_2 = StateVariable()
+    epsilon = StateVariable()
+
     def __init__(
         self,
         learning_rate: LearningRateType = 1e-2,
@@ -48,9 +52,11 @@ class Adam(Optimizer):
     ) -> None:
         super().__init__(learning_rate=learning_rate)
 
-        self.add_or_update_state_variable("beta_1", beta_1)
-        self.add_or_update_state_variable("beta_2", beta_2)
-        self.add_or_update_state_variable("epsilon", epsilon)
+        self.beta_1 = beta_1
+
+        self.beta_2 = beta_2
+
+        self.epsilon = epsilon
 
         self.amsgrad = amsgrad
         self.bias_correction = bias_correction
@@ -59,18 +65,6 @@ class Adam(Optimizer):
         self._beta2t = beta_2
         self._first_moments: List[np.ndarray] = None
         self._second_moments: List[np.ndarray] = None
-
-    @property
-    def beta_1(self):
-        return self.fetch_state_variable("beta_1")
-
-    @property
-    def beta_2(self):
-        return self.fetch_state_variable("beta_2")
-
-    @property
-    def epsilon(self):
-        return self.fetch_state_variable("epsilon")
 
     def pre_iteration_state(self, grads: WeightsGradientsType) -> None:
         super().pre_iteration_state(grads)

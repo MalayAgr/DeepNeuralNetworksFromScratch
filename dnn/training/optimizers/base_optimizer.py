@@ -13,15 +13,12 @@ WeightsGradientsType = List[Tuple[np.ndarray, np.ndarray]]
 class StateVariable:
     state_var = "state"
 
-    def __init__(self, default=None) -> None:
-        self.default = default
-
     def __set_name__(self, owner, name: str):
         self.public_name = name
         self.private_name = "_" + name
 
     def __get__(self, obj, klass=None):
-        return getattr(obj, self.private_name, self.default)
+        return getattr(obj, self.private_name)
 
     def __set__(self, obj, value):
         setattr(obj, self.private_name, value)
@@ -38,11 +35,11 @@ class Optimizer(ABC):
         self.state = {}
         self.iterations = 0
 
-        self.lr = learning_rate
-
         if not isinstance(learning_rate, float):
             self.scheduler = learning_rate
             self.lr = 0.0
+        else:
+            self.lr = learning_rate
 
     def __str__(self) -> str:
         attrs = ", ".join(f"{name}={value}" for name, value in self.state.items())

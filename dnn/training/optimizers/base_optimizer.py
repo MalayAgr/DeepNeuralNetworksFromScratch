@@ -18,7 +18,7 @@ class StateVariable:
         self.private_name = "_" + name  # skipcq: PYL-W0201
 
     def __get__(self, obj, klass=None):
-        return getattr(obj, self.private_name)
+        return getattr(obj, self.private_name, None)
 
     def __set__(self, obj, value):
         setattr(obj, self.private_name, value)

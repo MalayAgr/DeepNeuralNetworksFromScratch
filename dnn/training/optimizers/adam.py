@@ -7,7 +7,7 @@ from numba import njit
 
 from dnn.training.schedulers import LearningRateScheduler
 
-from .base_optimizer import Optimizer
+from .base_optimizer import Optimizer, WeightsGradientsType
 
 
 @njit(cache=True, parallel=True)
@@ -72,7 +72,7 @@ class Adam(Optimizer):
     def epsilon(self):
         return self.fetch_state_variable("epsilon")
 
-    def pre_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
+    def pre_iteration_state(self, grads: WeightsGradientsType) -> None:
         super().pre_iteration_state(grads)
 
         if self.iterations == 0:

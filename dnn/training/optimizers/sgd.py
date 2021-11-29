@@ -6,7 +6,7 @@ import numpy as np
 
 from dnn.training.schedulers import LearningRateScheduler
 
-from .base_optimizer import Optimizer
+from .base_optimizer import Optimizer, WeightsGradientsType
 
 
 class SGD(Optimizer):
@@ -25,6 +25,8 @@ class SGD(Optimizer):
 
         self.add_or_update_state_variable("momentum", momentum)
 
+        self._velocities: List[np.ndarray] = None
+
     @property
     def momentum(self):
         return self.fetch_state_variable("momentum")
@@ -38,12 +40,11 @@ class SGD(Optimizer):
 
         return velocity
 
-    def pre_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
+    def pre_iteration_state(self, grads: WeightsGradientsType) -> None:
         super().pre_iteration_state(grads=grads)
 
         if self._momentum is True and self.iterations == 0:
-            velocities = [np.zeros_like(weight) for weight, _ in grads]
-            self.add_or_update_state_variable("velocities", velocities)
+            self._velocities = [np.zeros_like(weight) for weight, _ in grads]
 
     def _apply_gradient(
         self, weight: np.ndarray, gradient: np.ndarray, grad_idx: int
@@ -52,9 +53,7 @@ class SGD(Optimizer):
         update = gradient
 
         if self._momentum:
-            velocities = self.fetch_state_variable("velocities")
-
-            velocity = velocities[grad_idx]
+            velocity = self._velocities[grad_idx]
             update = self._update_velocity(gradient, velocity)
 
         weight -= self.lr * update

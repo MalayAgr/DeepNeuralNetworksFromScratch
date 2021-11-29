@@ -5,8 +5,9 @@ from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
-from dnn.training.graph.core import ComputationGraph
 from dnn.training.schedulers import LearningRateScheduler
+
+WeightsGradientsType = List[Tuple[np.ndarray, np.ndarray]]
 
 
 class Optimizer(ABC):
@@ -52,7 +53,7 @@ class Optimizer(ABC):
         """Method to add a new state variable."""
         self._state[state_var] = value
 
-    def pre_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
+    def pre_iteration_state(self, grads: WeightsGradientsType) -> None:
         """
         Method to prepare the state of the optimizer before a minimization iteration.
 
@@ -61,11 +62,11 @@ class Optimizer(ABC):
         If child classes override this method, they MUST call super()
         to ensure the optimizer works as expected.
         """
-        if self._scheduler:
-            scheduler = self._state["lr"]
+        if self._scheduler is True:
+            scheduler: LearningRateScheduler = self._state["lr"]
             self._state["lr_t"] = scheduler.lr(self.iterations)
 
-    def post_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
+    def post_iteration_state(self, grads: WeightsGradientsType) -> None:
         """
         Method to update the state of the optimizer after a minimization iteration.
 
@@ -73,13 +74,7 @@ class Optimizer(ABC):
         """
         self._state["iterations"] += 1
 
-    def minimize(
-        self,
-        graph: ComputationGraph,
-        initial_grads: List[np.ndarray],
-    ):
-        weights_and_grads = graph.backprop(grads=initial_grads)
-
+    def minimize(self, weights_and_grads: WeightsGradientsType) -> None:
         self.pre_iteration_state(grads=weights_and_grads)
 
         self.apply_gradients(grads=weights_and_grads)
@@ -97,6 +92,6 @@ class Optimizer(ABC):
         has an effect.
         """
 
-    def apply_gradients(self, grads: List[Tuple[np.ndarray, np.ndarray]]):
+    def apply_gradients(self, grads: WeightsGradientsType):
         for idx, (weight, grad) in enumerate(grads):
             self._apply_gradient(weight, grad, idx)

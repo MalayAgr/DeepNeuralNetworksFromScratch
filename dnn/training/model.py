@@ -160,7 +160,8 @@ class Model:
             cost += loss.compute_loss(y, pred)
             grads.append(loss.compute_derivatives(y, pred))
 
-        self.opt.minimize(self._graph, initial_grads=grads)
+        weights_and_grads = self._graph.backprop(grads)
+        self.opt.minimize(weights_and_grads)
 
         return cost
 
@@ -239,7 +240,7 @@ class TrainingContext(ContextDecorator):
         self.model = model
         self.training = training
 
-    def _set_operation_mode(self, training: bool = False) -> None:
+    def _set_operation_mode(self, training: bool) -> None:
         model = self.model
 
         if model.training is not training:
@@ -251,4 +252,4 @@ class TrainingContext(ContextDecorator):
         self._set_operation_mode(training=self.training)
 
     def __exit__(self, *args, **kwargs):
-        self._set_operation_mode()
+        self._set_operation_mode(training=False)

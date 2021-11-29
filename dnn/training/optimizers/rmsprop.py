@@ -6,7 +6,7 @@ import numpy as np
 
 from dnn.training.schedulers import LearningRateScheduler
 
-from .base_optimizer import Optimizer
+from .base_optimizer import Optimizer, WeightsGradientsType
 
 
 class RMSProp(Optimizer):
@@ -25,6 +25,8 @@ class RMSProp(Optimizer):
         self.add_or_update_state_variable("epsilon", epsilon)
         self.add_or_update_state_variable("rho", rho)
 
+        self._root_mean_sqs: List[np.ndarray] = None
+
     @property
     def rho(self):
         return self.fetch_state_variable("rho")
@@ -33,12 +35,11 @@ class RMSProp(Optimizer):
     def epsilon(self):
         return self.fetch_state_variable("epsilon")
 
-    def pre_iteration_state(self, grads: List[Tuple[np.ndarray, np.ndarray]]) -> None:
+    def pre_iteration_state(self, grads: WeightsGradientsType) -> None:
         super().pre_iteration_state(grads=grads)
 
         if self.iterations == 0:
-            root_mean_sqs = [np.zeros_like(weight) for weight, _ in grads]
-            self.add_or_update_state_variable("root_mean_sqs", root_mean_sqs)
+            self._root_mean_sqs = [np.zeros_like(weight) for weight, _ in grads]
 
     def _update_rms(self, grad: np.ndarray, rms: np.ndarray) -> np.ndarray:
         rho = self.rho
@@ -52,9 +53,7 @@ class RMSProp(Optimizer):
     def _apply_gradient(
         self, weight: np.ndarray, gradient: np.ndarray, grad_idx: int
     ) -> None:
-        root_mean_sqs = self.fetch_state_variable("root_mean_sqs")
-
-        rms = root_mean_sqs[grad_idx]
+        rms = self._root_mean_sqs[grad_idx]
         rms = self._update_rms(gradient, rms)
 
         weight -= self.lr * gradient / (np.sqrt(rms) + self.epsilon)

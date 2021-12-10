@@ -6,8 +6,9 @@ import numpy as np
 from numba import njit
 
 from dnn.training.schedulers import LearningRateType
+from dnn.utils import StateVariable
 
-from .base_optimizer import Optimizer, StateVariable, WeightsGradientsType
+from .base_optimizer import Optimizer, WeightsGradientsType
 
 
 @njit(cache=True, parallel=True)

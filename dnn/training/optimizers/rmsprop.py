@@ -5,8 +5,9 @@ from typing import List
 import numpy as np
 
 from dnn.training.schedulers import LearningRateType
+from dnn.utils import StateVariable
 
-from .base_optimizer import Optimizer, StateVariable, WeightsGradientsType
+from .base_optimizer import Optimizer, WeightsGradientsType
 
 
 class RMSProp(Optimizer):

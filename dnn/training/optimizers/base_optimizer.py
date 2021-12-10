@@ -5,25 +5,11 @@ from typing import List, Tuple
 
 import numpy as np
 
-from dnn.training.schedulers import LearningRateType
+from dnn.utils import StateVariable
+
+from ..schedulers import LearningRateType
 
 WeightsGradientsType = List[Tuple[np.ndarray, np.ndarray]]
-
-
-class StateVariable:
-    state_var = "state"
-
-    def __set_name__(self, owner, name: str):
-        self.public_name = name  # skipcq: PYL-W0201
-        self.private_name = "_" + name  # skipcq: PYL-W0201
-
-    def __get__(self, obj, klass=None):
-        return getattr(obj, self.private_name, None)
-
-    def __set__(self, obj, value):
-        setattr(obj, self.private_name, value)
-        if (state := getattr(obj, self.state_var, None)) is not None:
-            state[self.public_name] = value
 
 
 class Optimizer(ABC):

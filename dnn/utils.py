@@ -97,3 +97,19 @@ class HeightWidthAttribute:
         setattr(obj, self.private_name, value)
         setattr(obj, self.height_attr, value[0])
         setattr(obj, self.width_attr, value[1])
+
+
+class StateVariable:
+    state_var = "state"
+
+    def __set_name__(self, owner, name: str):
+        self.public_name = name  # skipcq: PYL-W0201
+        self.private_name = "_" + name  # skipcq: PYL-W0201
+
+    def __get__(self, obj, klass=None):
+        return getattr(obj, self.private_name, None)
+
+    def __set__(self, obj, value):
+        setattr(obj, self.private_name, value)
+        if (state := getattr(obj, self.state_var, None)) is not None:
+            state[self.public_name] = value

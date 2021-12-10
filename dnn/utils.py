@@ -86,7 +86,7 @@ class HeightWidthAttribute:
         self.width_attr = width_attr
 
     def __set_name__(self, owner, name: str):
-        self.private_name = "_" + name
+        self.private_name = "_" + name  # skipcq: PYL-W0201
         self.height_attr = self.height_attr if self.height_attr else f"{name}_H"
         self.width_attr = self.width_attr if self.width_attr else f"{name}_W"
 

@@ -5,9 +5,9 @@ from typing import List, Union
 import numpy as np
 from numba import njit
 
-from dnn.training.schedulers import LearningRateType
 from dnn.utils import StateVariable
 
+from ..schedulers import LearningRateType
 from .base_optimizer import Optimizer, WeightsGradientsType
 
 

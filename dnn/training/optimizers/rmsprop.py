@@ -4,9 +4,9 @@ from typing import List
 
 import numpy as np
 
-from dnn.training.schedulers import LearningRateType
 from dnn.utils import StateVariable
 
+from ..schedulers import LearningRateType
 from .base_optimizer import Optimizer, WeightsGradientsType
 
 

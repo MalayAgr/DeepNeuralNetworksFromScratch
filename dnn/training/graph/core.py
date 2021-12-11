@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import Iterator, defaultdict
-from typing import Dict, List, Set, Tuple, Union
 
 import numpy as np
 
@@ -11,11 +10,11 @@ from .nodes import Node
 
 class ComputationGraph:
     def __init__(self) -> None:
-        self.nodes: Dict[str, Node] = {}
-        self.adj: Dict[str, Set[str]] = defaultdict(set)
+        self.nodes: dict[str, Node] = {}
+        self.adj: dict[str, set[str]] = defaultdict(set)
 
-        self._order: List[str] = []
-        self._sink_nodes: List[Node] = None
+        self._order: list[str] = []
+        self._sink_nodes: list[Node] = None
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(num_nodes={len(self.nodes)})"
@@ -23,7 +22,7 @@ class ComputationGraph:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def __contains__(self, key: Union[Node, str]) -> bool:
+    def __contains__(self, key: Node | str) -> bool:
         if isinstance(key, Node):
             key = key.name
         return key in self.nodes
@@ -50,7 +49,7 @@ class ComputationGraph:
         return node
 
     @property
-    def sink_nodes(self) -> List[Node]:
+    def sink_nodes(self) -> list[Node]:
         if self._sink_nodes is None:
             self._sink_nodes = [node for node in self.nodes.values() if node.is_sink]
         return self._sink_nodes
@@ -75,12 +74,12 @@ class ComputationGraph:
         return stack + order[::-1]
 
     @property
-    def topological_order(self) -> List[str]:
+    def topological_order(self) -> list[str]:
         if not self._order:
             self._order = self._tsort()
         return self._order
 
-    def forward_propagation(self) -> Tuple[np.ndarray]:
+    def forward_propagation(self) -> tuple[np.ndarray]:
         t_order = self.topological_order
 
         for name in t_order:
@@ -90,7 +89,7 @@ class ComputationGraph:
         return tuple(node.forward_output() for node in self.sink_nodes)
 
     def _pass_grads_to_parents(
-        self, node: Node, grads: Union[np.ndarray, Tuple[np.ndarray]]
+        self, node: Node, grads: np.ndarray | tuple[np.ndarray]
     ) -> None:
         parents = node.parents
 
@@ -105,7 +104,7 @@ class ComputationGraph:
             parent = self.fetch_node(name)
             parent.backprop_grad += grad
 
-    def _backprop_node(self, name: str) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
+    def _backprop_node(self, name: str) -> Iterator[tuple[np.ndarray, np.ndarray]]:
         node = self.fetch_node(name)
 
         grads = node.backprop()
@@ -118,7 +117,7 @@ class ComputationGraph:
 
         return ((weight, grad) for weight, grad in zip(node_weights, node.gradients))
 
-    def backprop(self, grads: List[np.ndarray]) -> WeightsGradientsType:
+    def backprop(self, grads: list[np.ndarray]) -> WeightsGradientsType:
         t_order = self.topological_order
 
         if not t_order:

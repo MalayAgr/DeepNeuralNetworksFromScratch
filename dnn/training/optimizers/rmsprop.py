@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import List
 
 import numpy as np
 
@@ -30,7 +29,7 @@ class RMSProp(Optimizer):
 
         self.rho = rho
 
-        self._root_mean_sqs: List[np.ndarray] = None
+        self._root_mean_sqs: list[np.ndarray] = None
 
     def pre_iteration_state(self, grads: WeightsGradientsType) -> None:
         super().pre_iteration_state(grads=grads)

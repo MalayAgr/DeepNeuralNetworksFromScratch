@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Union
 
 import numpy as np
 from numba import njit
@@ -32,8 +31,8 @@ def _update_second_moment(
 
 @njit(cache=True, parallel=True)
 def _maximum(
-    x: Union[np.ndarray, float], y: Union[np.ndarray, float]
-) -> Union[np.ndarray, float]:
+    x: np.ndarray | float, y: np.ndarray | float
+) -> np.ndarray | float:
     return np.maximum(x, y)
 
 
@@ -64,8 +63,8 @@ class Adam(Optimizer):
 
         self._beta1t = beta_1
         self._beta2t = beta_2
-        self._first_moments: List[np.ndarray] = None
-        self._second_moments: List[np.ndarray] = None
+        self._first_moments: list[np.ndarray] = None
+        self._second_moments: list[np.ndarray] = None
 
     def pre_iteration_state(self, grads: WeightsGradientsType) -> None:
         super().pre_iteration_state(grads)

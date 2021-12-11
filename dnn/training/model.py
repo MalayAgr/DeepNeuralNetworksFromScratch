@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import ContextDecorator
-from typing import Any, List, Tuple, Union
+from typing import Any, Union
 
 import numpy as np
 
@@ -15,22 +15,22 @@ from . import model_utils as mutils
 from .graph.core import ComputationGraph
 from .optimizers import Optimizer
 
-LossType = Union[str, Loss, List[Union[str, Loss]]]
+LossType = Union[str, Loss, list[Union[str, Loss]]]
 
 
 class Model:
     def __init__(
         self,
-        inputs: Union[List[Input], Input],
-        outputs: Union[List[BaseLayerType], BaseLayerType],
+        inputs: list[Input] | Input,
+        outputs: list[BaseLayerType] | BaseLayerType,
         *args,
         graph: ComputationGraph = None,
         **kwargs,
     ) -> None:
-        if not isinstance(inputs, List):
+        if not isinstance(inputs, list):
             inputs = [inputs]
 
-        if not isinstance(outputs, List):
+        if not isinstance(outputs, list):
             outputs = [outputs]
 
         self.inputs = inputs
@@ -49,7 +49,7 @@ class Model:
         self.training = False
 
         self.opt: Optimizer = None
-        self.losses: List[Loss] = None
+        self.losses: list[Loss] = None
 
     def __str__(self) -> str:
         attrs = ("opt", "training")
@@ -101,8 +101,8 @@ class Model:
 
         raise ValueError("Specify either a name or an index to fetch a layer.")
 
-    def _forward(self, inputs: Tuple[np.ndarray]) -> Tuple[np.ndarray]:
-        if not isinstance(inputs, Tuple):
+    def _forward(self, inputs: tuple[np.ndarray]) -> tuple[np.ndarray]:
+        if not isinstance(inputs, tuple):
             raise TypeError("Expected a tuple of inputs.")
 
         if len(inputs) != len(self.inputs):
@@ -121,10 +121,10 @@ class Model:
         return self._graph.forward_propagation()
 
     def predict(
-        self, inputs: Union[np.ndarray, Tuple[np.ndarray]], training: bool = False
-    ) -> Union[np.ndarray, Tuple[np.ndarray]]:
+        self, inputs: np.ndarray | tuple[np.ndarray], training: bool = False
+    ) -> np.ndarray | tuple[np.ndarray]:
 
-        if not isinstance(inputs, Tuple):
+        if not isinstance(inputs, tuple):
             inputs = (inputs,)
 
         with TrainingContext(self, training=training):
@@ -139,7 +139,7 @@ class Model:
             msg = f"Expected an instance of Optimizer but got {type(opt)} instead."
             raise TypeError(msg)
 
-        if not isinstance(loss, List):
+        if not isinstance(loss, list):
             loss = [loss] * len(self.inputs)
 
         self.opt = opt
@@ -148,12 +148,12 @@ class Model:
         self._compiled = True
 
     def train_step(
-        self, batch_X: Tuple[np.ndarray], batch_Y: Tuple[np.ndarray], size: int
+        self, batch_X: tuple[np.ndarray], batch_Y: tuple[np.ndarray], size: int
     ) -> float:
         preds = self._forward(batch_X)
 
         cost = 0.0
-        grads: List[np.ndarray] = []
+        grads: list[np.ndarray] = []
 
         for idx, (y, pred) in enumerate(zip(batch_Y, preds)):
             loss = self.losses[idx]
@@ -167,14 +167,14 @@ class Model:
 
     def train_loop(
         self,
-        X: Tuple[np.ndarray],
-        Y: Tuple[np.ndarray],
+        X: tuple[np.ndarray],
+        Y: tuple[np.ndarray],
         epochs: int,
         batch_size: int,
         shuffle: bool,
         verbosity: int,
-    ) -> List[float]:
-        history: List[float] = []
+    ) -> list[float]:
+        history: list[float] = []
 
         for epoch in range(1, epochs + 1):
             print(f"Epoch {epoch}/{epochs}:")
@@ -199,20 +199,20 @@ class Model:
 
     def train(
         self,
-        X: Union[Tuple[np.ndarray], np.ndarray],
-        Y: Union[Tuple[np.ndarray], np.ndarray],
+        X: tuple[np.ndarray] | np.ndarray,
+        Y: tuple[np.ndarray] | np.ndarray,
         batch_size: int,
         epochs: int,
         shuffle: bool = True,
         verbosity: int = 1,
-    ) -> List[float]:
+    ) -> list[float]:
         if not self._compiled:
             raise RuntimeError("Compile the model before training it.")
 
-        if not isinstance(X, Tuple):
+        if not isinstance(X, tuple):
             X = (X,)
 
-        if not isinstance(Y, Tuple):
+        if not isinstance(Y, tuple):
             Y = (Y,)
 
         mutils.validate_labels_against_samples(X, Y)

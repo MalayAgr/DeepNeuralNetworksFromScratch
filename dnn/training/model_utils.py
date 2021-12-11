@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -13,11 +12,11 @@ from .graph.nodes import LayerNode
 
 
 def discover_layers(
-    inputs: List[Input], outputs: List[BaseLayerType]
-) -> Dict[str, BaseLayerType]:
+    inputs: list[Input], outputs: list[BaseLayerType]
+) -> dict[str, BaseLayerType]:
     queue = deque(outputs)
 
-    layers: Dict[str, BaseLayerType] = {}
+    layers: dict[str, BaseLayerType] = {}
 
     while queue:
         layer = queue.popleft()
@@ -34,7 +33,7 @@ def discover_layers(
     return layers
 
 
-def is_a_source_layer(layer: BaseLayerType, inputs: List[Input]) -> bool:
+def is_a_source_layer(layer: BaseLayerType, inputs: list[Input]) -> bool:
     ips = layer.ip_layer
     if isinstance(ips, list):
         return all(ip in inputs for ip in ips)
@@ -42,9 +41,9 @@ def is_a_source_layer(layer: BaseLayerType, inputs: List[Input]) -> bool:
 
 
 def build_graph_for_model(
-    layers: List[BaseLayerType],
-    inputs: List[Input],
-    outputs: List[BaseLayerType],
+    layers: list[BaseLayerType],
+    inputs: list[Input],
+    outputs: list[BaseLayerType],
     graph: ComputationGraph = None,
 ) -> ComputationGraph:
     graph = ComputationGraph() if graph is None else graph
@@ -59,7 +58,7 @@ def build_graph_for_model(
 
 
 def validate_labels_against_outputs(
-    labels: Tuple[np.ndarray], outputs: Tuple[BaseLayerType]
+    labels: tuple[np.ndarray], outputs: tuple[BaseLayerType]
 ) -> None:
     if any(y.shape[:-1] != op.output_shape()[:-1] for y, op in zip(labels, outputs)):
         msg = "Each set of labels should have the same dimensions as the respective output layer."
@@ -67,7 +66,7 @@ def validate_labels_against_outputs(
 
 
 def validate_labels_against_samples(
-    samples: Tuple[np.ndarray], labels: Tuple[np.ndarray]
+    samples: tuple[np.ndarray], labels: tuple[np.ndarray]
 ) -> None:
     if any(x.shape[-1] != y.shape[-1] for x, y in zip(samples, labels)):
         msg = "There should be an equal number of training examples in each X, Y pair."

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -24,12 +23,12 @@ class Node(ABC):
         return self.__str__()
 
     @property
-    def parents(self) -> Union[List[str], None]:
+    def parents(self) -> list[str] | None:
         return None
 
     @property
     @abstractmethod
-    def trainable_weights(self) -> List[str]:
+    def trainable_weights(self) -> list[str]:
         """Method to obtain a list of names of trainable weights of the node."""
 
     @abstractmethod
@@ -52,7 +51,7 @@ class Node(ABC):
         """Method to obtain the output of the forward pass through the node."""
 
     @abstractmethod
-    def backprop(self) -> Union[np.ndarray, Tuple[np.ndarray]]:
+    def backprop(self) -> np.ndarray | tuple[np.ndarray]:
         """
         Method to execute the backprop step of the node.
 
@@ -71,19 +70,19 @@ class LayerNode(Node):
         super().__init__(name=layer.name, source=source, sink=sink)
 
     @property
-    def parents(self) -> Union[List[str], None]:
+    def parents(self) -> list[str] | None:
         ip_layers = self.layer.ip_layer
 
         if self.is_source:
             return None
 
-        if not isinstance(ip_layers, List):
+        if not isinstance(ip_layers, list):
             return [ip_layers.name]
 
         return [layer.name for layer in ip_layers]
 
     @property
-    def trainable_weights(self) -> List[str]:
+    def trainable_weights(self) -> list[str]:
         if self.layer.trainable is True:
             return self.layer.param_keys
         return []
@@ -103,5 +102,5 @@ class LayerNode(Node):
     def forward_output(self) -> np.ndarray:
         return self.layer.output()
 
-    def backprop(self) -> Union[np.ndarray, Tuple[np.ndarray]]:
+    def backprop(self) -> np.ndarray | tuple[np.ndarray]:
         return self.layer.backprop(self.backprop_grad)

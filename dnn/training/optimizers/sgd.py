@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import List
 
 import numpy as np
 
@@ -26,7 +25,7 @@ class SGD(Optimizer):
 
         self.momentum = momentum
 
-        self._velocities: List[np.ndarray] = None
+        self._velocities: list[np.ndarray] = None
 
     def _update_velocity(self, grad: np.ndarray, velocity: np.ndarray) -> np.ndarray:
         mom = self.momentum

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple
 
 import numpy as np
 
@@ -9,7 +8,7 @@ from dnn.utils import StateVariable
 
 from ..schedulers import LearningRateType
 
-WeightsGradientsType = List[Tuple[np.ndarray, np.ndarray]]
+WeightsGradientsType = list[tuple[np.ndarray, np.ndarray]]
 
 
 class Optimizer(ABC):
@@ -35,7 +34,7 @@ class Optimizer(ABC):
         return self.__str__()
 
     @property
-    def state_variables(self) -> List[str]:
+    def state_variables(self) -> list[str]:
         """The state variables in the optimizer."""
         return list(self.state.keys())
 

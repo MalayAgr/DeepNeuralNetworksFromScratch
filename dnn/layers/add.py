@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -46,7 +45,7 @@ class Add(MultiInputBaseLayer):
            [16, 18]])
     """
 
-    def __init__(self, ip: List[LayerInput], name: str = None) -> None:
+    def __init__(self, ip: list[LayerInput], name: str = None) -> None:
         """
         Arguments
         ----------
@@ -79,10 +78,10 @@ class Add(MultiInputBaseLayer):
             msg = f"All inputs must have the same shape. Expected shape: {first_shape}"
             raise ValueError(msg)
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self.added
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         return self.input_shape()[0]
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
@@ -100,7 +99,7 @@ class Add(MultiInputBaseLayer):
 
         return self.added
 
-    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> tuple[np.ndarray]:
         num_ips = len(self.input())
         # The gradient is copied for each input
         return tuple(grad.copy() for _ in range(num_ips))

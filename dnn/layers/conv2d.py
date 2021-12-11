@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Tuple
 
 import numpy as np
 
@@ -9,7 +8,7 @@ from .utils import conv_utils as cutils
 
 
 class Conv2D(BaseConv):
-    def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
+    def prepare_input_and_kernel_for_conv(self) -> tuple[np.ndarray, np.ndarray]:
         ip = cutils.prepare_ip(
             X=self.input(),
             kernel_size=self.kernel_size,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -17,8 +17,8 @@ class DepthwiseConv2D(Conv2D):
         self,
         ip: LayerInput,
         *args,
-        kernel_size: Tuple[int, int],
-        stride: Tuple[int, int] = (1, 1),
+        kernel_size: tuple[int, int],
+        stride: tuple[int, int] = (1, 1),
         activation: ActivationType = None,
         multiplier: int = 1,
         padding: str = "valid",
@@ -41,7 +41,7 @@ class DepthwiseConv2D(Conv2D):
 
         self.multiplier = multiplier
 
-    def fans(self) -> Tuple[int, int]:
+    def fans(self) -> tuple[int, int]:
         fan_in, fan_out = super().fans()
 
         return fan_in, fan_out * self.ip_C
@@ -54,7 +54,7 @@ class DepthwiseConv2D(Conv2D):
             extra = self._add_param(shape=(remaining, 1, 1, 1), initializer="zeros")
             self.biases = np.concatenate((self.biases, extra))
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         shape = super().output_shape()
 
         if self.activations is not None:
@@ -64,7 +64,7 @@ class DepthwiseConv2D(Conv2D):
 
         return c * self.ip_C, h, w, m
 
-    def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
+    def prepare_input_and_kernel_for_conv(self) -> tuple[np.ndarray, np.ndarray]:
         ip = cutils.prepare_ip(
             X=self.input(),
             kernel_size=self.kernel_size,

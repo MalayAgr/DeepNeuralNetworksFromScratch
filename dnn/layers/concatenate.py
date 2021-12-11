@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import itertools
 from collections import Iterator
-from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -58,7 +57,7 @@ class Concatenate(MultiInputBaseLayer):
     (6, 2)
     """
 
-    def __init__(self, ip: List[LayerInput], axis: int = 0, name: str = None) -> None:
+    def __init__(self, ip: list[LayerInput], axis: int = 0, name: str = None) -> None:
         """
         Arguments
         ---------
@@ -96,7 +95,7 @@ class Concatenate(MultiInputBaseLayer):
         self._axis = _axis
         self.concatenated = None
 
-    def _get_axis_excluded_shapes(self, axis: int) -> Iterator[Tuple]:
+    def _get_axis_excluded_shapes(self, axis: int) -> Iterator[tuple]:
         """Method to get the shape of the inputs without the dimension along axis.
 
         Arguments
@@ -130,10 +129,10 @@ class Concatenate(MultiInputBaseLayer):
             )
             raise ValueError(msg)
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self.concatenated
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         axis = self._axis
 
         shapes = self.input_shape()
@@ -171,7 +170,7 @@ class Concatenate(MultiInputBaseLayer):
 
         return self.concatenated
 
-    def _split_indices(self) -> List[int]:
+    def _split_indices(self) -> list[int]:
         """Method to obtain the indices where the gradient should be split."""
         shapes = self.input_shape()
 
@@ -181,7 +180,7 @@ class Concatenate(MultiInputBaseLayer):
 
         return list(indices)[:-1]
 
-    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> tuple[np.ndarray]:
         indices = self._split_indices()
 
         # Split the gradient along the concatenation axis

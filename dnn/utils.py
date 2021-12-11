@@ -4,7 +4,6 @@ import functools
 import itertools
 import math
 from collections.abc import Iterator
-from typing import Tuple
 
 import numpy as np
 from numba import njit

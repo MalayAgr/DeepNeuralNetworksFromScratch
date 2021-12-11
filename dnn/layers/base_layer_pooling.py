@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Optional, Tuple
 
 import numpy as np
 
@@ -24,8 +23,8 @@ class BasePooling(BaseLayer):
     def __init__(
         self,
         ip: LayerInput,
-        pool_size: Tuple[int, ...],
-        stride: Tuple[int, int] = (2, 2),
+        pool_size: tuple[int, ...],
+        stride: tuple[int, int] = (2, 2),
         padding: str = "valid",
         name: str = None,
     ) -> None:
@@ -44,13 +43,13 @@ class BasePooling(BaseLayer):
         self.pooled = None
         self.gradient_mask = None
 
-    def fans(self) -> Tuple[int, int]:
+    def fans(self) -> tuple[int, int]:
         return self.ip_C, self.ip_C
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self.pooled
 
-    def output_area(self) -> Tuple[int, int]:
+    def output_area(self) -> tuple[int, int]:
         ip_shape = self.input_shape()
         ipH, ipW = ip_shape[1], ip_shape[2]
 
@@ -60,10 +59,10 @@ class BasePooling(BaseLayer):
 
         return oH, oW
 
-    def pad_area(self) -> Tuple[int, int]:
+    def pad_area(self) -> tuple[int, int]:
         return cutils.padding(self.pool_size, mode=self.padding)
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         if self.pooled is not None:
             return self.pooled.shape
 
@@ -71,13 +70,13 @@ class BasePooling(BaseLayer):
 
         return self.windows, oH, oW, None
 
-    def _padded_shape(self) -> Tuple[int, int]:
+    def _padded_shape(self) -> tuple[int, int]:
         ipH, ipW = self.input_shape()[1:-1]
         pH, pW = self.pad_area()
         return ipH + 2 * pH, ipW + 2 * pW
 
     @abstractmethod
-    def pool_func(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def pool_func(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         pass
 
     def _pool(self, X: np.ndarray) -> np.ndarray:

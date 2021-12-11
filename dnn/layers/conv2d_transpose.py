@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Tuple
 
 import numpy as np
 
@@ -9,10 +8,10 @@ from .utils import conv_utils as cutils
 
 
 class Conv2DTranspose(BaseConv):
-    def kernel_shape(self) -> Tuple[int, ...]:
+    def kernel_shape(self) -> tuple[int, ...]:
         return (self.filters, *self.kernel_size, self.ip_C)
 
-    def output_area(self) -> Tuple[int, int]:
+    def output_area(self) -> tuple[int, int]:
         ip_shape = self.input_shape()
         ipH, ipW = ip_shape[1], ip_shape[2]
 
@@ -22,12 +21,12 @@ class Conv2DTranspose(BaseConv):
 
         return oH, oW
 
-    def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
+    def prepare_input_and_kernel_for_conv(self) -> tuple[np.ndarray, np.ndarray]:
         ip = self.input()
         ip = np.swapaxes(ip, 0, -1).reshape(ip.shape[-1], -1, self.ip_C)
         return ip, cutils.vectorize_kernel(kernel=self.kernels)
 
-    def _padded_shape(self) -> Tuple[int, int]:
+    def _padded_shape(self) -> tuple[int, int]:
         oH, oW = self.output_area()
         pH, pW = self.pad_area()
         return oH + 2 * pH, oW + 2 * pW

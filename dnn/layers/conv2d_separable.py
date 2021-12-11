@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -15,8 +15,8 @@ class SeparableConv2D(BaseLayer):
         self,
         ip: LayerInput,
         filters: int,
-        kernel_size: Tuple[int, int],
-        stride: Tuple[int, int] = (1, 1),
+        kernel_size: tuple[int, int],
+        stride: tuple[int, int] = (1, 1),
         activation: ActivationType = None,
         multiplier: int = 1,
         padding: str = "valid",
@@ -66,7 +66,7 @@ class SeparableConv2D(BaseLayer):
 
         self.padding = padding
 
-    def fans(self) -> Tuple[int, int]:
+    def fans(self) -> tuple[int, int]:
         return self._pointwise.fans()
 
     def build(self) -> Any:
@@ -80,13 +80,13 @@ class SeparableConv2D(BaseLayer):
     def input(self) -> np.ndarray:
         return self._depthwise.input()
 
-    def input_shape(self) -> Tuple[int, ...]:
+    def input_shape(self) -> tuple[int, ...]:
         return self._depthwise.input_shape()
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self._pointwise.output()
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         return self._pointwise.output_shape()
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:
@@ -130,7 +130,7 @@ class SeparableConv2D(BaseLayer):
         self.pointwise_kernels = kernel
 
     @property
-    def biases(self) -> Optional[np.ndarray]:
+    def biases(self) -> np.ndarray | None:
         return self._pointwise.biases
 
     @biases.setter
@@ -138,7 +138,7 @@ class SeparableConv2D(BaseLayer):
         self.biases = bias
 
     @property
-    def gradients(self) -> Dict[str, np.ndarray]:
+    def gradients(self) -> dict[str, np.ndarray]:
         grads = self._depthwise.gradients
         self._gradients = {f"depthwise_{key}": grad for key, grad in grads.items()}
 
@@ -151,7 +151,7 @@ class SeparableConv2D(BaseLayer):
         return self._gradients
 
     @gradients.setter
-    def gradients(self, value: Dict[str, np.ndarray]) -> None:
+    def gradients(self, value: dict[str, np.ndarray]) -> None:
         self._gradients = value
 
     @property

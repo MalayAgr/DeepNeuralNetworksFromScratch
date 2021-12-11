@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Union
 
 import numpy as np
 from numba import njit
@@ -102,13 +102,13 @@ class Activation(BaseLayer):
     """
 
     name: str = None
-    REGISTRY: Dict[str, Type[Activation]] = {}
+    REGISTRY: dict[str, type[Activation]] = {}
     reset = ("activations",)
 
     def __init__(
         self,
         *args,
-        ip: Optional[LayerInput] = None,
+        ip: LayerInput | None = None,
         name: str = None,
         trainable=False,
         **kwargs,
@@ -134,7 +134,7 @@ class Activation(BaseLayer):
         if (name := cls.name) is not None:
             Activation.REGISTRY[name] = cls
 
-    def should_reshape(self, shape: Tuple[int, ...]) -> bool:
+    def should_reshape(self, shape: tuple[int, ...]) -> bool:
         """Method to determine if the given shape requires reshaping.
 
         By default, it returns False, implying no reshapping is required.
@@ -179,7 +179,7 @@ class Activation(BaseLayer):
 
     @abstractmethod
     def derivative_func(
-        self, ip: np.ndarray, activations: Optional[np.ndarray] = None
+        self, ip: np.ndarray, activations: np.ndarray | None = None
     ) -> np.ndarray:
         """The formula used to calculate the derivatives.
 
@@ -210,7 +210,7 @@ class Activation(BaseLayer):
         ...     return activations * (1 - activations)
         """
 
-    def compute_activations(self, ip: Optional[np.ndarray] = None) -> np.ndarray:
+    def compute_activations(self, ip: np.ndarray | None = None) -> np.ndarray:
         """Method to handle whether the input is being supplied externally or
         being passed by some layer, and calculate the activations accordingly.
 
@@ -243,7 +243,7 @@ class Activation(BaseLayer):
 
         return activations
 
-    def compute_derivatives(self, ip: Optional[np.ndarray] = None) -> np.ndarray:
+    def compute_derivatives(self, ip: np.ndarray | None = None) -> np.ndarray:
         """Method to handle whether the input is being supplied externally or
         being passed by some layer, and calculate the derivatives accordingly.
 
@@ -276,7 +276,7 @@ class Activation(BaseLayer):
 
         return derivatives
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self.activations
 
     def output_shape(self):
@@ -341,7 +341,7 @@ class Linear(Activation):
         return ip
 
     def derivative_func(
-        self, ip: np.ndarray, activations: Optional[np.ndarray] = None
+        self, ip: np.ndarray, activations: np.ndarray | None = None
     ) -> np.ndarray:
         return np.ones_like(ip, dtype=np.float32)
 
@@ -397,7 +397,7 @@ class Sigmoid(Activation):
         return z
 
     def derivative_func(
-        self, ip: np.ndarray, activations: Optional[np.ndarray] = None
+        self, ip: np.ndarray, activations: np.ndarray | None = None
     ) -> np.ndarray:
         if activations is None:
             activations = self.activation_func(ip)
@@ -485,7 +485,7 @@ class Softmax(Activation):
 
     name = "softmax"
 
-    def should_reshape(self, shape: Tuple[int, ...]) -> bool:
+    def should_reshape(self, shape: tuple[int, ...]) -> bool:
         """Method to determine if the given shape requires reshaping.
 
         Returns True if shape has more than two dimensions.
@@ -510,7 +510,7 @@ class Softmax(Activation):
         return z
 
     def derivative_func(
-        self, ip: np.ndarray, activations: Optional[np.ndarray] = None
+        self, ip: np.ndarray, activations: np.ndarray | None = None
     ) -> np.ndarray:
         if activations is None:
             activations = self.activation_func(ip)
@@ -583,7 +583,7 @@ class Tanh(Activation):
         return np.tanh(ip)
 
     def derivative_func(
-        self, ip: np.ndarray, activations: Optional[np.ndarray] = None
+        self, ip: np.ndarray, activations: np.ndarray | None = None
     ) -> np.ndarray:
         if activations is None:
             activations = self.activation_func(ip)
@@ -698,7 +698,7 @@ class LeakyReLU(Activation):
     name = "lrelu"
     default_alpha = 0.01
 
-    def __init__(self, *args, ip: Optional[LayerInput] = None, **kwargs) -> None:
+    def __init__(self, *args, ip: LayerInput | None = None, **kwargs) -> None:
         alpha = kwargs.pop("alpha", None)
         if alpha is None:
             alpha = self.default_alpha
@@ -710,7 +710,7 @@ class LeakyReLU(Activation):
         return np.where(ip > 0, ip, self.alpha * ip)
 
     def derivative_func(
-        self, ip: np.ndarray, activations: Optional[np.ndarray] = None
+        self, ip: np.ndarray, activations: np.ndarray | None = None
     ) -> np.ndarray:
         return np.where(ip > 0, 1.0, self.alpha)
 
@@ -774,7 +774,7 @@ class ELU(LeakyReLU):
         return np.where(ip > 0, ip, self.alpha * (np.exp(ip) - 1))
 
     def derivative_func(
-        self, ip: np.ndarray, activations: Optional[np.ndarray] = None
+        self, ip: np.ndarray, activations: np.ndarray | None = None
     ) -> np.ndarray:
         return np.where(ip > 0, 1.0, self.alpha * np.exp(ip))
 

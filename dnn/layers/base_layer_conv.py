@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -39,8 +39,8 @@ class BaseConv(BaseLayer):
         self,
         ip: LayerInput,
         filters: int,
-        kernel_size: Tuple[int, int],
-        stride: Tuple[int, int] = (1, 1),
+        kernel_size: tuple[int, int],
+        stride: tuple[int, int] = (1, 1),
         activation: ActivationType = None,
         padding: str = "valid",
         initializer: str = "he",
@@ -74,15 +74,15 @@ class BaseConv(BaseLayer):
         self.convolutions = None
         self.activations = None
 
-        self._vec_ip: Optional[np.ndarray] = None
-        self._vec_kernel: Optional[np.ndarray] = None
+        self._vec_ip: np.ndarray | None = None
+        self._vec_kernel: np.ndarray | None = None
 
-    def fans(self) -> Tuple[int, int]:
+    def fans(self) -> tuple[int, int]:
         receptive_field_size = np.prod(self.kernel_size)
         fan_in = self.ip_C * receptive_field_size
         return fan_in, receptive_field_size * self.filters
 
-    def kernel_shape(self) -> Tuple[int, ...]:
+    def kernel_shape(self) -> tuple[int, ...]:
         return (self.ip_C, *self.kernel_size, self.filters)
 
     def build(self) -> Any:
@@ -104,13 +104,13 @@ class BaseConv(BaseLayer):
 
         return total
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self.activations
 
-    def pad_area(self) -> Tuple[int, int]:
+    def pad_area(self) -> tuple[int, int]:
         return cutils.padding(self.kernel_size, mode=self.padding)
 
-    def output_area(self) -> Tuple[int, int]:
+    def output_area(self) -> tuple[int, int]:
         ip_shape = self.input_shape()
         ipH, ipW = ip_shape[1], ip_shape[2]
 
@@ -120,7 +120,7 @@ class BaseConv(BaseLayer):
 
         return oH, oW
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         if self.activations is not None:
             return self.activations.shape
 
@@ -128,12 +128,12 @@ class BaseConv(BaseLayer):
 
         return self.filters, oH, oW, None
 
-    def _padded_shape(self) -> Tuple[int, int]:
+    def _padded_shape(self) -> tuple[int, int]:
         ipH, ipW = self.input_shape()[1:-1]
         pH, pW = self.pad_area()
         return ipH + 2 * pH, ipW + 2 * pW
 
-    def prepare_input_and_kernel_for_conv(self) -> Tuple[np.ndarray, np.ndarray]:
+    def prepare_input_and_kernel_for_conv(self) -> tuple[np.ndarray, np.ndarray]:
         return self.input(), self.kernels
 
     @abstractmethod
@@ -173,7 +173,7 @@ class BaseConv(BaseLayer):
     def compute_vec_ip_gradient(self, grad: np.ndarray) -> np.ndarray:
         """Method to compute the derivative of loss wrt to the vectorized input."""
 
-    def get_input_gradient_shape(self) -> Tuple[int, ...]:
+    def get_input_gradient_shape(self) -> tuple[int, ...]:
         """Method to obtain the shape of the derivative of loss wrt to the input of the layer."""
         post_pad_H, post_pad_W = self._padded_shape()
         m = self.input().shape[-1]

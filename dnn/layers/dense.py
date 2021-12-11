@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -118,7 +118,7 @@ class Dense(BaseLayer):
 
         super().__init__(ip=ip, params=params, name=name)
 
-    def fans(self) -> Tuple[int, int]:
+    def fans(self) -> tuple[int, int]:
         fan_in = self.input_shape()[0]
         return fan_in, self.units
 
@@ -143,10 +143,10 @@ class Dense(BaseLayer):
 
         return total
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self.activations
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         if self.activations is not None:
             return self.activations.shape
 

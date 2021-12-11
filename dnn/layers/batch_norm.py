@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -143,7 +143,7 @@ class BatchNorm(BaseLayer):
         self.mean_mva = None
         self.std_mva = None
 
-    def fans(self) -> Tuple[int, int]:
+    def fans(self) -> tuple[int, int]:
         if not isinstance(self.ip_layer, BaseLayer):
             raise TypeError("fans() can only be used when the input is another layer.")
 
@@ -176,10 +176,10 @@ class BatchNorm(BaseLayer):
     def count_params(self) -> int:
         return 2 * self.x_dim()
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self.scaled_norm
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         return self.input_shape()
 
     def _update_mva(self, mean: np.ndarray, std: np.ndarray) -> None:

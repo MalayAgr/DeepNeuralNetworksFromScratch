@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
 
 import numpy as np
 
@@ -77,10 +76,10 @@ class Dropout(BaseLayer):
         self.dropped = None
         self.dropout_mask = None
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self.dropped
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         return self.input_shape()
 
     def forward_step(self, *args, **kwargs) -> np.ndarray:

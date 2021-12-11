@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from itertools import count
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Union
 
 import numpy as np
 
@@ -122,10 +122,10 @@ class BaseLayer(ABC):
 
     def __init__(
         self,
-        ip: Union[Input, BaseLayer, None],
+        ip: Input | BaseLayer | None,
         *args,
         trainable: bool = True,
-        params: List = None,
+        params: list = None,
         name: str = None,
         **kwargs,
     ) -> None:
@@ -201,7 +201,7 @@ class BaseLayer(ABC):
             if attr != "activation"
         )
 
-    def fans(self) -> Tuple[int, int]:
+    def fans(self) -> tuple[int, int]:
         """Method to obtain the number of input and output units of the layer.
 
         Trainable layers must implement this method.
@@ -236,7 +236,7 @@ class BaseLayer(ABC):
             "xavier_uniform": 6 / (fan_in + fan_out),
         }[initializer]
 
-    def _add_param(self, shape: Tuple[int, ...], initializer: str) -> np.ndarray:
+    def _add_param(self, shape: tuple[int, ...], initializer: str) -> np.ndarray:
         """Helper method to initialize a parameter with the given shape and initializer.
 
         Arguments:
@@ -315,7 +315,7 @@ class BaseLayer(ABC):
 
         return ret_val
 
-    def input_shape(self) -> Tuple[int, ...]:
+    def input_shape(self) -> tuple[int, ...]:
         """Method to obtain the expected shape of the input of the layer.
 
         Raises
@@ -331,13 +331,13 @@ class BaseLayer(ABC):
         return self.ip_layer.output_shape()
 
     @abstractmethod
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         """
         Method to obtain the output of the layer.
         """
 
     @abstractmethod
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         """
         Method to obtain the expected shape of the output of the layer.
         """
@@ -355,7 +355,7 @@ class BaseLayer(ABC):
         Method to carry out one step of forward propagation.
         """
 
-    def backprop(self, grad: np.ndarray, *args, **kwargs) -> Optional[np.ndarray]:
+    def backprop(self, grad: np.ndarray, *args, **kwargs) -> np.ndarray | None:
         """Method to carry out one complete backprop step.
 
         Arguments
@@ -472,10 +472,10 @@ class MultiInputBaseLayer(BaseLayer):
 
     def __init__(
         self,
-        ip: List[LayerInput],
+        ip: list[LayerInput],
         *args,
         trainable: bool,
-        params: List = None,
+        params: list = None,
         name: str = None,
         **kwargs,
     ) -> None:
@@ -520,7 +520,7 @@ class MultiInputBaseLayer(BaseLayer):
             )
             raise TypeError(msg)
 
-    def input(self) -> List[np.ndarray]:
+    def input(self) -> list[np.ndarray]:
         """Method to obtain the underlying NumPy arrays which are the inputs to the layer.
 
         Raises
@@ -539,7 +539,7 @@ class MultiInputBaseLayer(BaseLayer):
 
         return ret_val
 
-    def input_shape(self) -> List[Tuple[int, ...]]:
+    def input_shape(self) -> list[tuple[int, ...]]:
         """Method to obtain the expected shapes of the inputs of the layer."""
         return [
             ip.shape if isinstance(ip, Input) else ip.output_shape()
@@ -548,11 +548,11 @@ class MultiInputBaseLayer(BaseLayer):
 
     def backprop(
         self, grad: np.ndarray, *args, **kwargs
-    ) -> Optional[Tuple[np.ndarray]]:
+    ) -> tuple[np.ndarray] | None:
         return super().backprop(grad=grad, *args, **kwargs)
 
     @abstractmethod
-    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> Tuple[np.ndarray]:
+    def backprop_inputs(self, grad: np.ndarray, *args, **kwargs) -> tuple[np.ndarray]:
         """Method to compute the derivative of loss wrt the layer's inputs.
 
         It should return a tuple of as many NumPy arrays as there are inputs in the layer.

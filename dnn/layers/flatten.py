@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from functools import reduce
 from operator import mul
-from typing import Optional, Tuple
 
 import numpy as np
 
@@ -55,10 +54,10 @@ class Flatten(BaseLayer):
 
         self.flat = None
 
-    def output(self) -> Optional[np.ndarray]:
+    def output(self) -> np.ndarray | None:
         return self.flat
 
-    def output_shape(self) -> Tuple[int, ...]:
+    def output_shape(self) -> tuple[int, ...]:
         if self.flat is not None:
             return self.flat.shape
 

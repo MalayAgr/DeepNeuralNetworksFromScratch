@@ -61,8 +61,8 @@ def _categorial_crossentropy_derivative(
 
 
 class Loss(ABC):
-    names: List[str] = None
-    REGISTRY: Dict[str, Type[Loss]] = {}
+    names: list[str] = None
+    REGISTRY: dict[str, type[Loss]] = {}
     ndim: int = None
 
     def __init_subclass__(cls, **kwargs) -> None:
@@ -86,14 +86,14 @@ class Loss(ABC):
                 f"{self.__class__.__name__} expects at least {self.ndim}-dimensional inputs"
             )
 
-    def should_reshape(self, shape: Tuple[int, ...]) -> bool:
+    def should_reshape(self, shape: tuple[int, ...]) -> bool:
         """Method to determine if the labels and predictions should be reshaped."""
         return False
 
     @staticmethod
     def reshape_labels_and_preds(
         labels: np.ndarray, preds: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Method to reshape the labels and predictions if they should be reshaped."""
         return labels, preds
 
@@ -160,13 +160,13 @@ class BinaryCrossEntropy(Loss):
     ndim = 2
     epsilon = 1e-15
 
-    def should_reshape(self, shape: Tuple[int, ...]) -> bool:
+    def should_reshape(self, shape: tuple[int, ...]) -> bool:
         return len(shape) > self.ndim or shape[0] != 1
 
     @staticmethod
     def reshape_labels_and_preds(
         labels: np.ndarray, preds: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         return labels.reshape(1, -1), preds.reshape(1, -1)
 
     def loss_func(self, labels: np.ndarray, preds: np.ndarray) -> float:
@@ -184,13 +184,13 @@ class MeanSquaredError(Loss):
     names = ["mean_squared_error", "mse"]
     ndim = 2
 
-    def should_reshape(self, shape: Tuple) -> bool:
+    def should_reshape(self, shape: tuple) -> bool:
         return len(shape) > self.ndim or shape[0] != 1
 
     @staticmethod
     def reshape_labels_and_preds(
         labels: np.ndarray, preds: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         return labels.reshape(1, -1), preds.reshape(1, -1)
 
     def loss_func(self, labels: np.ndarray, preds: np.ndarray) -> float:
@@ -212,13 +212,13 @@ class CategoricalCrossEntropy(Loss):
     names = ["categorial_crossentropy", "cce"]
     ndim = 2
 
-    def should_reshape(self, shape: Tuple) -> bool:
+    def should_reshape(self, shape: tuple) -> bool:
         return len(shape) > self.ndim
 
     @staticmethod
     def reshape_labels_and_preds(
         labels: np.ndarray, preds: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         classes = labels.shape[0]
         return labels.reshape(classes, -1), preds.reshape(classes, -1)
 

@@ -26,7 +26,7 @@ class Input:
         The last dimension refers to the batch size. Initially, it is None.
     """
 
-    def __init__(self, shape: Tuple[int, ...], *args, **kwargs) -> None:
+    def __init__(self, shape: tuple[int, ...], *args, **kwargs) -> None:
         """
         Initializes an Input instance with the given input shape.
 
@@ -50,7 +50,7 @@ class Input:
         return self.__str__()
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         """
         The shape of the input of the layer.
         """
@@ -59,7 +59,7 @@ class Input:
         return self._shape
 
     @property
-    def ip(self) -> Optional[np.ndarray]:
+    def ip(self) -> np.ndarray | None:
         """
         The actual Numpy array that the layer will provide to other layers.
         """

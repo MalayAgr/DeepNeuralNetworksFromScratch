@@ -12,7 +12,7 @@ from numba import njit
 from dnn.loss import Loss
 
 BatchIterator = Iterator[np.ndarray]
-DatasetIterator = Iterator[Tuple[Tuple[np.ndarray], Tuple[np.ndarray], int]]
+DatasetIterator = Iterator[tuple[tuple[np.ndarray], tuple[np.ndarray], int]]
 
 
 def loss_factory(loss: str) -> Loss:
@@ -55,7 +55,7 @@ def _batches_with_permutation(
 
 
 def get_batch_generator(
-    X: Tuple[np.ndarray], Y: Tuple[np.ndarray], batch_size: int, shuffle: bool = True
+    X: tuple[np.ndarray], Y: tuple[np.ndarray], batch_size: int, shuffle: bool = True
 ) -> DatasetIterator:
     num_samples = X[0].shape[-1]
 
@@ -93,7 +93,7 @@ class HeightWidthAttribute:
     def __get__(self, obj, klass=None):
         return getattr(obj, self.private_name)
 
-    def __set__(self, obj, value: Tuple[int, int]):
+    def __set__(self, obj, value: tuple[int, int]):
         setattr(obj, self.private_name, value)
         setattr(obj, self.height_attr, value[0])
         setattr(obj, self.width_attr, value[1])

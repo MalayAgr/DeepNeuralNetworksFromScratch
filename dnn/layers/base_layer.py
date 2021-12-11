@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from itertools import count
-from typing import Any, List, Union
+from typing import Any, Union
 
 import numpy as np
 
@@ -510,7 +510,7 @@ class MultiInputBaseLayer(BaseLayer):
 
     def _validate_ip(self, ip):
         """Method to validate the input."""
-        if not isinstance(ip, List):
+        if not isinstance(ip, list):
             raise TypeError(f"{self.__class__.__name__} expects a list of inputs.")
 
         if any(not isinstance(i, (BaseLayer, Input)) for i in ip):
@@ -546,9 +546,7 @@ class MultiInputBaseLayer(BaseLayer):
             for ip in self.ip_layer
         ]
 
-    def backprop(
-        self, grad: np.ndarray, *args, **kwargs
-    ) -> tuple[np.ndarray] | None:
+    def backprop(self, grad: np.ndarray, *args, **kwargs) -> tuple[np.ndarray] | None:
         return super().backprop(grad=grad, *args, **kwargs)
 
     @abstractmethod

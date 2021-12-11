@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from dnn.layers.activations import Activation, ActivationType
 from dnn.layers.base_layer import LayerInput
 
 
 def activation_factory(
-    activation: str, *args, ip: Optional[LayerInput] = None, **kwargs
+    activation: str, *args, ip: LayerInput | None = None, **kwargs
 ) -> Activation:
     registry = Activation.REGISTRY
     cls = registry.get(activation)

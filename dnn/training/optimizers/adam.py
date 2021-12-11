@@ -30,9 +30,7 @@ def _update_second_moment(
 
 
 @njit(cache=True, parallel=True)
-def _maximum(
-    x: np.ndarray | float, y: np.ndarray | float
-) -> np.ndarray | float:
+def _maximum(x: np.ndarray | float, y: np.ndarray | float) -> np.ndarray | float:
     return np.maximum(x, y)
 
 

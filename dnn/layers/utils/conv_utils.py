@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-from typing import Tuple
 
 import numpy as np
 from numba import njit
@@ -31,9 +30,9 @@ def _slice_idx_generator(oH: int, oW: int, sH: int, sW: int) -> np.ndarray:
 @njit(cache=True)
 def _vectorize_ip_no_reshape(
     X: np.ndarray,
-    kernel_size: Tuple[int, int],
-    stride: Tuple[int, int],
-    output_size: Tuple[int, int],
+    kernel_size: tuple[int, int],
+    stride: tuple[int, int],
+    output_size: tuple[int, int],
 ) -> np.ndarray:
     sH, sW = stride
     kH, kW = kernel_size
@@ -58,10 +57,10 @@ def _vectorize_ip_no_reshape(
 @njit(cache=True)
 def _vectorize_ip_reshape(
     X: np.ndarray,
-    kernel_size: Tuple[int, int],
-    stride: Tuple[int, int],
-    output_size: Tuple[int, int],
-    reshape: Tuple[int, ...],
+    kernel_size: tuple[int, int],
+    stride: tuple[int, int],
+    output_size: tuple[int, int],
+    reshape: tuple[int, ...],
 ) -> np.ndarray:
     sH, sW = stride
     kH, kW = kernel_size
@@ -91,7 +90,7 @@ def _vectorize_kernel_no_reshape(kernel: np.ndarray) -> np.ndarray:
 
 @njit(cache=True)
 def _vectorize_kernel_reshape(
-    kernel: np.ndarray, reshape: Tuple[int, ...]
+    kernel: np.ndarray, reshape: tuple[int, ...]
 ) -> np.ndarray:
     return kernel.reshape(reshape)
 
@@ -99,9 +98,9 @@ def _vectorize_kernel_reshape(
 def _backprop_kernel(
     ip: np.ndarray,
     grad: np.ndarray,
-    kernel_size: Tuple[int, int],
+    kernel_size: tuple[int, int],
     filters: int,
-    axis: Tuple[int, ...] = (0,),
+    axis: tuple[int, ...] = (0,),
 ) -> np.ndarray:
     dW = np.matmul(ip, grad, dtype=np.float32)
     dW = dW.sum(axis=axis)
@@ -110,7 +109,7 @@ def _backprop_kernel(
 
 
 @njit(cache=True)
-def padding(kernel_size: Tuple[int, int], mode: str = "valid") -> Tuple[int, int]:
+def padding(kernel_size: tuple[int, int], mode: str = "valid") -> tuple[int, int]:
     if mode == "same":
         kH, kW = kernel_size
         return math.ceil((kH - 1) / 2), math.ceil((kW - 1) / 2)
@@ -131,10 +130,10 @@ def pad(X: np.ndarray, pad_H: int, pad_W: int) -> np.ndarray:
 
 def prepare_ip(
     X: np.ndarray,
-    kernel_size: Tuple[int, int],
-    stride: Tuple[int, int] = (1, 1),
-    padding: Tuple[int, int] = (0, 0),
-    vec_reshape: Tuple[int, ...] = (),
+    kernel_size: tuple[int, int],
+    stride: tuple[int, int] = (1, 1),
+    padding: tuple[int, int] = (0, 0),
+    vec_reshape: tuple[int, ...] = (),
 ) -> np.ndarray:
 
     ipH, ipW = X.shape[1:-1]
@@ -157,7 +156,7 @@ def prepare_ip(
     )
 
 
-def vectorize_kernel(kernel: np.ndarray, reshape: Tuple[int, ...] = ()) -> np.ndarray:
+def vectorize_kernel(kernel: np.ndarray, reshape: tuple[int, ...] = ()) -> np.ndarray:
     return (
         _vectorize_kernel_no_reshape(kernel)
         if not reshape
@@ -171,13 +170,13 @@ def convolve(X: np.ndarray, weights: np.ndarray) -> np.ndarray:
 
 @njit(cache=True)
 def accumulate_dX_conv(
-    grad_shape: Tuple[int, ...],
-    output_size: Tuple[int, int],
+    grad_shape: tuple[int, ...],
+    output_size: tuple[int, int],
     vec_ip_grad: np.ndarray,
-    stride: Tuple[int, int],
-    kernel_size: Tuple[int, int],
-    reshape: Tuple[int, ...],
-    padding: Tuple[int, int] = (0, 0),
+    stride: tuple[int, int],
+    kernel_size: tuple[int, int],
+    reshape: tuple[int, ...],
+    padding: tuple[int, int] = (0, 0),
     moveaxis: bool = True,
 ) -> np.ndarray:
     kH, kW = kernel_size
@@ -191,7 +190,7 @@ def accumulate_dX_conv(
     for start_r, start_c in slice_idx:
         end_r, end_c = start_r + kH, start_c + kW
         area = np.ascontiguousarray(vec_ip_grad[:, idx, ...])
-        grad[..., start_r:end_r, start_c:end_c] += area.reshape((reshape))
+        grad[..., start_r:end_r, start_c:end_c] += area.reshape(reshape)
         idx += 1
 
     if padding != (0, 0):
@@ -206,7 +205,7 @@ def accumulate_dX_conv(
 
 
 def backprop_kernel_conv2d(
-    ip: np.ndarray, grad: np.ndarray, kernel_size: Tuple[int, int], filters: int
+    ip: np.ndarray, grad: np.ndarray, kernel_size: tuple[int, int], filters: int
 ) -> np.ndarray:
     return _backprop_kernel(
         ip=ip[..., None],
@@ -218,7 +217,7 @@ def backprop_kernel_conv2d(
 
 
 def backprop_kernel_depthwise_conv2d(
-    ip: np.ndarray, grad: np.ndarray, kernel_size: Tuple[int, int], multiplier: int
+    ip: np.ndarray, grad: np.ndarray, kernel_size: tuple[int, int], multiplier: int
 ) -> np.ndarray:
     return _backprop_kernel(
         ip=np.swapaxes(ip, -1, -2),
@@ -229,7 +228,7 @@ def backprop_kernel_depthwise_conv2d(
 
 
 def backprop_bias(
-    grad: np.ndarray, axis: Tuple[int, ...], reshape: Tuple[int, ...]
+    grad: np.ndarray, axis: tuple[int, ...], reshape: tuple[int, ...]
 ) -> np.ndarray:
     grad = grad.sum(axis=axis)
     grad = grad.reshape((-1, *reshape))
@@ -237,7 +236,7 @@ def backprop_bias(
 
 
 def convolve2d(
-    X: np.ndarray, weights: np.ndarray, filters: int, op_area: Tuple[int, int]
+    X: np.ndarray, weights: np.ndarray, filters: int, op_area: tuple[int, int]
 ) -> np.ndarray:
     oH, oW = op_area
 
@@ -255,7 +254,7 @@ def depthwise_convolve2d(
     weights: np.ndarray,
     multiplier: int,
     ip_C: int,
-    op_area: Tuple[int, int],
+    op_area: tuple[int, int],
 ) -> np.ndarray:
     oH, oW = op_area
 
@@ -271,12 +270,12 @@ def depthwise_convolve2d(
 def transpose_convolve2d(
     X: np.ndarray,
     weights: np.ndarray,
-    shape: Tuple[int, ...],
+    shape: tuple[int, ...],
     filters: int,
-    ip_area: Tuple[int, int],
-    kernel_size: Tuple[int, int],
-    stride: Tuple[int, int],
-    padding: Tuple[int, int],
+    ip_area: tuple[int, int],
+    kernel_size: tuple[int, int],
+    stride: tuple[int, int],
+    padding: tuple[int, int],
 ) -> np.ndarray:
     elem_wise = np.matmul(X, weights.T, dtype=np.float32)
 
@@ -293,8 +292,8 @@ def transpose_convolve2d(
 
 @njit(cache=True)
 def maxpool2D(
-    X: np.ndarray, windows: int, output_size: Tuple[int, int]
-) -> Tuple[np.ndarray, np.ndarray]:
+    X: np.ndarray, windows: int, output_size: tuple[int, int]
+) -> tuple[np.ndarray, np.ndarray]:
     first_three = X.shape[:-1]
 
     maximums = np.empty(first_three, np.float32)
@@ -312,8 +311,8 @@ def maxpool2D(
 
 
 def averagepool2D(
-    X: np.ndarray, windows: int, output_size: Tuple[int, int]
-) -> Tuple[np.ndarray, np.ndarray]:
+    X: np.ndarray, windows: int, output_size: tuple[int, int]
+) -> tuple[np.ndarray, np.ndarray]:
     shape = X.shape
     pool_size = X.shape[-1]
 

@@ -6,7 +6,7 @@ from typing import Union
 import numpy as np
 from numba import njit
 
-from .base_layer import BaseLayer, LayerInput
+from .base_layer import BaseLayer, LayerInputType
 
 
 @njit(cache=True, parallel=True)
@@ -108,7 +108,7 @@ class Activation(BaseLayer):
     def __init__(
         self,
         *args,
-        ip: LayerInput | None = None,
+        ip: LayerInputType | None = None,
         name: str = None,
         trainable=False,
         **kwargs,
@@ -698,7 +698,7 @@ class LeakyReLU(Activation):
     name = "lrelu"
     default_alpha = 0.01
 
-    def __init__(self, *args, ip: LayerInput | None = None, **kwargs) -> None:
+    def __init__(self, *args, ip: LayerInputType | None = None, **kwargs) -> None:
         alpha = kwargs.pop("alpha", None)
         if alpha is None:
             alpha = self.default_alpha

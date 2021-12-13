@@ -4,7 +4,7 @@ from typing import Any
 
 import numpy as np
 
-from .base_layer import BaseLayer, LayerInput
+from .base_layer import BaseLayer, LayerInputType
 
 
 class BatchNorm(BaseLayer):
@@ -79,7 +79,7 @@ class BatchNorm(BaseLayer):
 
     def __init__(
         self,
-        ip: LayerInput,
+        ip: LayerInputType,
         axis: int = 0,
         momentum: float = 0.5,
         epsilon: float = 1e-7,

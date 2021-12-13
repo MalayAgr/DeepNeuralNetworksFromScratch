@@ -6,7 +6,7 @@ import numpy as np
 
 from dnn.layers.activations import ActivationType
 
-from .base_layer import BaseLayer, LayerInput
+from .base_layer import BaseLayer, LayerInputType
 from .utils import add_activation
 
 
@@ -75,7 +75,7 @@ class Dense(BaseLayer):
 
     def __init__(
         self,
-        ip: LayerInput,
+        ip: LayerInputType,
         units: int,
         activation: ActivationType = None,
         initializer: str = "he",

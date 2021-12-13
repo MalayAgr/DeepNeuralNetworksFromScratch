@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 
 from .activations import Activation, ActivationType
-from .base_layer import BaseLayer, LayerInput
+from .base_layer import BaseLayer, LayerInputType
 from .conv2d import Conv2D
 from .conv2d_depthwise import DepthwiseConv2D
 
@@ -13,7 +13,7 @@ from .conv2d_depthwise import DepthwiseConv2D
 class SeparableConv2D(BaseLayer):
     def __init__(
         self,
-        ip: LayerInput,
+        ip: LayerInputType,
         filters: int,
         kernel_size: tuple[int, int],
         stride: tuple[int, int] = (1, 1),

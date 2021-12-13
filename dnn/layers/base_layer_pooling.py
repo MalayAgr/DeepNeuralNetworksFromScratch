@@ -6,7 +6,7 @@ import numpy as np
 
 from dnn.utils import HeightWidthAttribute
 
-from .base_layer import BaseLayer, LayerInput
+from .base_layer import BaseLayer, LayerInputType
 from .utils import conv_utils as cutils
 
 
@@ -22,17 +22,15 @@ class BasePooling(BaseLayer):
 
     def __init__(
         self,
-        ip: LayerInput,
+        ip: LayerInputType,
         pool_size: tuple[int, ...],
         stride: tuple[int, int] = (2, 2),
         padding: str = "valid",
         name: str = None,
     ) -> None:
         self.pool_size = pool_size
-        self.pool_H, self.pool_W = pool_size
 
         self.stride = stride
-        self.stride_H, self.stride_W = stride
 
         self.padding = padding
 

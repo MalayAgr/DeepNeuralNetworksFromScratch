@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 
 from .activations import ActivationType
-from .base_layer import LayerInput
+from .base_layer import LayerInputType
 from .conv2d import Conv2D
 from .utils import conv_utils as cutils
 
@@ -15,7 +15,7 @@ class DepthwiseConv2D(Conv2D):
 
     def __init__(
         self,
-        ip: LayerInput,
+        ip: LayerInputType,
         *args,
         kernel_size: tuple[int, int],
         stride: tuple[int, int] = (1, 1),

@@ -444,7 +444,7 @@ class BaseLayer(ABC):
             setattr(self, attr, None)
 
 
-LayerInput = Union[Input, BaseLayer]
+LayerInputType = Union[Input, BaseLayer]
 
 
 class MultiInputBaseLayer(BaseLayer):
@@ -472,7 +472,7 @@ class MultiInputBaseLayer(BaseLayer):
 
     def __init__(
         self,
-        ip: list[LayerInput],
+        ip: list[LayerInputType],
         *args,
         trainable: bool,
         params: list = None,

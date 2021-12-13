@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .base_layer import LayerInput, MultiInputBaseLayer
+from .base_layer import LayerInputType, MultiInputBaseLayer
 
 
 class Add(MultiInputBaseLayer):
@@ -45,7 +45,7 @@ class Add(MultiInputBaseLayer):
            [16, 18]])
     """
 
-    def __init__(self, ip: list[LayerInput], name: str = None) -> None:
+    def __init__(self, ip: list[LayerInputType], name: str = None) -> None:
         """
         Arguments
         ----------

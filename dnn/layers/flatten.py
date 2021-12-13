@@ -5,7 +5,7 @@ from operator import mul
 
 import numpy as np
 
-from .base_layer import BaseLayer, LayerInput
+from .base_layer import BaseLayer, LayerInputType
 
 
 class Flatten(BaseLayer):
@@ -45,7 +45,7 @@ class Flatten(BaseLayer):
 
     reset = ("flat",)
 
-    def __init__(self, ip: LayerInput, name: str = None) -> None:
+    def __init__(self, ip: LayerInputType, name: str = None) -> None:
         super().__init__(ip=ip, trainable=False, name=name)
 
         self._ip_dims = self.input_shape()[:-1]

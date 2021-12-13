@@ -8,7 +8,7 @@ import numpy as np
 from dnn.utils import HeightWidthAttribute
 
 from .activations import ActivationType
-from .base_layer import BaseLayer, LayerInput
+from .base_layer import BaseLayer, LayerInputType
 from .utils import add_activation
 from .utils import conv_utils as cutils
 
@@ -37,7 +37,7 @@ class BaseConv(BaseLayer):
 
     def __init__(
         self,
-        ip: LayerInput,
+        ip: LayerInputType,
         filters: int,
         kernel_size: tuple[int, int],
         stride: tuple[int, int] = (1, 1),

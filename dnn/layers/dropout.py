@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .base_layer import BaseLayer, LayerInput
+from .base_layer import BaseLayer, LayerInputType
 
 
 class Dropout(BaseLayer):
@@ -50,7 +50,7 @@ class Dropout(BaseLayer):
     str_attrs = ("keep_prob",)
 
     def __init__(
-        self, ip: LayerInput, keep_prob: float = 0.5, name: str = None
+        self, ip: LayerInputType, keep_prob: float = 0.5, name: str = None
     ) -> None:
         """
         Arguments

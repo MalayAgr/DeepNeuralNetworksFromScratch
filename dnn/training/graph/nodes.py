@@ -85,7 +85,7 @@ class LayerNode(Node):
 
     @property
     def trainable_weights(self) -> list[str]:
-        if self.layer.trainable is True:
+        if not self._trainable_weights and self.layer.trainable is True:
             self._trainable_weights = self.layer.param_keys
         return self._trainable_weights
 

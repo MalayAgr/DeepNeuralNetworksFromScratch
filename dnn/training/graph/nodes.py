@@ -31,8 +31,9 @@ class Node(ABC):
     def trainable_weights(self) -> list[str]:
         """Method to obtain a list of names of trainable weights of the node."""
 
+    @property
     @abstractmethod
-    def get_trainable_weight_values(self) -> Iterator[np.ndarray]:
+    def weights(self) -> Iterator[np.ndarray]:
         """Method to obtain a generator of the trainable weights of the node."""
 
     @property
@@ -67,6 +68,7 @@ class LayerNode(Node):
         sink: bool = False,
     ) -> None:
         self.layer = layer
+        self._trainable_weights = []
         super().__init__(name=layer.name, source=source, sink=sink)
 
     @property
@@ -84,10 +86,11 @@ class LayerNode(Node):
     @property
     def trainable_weights(self) -> list[str]:
         if self.layer.trainable is True:
-            return self.layer.param_keys
-        return []
+            self._trainable_weights = self.layer.param_keys
+        return self._trainable_weights
 
-    def get_trainable_weight_values(self) -> Iterator[np.ndarray]:
+    @property
+    def weights(self) -> Iterator[np.ndarray]:
         attrs = self.trainable_weights
         return (getattr(self.layer, attr) for attr in attrs)
 

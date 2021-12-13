@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from collections import Iterator, defaultdict
 
 import numpy as np
@@ -113,9 +114,7 @@ class ComputationGraph:
         if not node.is_source:
             self._pass_grads_to_parents(node, grads)
 
-        node_weights = node.get_trainable_weight_values()
-
-        return ((weight, grad) for weight, grad in zip(node_weights, node.gradients))
+        yield from zip(node.weights, node.gradients)
 
     def backprop(self, grads: list[np.ndarray]) -> WeightsGradientsType:
         t_order = self.topological_order
@@ -133,10 +132,6 @@ class ComputationGraph:
         for grad, node in zip(grads, sink_nodes):
             node.backprop_grad = grad
 
-        weights_and_grads = []
+        func = self._backprop_node
 
-        for name in reversed(t_order):
-            node_w_and_g = self._backprop_node(name)
-            weights_and_grads.extend(node_w_and_g)
-
-        return weights_and_grads
+        return list(itertools.chain(*(func(name) for name in reversed(t_order))))

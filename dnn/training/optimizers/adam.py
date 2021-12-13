@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import cache
+
 import numpy as np
 from numba import njit
 
@@ -31,6 +33,16 @@ def _update_second_moment(
 @njit(cache=True, parallel=True)
 def _maximum(x: np.ndarray | float, y: np.ndarray | float) -> np.ndarray | float:
     return np.maximum(x, y)
+
+
+@njit(cache=True, parallel=True)
+def _compute_update(
+    m1: np.ndarray, m2: np.ndarray, epsilon: float, lr: float
+) -> np.ndarray:
+    m2 = m2 ** (1.0 / 2)
+    m2 = m2 + epsilon
+    m1 = m1 / m2
+    return lr * m1
 
 
 class Adam(Optimizer):
@@ -95,11 +107,9 @@ class Adam(Optimizer):
             self._beta1t *= self.beta_1
             self._beta2t *= self.beta_2
 
-        return m1 / (np.sqrt(m2) + self.epsilon)
+        return _compute_update(m1, m2, self.epsilon, self.lr)
 
     def _apply_gradient(
         self, weight: np.ndarray, gradient: np.ndarray, grad_idx: int
     ) -> None:
-        update = self._compute_update(gradient, grad_idx)
-
-        weight -= self.lr * update
+        weight -= self._compute_update(gradient, grad_idx)

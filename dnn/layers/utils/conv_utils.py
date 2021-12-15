@@ -28,39 +28,13 @@ def _slice_idx_generator(oH: int, oW: int, sH: int, sW: int) -> np.ndarray:
 
 
 @njit(cache=True)
-def _vectorize_ip_no_reshape(
-    X: np.ndarray,
-    kernel_size: tuple[int, int],
-    stride: tuple[int, int],
-    output_size: tuple[int, int],
-) -> np.ndarray:
-    sH, sW = stride
-    kH, kW = kernel_size
-    oH, oW = output_size
-
-    filters, batch_size = X.shape[0], X.shape[-1]
-
-    indices = _slice_idx_generator(oH, oW, sH, sW)
-    n_indices = indices.shape[0]
-
-    areas = np.empty((n_indices, filters, kH, kW, batch_size), np.float32)
-
-    idx = 0
-    for i, j in indices:
-        areas[idx, ...] = X[:, i : i + kH, j : j + kW]
-        idx += 1
-
-    areas = areas.reshape((n_indices, -1, batch_size))
-    return areas
-
-
-@njit(cache=True)
 def _vectorize_ip_reshape(
     X: np.ndarray,
     kernel_size: tuple[int, int],
     stride: tuple[int, int],
     output_size: tuple[int, int],
     reshape: tuple[int, ...],
+    dim: int = 0,
 ) -> np.ndarray:
     sH, sW = stride
     kH, kW = kernel_size
@@ -70,7 +44,10 @@ def _vectorize_ip_reshape(
     indices = _slice_idx_generator(oH, oW, sH, sW)
     n_indices = indices.shape[0]
 
-    areas = np.empty((n_indices, reshape[0], kH, kW, batch_size), np.float32)
+    if dim == 0:
+        dim = reshape[0]
+
+    areas = np.empty((n_indices, dim, kH, kW, batch_size), np.float32)
 
     idx = 0
     for i, j in indices:
@@ -79,6 +56,26 @@ def _vectorize_ip_reshape(
 
     areas = areas.reshape((n_indices, *reshape))
     return areas
+
+
+@njit(cache=True)
+def _vectorize_ip_no_reshape(
+    X: np.ndarray,
+    kernel_size: tuple[int, int],
+    stride: tuple[int, int],
+    output_size: tuple[int, int],
+) -> np.ndarray:
+    shape = X.shape
+    filters, batch_size = shape[0], shape[-1]
+
+    return _vectorize_ip_reshape(
+        X=X,
+        kernel_size=kernel_size,
+        stride=stride,
+        output_size=output_size,
+        reshape=(-1, batch_size),
+        dim=filters,
+    )
 
 
 @njit(cache=True)

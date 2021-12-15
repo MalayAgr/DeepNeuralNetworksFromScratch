@@ -50,7 +50,7 @@ def build_graph_for_model(
 
     for layer in layers:
         source = is_a_source_layer(layer, inputs)
-        layer.requires_dX = not source
+        layer.requires_ip_gradient = not source
         sink = layer in outputs
         graph.add_node(LayerNode(layer, source=source, sink=sink))
 

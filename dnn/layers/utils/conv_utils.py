@@ -79,17 +79,15 @@ def _vectorize_ip_no_reshape(
 
 
 @njit(cache=True)
-def _vectorize_kernel_no_reshape(kernel: np.ndarray) -> np.ndarray:
-    filters = kernel.shape[-1]
-    reshape = (-1, filters)
-    return kernel.reshape(reshape)
-
-
-@njit(cache=True)
 def _vectorize_kernel_reshape(
     kernel: np.ndarray, reshape: tuple[int, ...]
 ) -> np.ndarray:
     return kernel.reshape(reshape)
+
+
+@njit(cache=True)
+def _vectorize_kernel_no_reshape(kernel: np.ndarray) -> np.ndarray:
+    return _vectorize_kernel_reshape(kernel=kernel, reshape=(-1, kernel.shape[-1]))
 
 
 def _backprop_kernel(

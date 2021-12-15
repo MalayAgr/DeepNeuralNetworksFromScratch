@@ -43,7 +43,7 @@ class BaseLayer(ABC):
     param_keys: list of str
         Names of instance attributes that refer to the parameters of the layer.
 
-    requires_dX: bool
+    requires_ip_gradient: bool
         Indicates whether or not the layer should compute the gradient wrt its input(s).
 
     gradients: dict
@@ -167,7 +167,7 @@ class BaseLayer(ABC):
 
         self.param_keys = params
 
-        self.requires_dX = True
+        self.requires_ip_gradient = True
         self.gradients = {}
 
     def __str__(self) -> str:
@@ -368,7 +368,9 @@ class BaseLayer(ABC):
             self.backprop_parameters(grad, *args, **kwargs)
 
         ret_val = (
-            self.backprop_inputs(grad, *args, **kwargs) if self.requires_dX else None
+            self.backprop_inputs(grad, *args, **kwargs)
+            if self.requires_ip_gradient
+            else None
         )
 
         # Clear memory by resetting unnecessary attributes.

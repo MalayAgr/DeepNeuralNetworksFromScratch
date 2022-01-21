@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable
 
 from .base_scheduler import LearningRateScheduler
@@ -18,7 +20,7 @@ class ExponentialDecay(LearningRateScheduler):
         self.exp_func = self.make_exp_function(staircase)
 
     @staticmethod
-    def make_exp_function(staircase: bool):
+    def make_exp_function(staircase: bool) -> Callable[[int, int], int | float]:
         def staircased(iteration: int, decay_steps: int) -> int:
             return iteration // decay_steps
 

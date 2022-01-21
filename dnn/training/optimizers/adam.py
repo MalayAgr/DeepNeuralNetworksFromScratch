@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from functools import cache
-
 import numpy as np
 from numba import njit
 

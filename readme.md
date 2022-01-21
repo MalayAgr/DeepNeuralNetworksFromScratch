@@ -40,6 +40,7 @@ Currently, the following things are supported:
 - Learning Rate Decay
   - `TimeDecay`
   - `ExponentialDecay`
+  - `CosineDecay`
 
 It is also possible to easily add layers, activations, losses, optimizers and decay algorithms.
 

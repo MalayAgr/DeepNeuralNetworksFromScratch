@@ -4,7 +4,6 @@ from contextlib import ContextDecorator
 from typing import Any, Union
 
 import numpy as np
-
 from dnn import Input
 from dnn.layers import BaseLayer
 from dnn.layers.base_layer import BaseLayerType

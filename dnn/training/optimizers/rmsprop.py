@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-
 import numpy as np
-
 from dnn.utils import StateVariable
 
 from ..schedulers import LearningRateType

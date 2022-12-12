@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import numpy as np
-from numba import njit
-
 from dnn.utils import StateVariable
+from numba import njit
 
 from ..schedulers import LearningRateType
 from .base_optimizer import Optimizer, WeightsGradientsType

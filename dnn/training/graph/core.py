@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import itertools
-from collections import Iterator, defaultdict
+from collections import defaultdict
+from collections.abc import Iterator
 
 import numpy as np
 

@@ -39,7 +39,7 @@ def _binary_crossentropy_derivative(
 
 
 @njit(cache=True)
-def _categorial_crossentropy(labels: np.ndarray, preds: np.ndarray) -> float:
+def _categorical_crossentropy(labels: np.ndarray, preds: np.ndarray) -> float:
     prod = labels * np.log(preds)
     bs = labels.shape[-1]
     loss = 0.0
@@ -50,7 +50,7 @@ def _categorial_crossentropy(labels: np.ndarray, preds: np.ndarray) -> float:
 
 
 @njit(cache=True)
-def _categorial_crossentropy_derivative(
+def _categorical_crossentropy_derivative(
     labels: np.ndarray, preds: np.ndarray
 ) -> np.ndarray:
     grad = -labels
@@ -222,7 +222,7 @@ class CategoricalCrossEntropy(Loss):
         return labels.reshape(classes, -1), preds.reshape(classes, -1)
 
     def loss_func(self, labels: np.ndarray, preds: np.ndarray) -> float:
-        return _categorial_crossentropy(labels=labels, preds=preds)
+        return _categorical_crossentropy(labels=labels, preds=preds)
 
     def loss_derivative(self, labels: np.ndarray, preds: np.ndarray) -> np.ndarray:
-        return _categorial_crossentropy_derivative(labels=labels, preds=preds)
+        return _categorical_crossentropy_derivative(labels=labels, preds=preds)

@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import abstractmethod
 
 import numpy as np
-
 from dnn.utils import HeightWidthAttribute
 
 from .base_layer import BaseLayer, LayerInputType

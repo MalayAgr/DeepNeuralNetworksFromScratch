@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import numpy as np
 
 from .base_layer import LayerInputType, MultiInputBaseLayer

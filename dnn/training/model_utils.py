@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import deque
 
 import numpy as np
-
 from dnn import Input
 from dnn.layers.base_layer import BaseLayerType
 

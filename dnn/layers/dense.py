@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-
 from dnn.layers.activations import ActivationType
 
 from .base_layer import BaseLayer, LayerInputType

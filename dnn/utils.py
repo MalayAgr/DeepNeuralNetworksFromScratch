@@ -6,9 +6,8 @@ import math
 from collections.abc import Iterator
 
 import numpy as np
-from numba import njit
-
 from dnn.loss import Loss
+from numba import njit
 
 BatchIterator = Iterator[np.ndarray]
 DatasetIterator = Iterator[tuple[tuple[np.ndarray], tuple[np.ndarray], int]]

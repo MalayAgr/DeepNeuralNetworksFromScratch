@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from collections import Iterator
+from collections.abc import Iterator
 
 import numpy as np
 
@@ -57,7 +57,9 @@ class Concatenate(MultiInputBaseLayer):
     (6, 2)
     """
 
-    def __init__(self, ip: list[LayerInputType], axis: int = 0, name: str = None) -> None:
+    def __init__(
+        self, ip: list[LayerInputType], axis: int = 0, name: str = None
+    ) -> None:
         """
         Arguments
         ---------

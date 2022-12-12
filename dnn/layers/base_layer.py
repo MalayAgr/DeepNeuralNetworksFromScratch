@@ -16,7 +16,6 @@ from itertools import count
 from typing import Any, Union
 
 import numpy as np
-
 from dnn.input_layer import Input
 
 

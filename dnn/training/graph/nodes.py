@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 
 import numpy as np
-
 from dnn.layers.base_layer import BaseLayerType
 
 
